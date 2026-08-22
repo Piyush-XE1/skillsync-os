@@ -72,12 +72,8 @@ function NotesPage() {
         </IconButton>
       </header>
       <div className="mb-4 px-5 lg:px-2">
-        <h1 className="text-[28px] font-semibold leading-tight tracking-[-0.02em]">
-          Notes.
-        </h1>
-        <p className="mt-1 text-[13.5px] text-muted-foreground">
-          Autosaved. Yours forever.
-        </p>
+        <h1 className="text-[28px] font-semibold leading-tight tracking-[-0.02em]">Notes.</h1>
+        <p className="mt-1 text-[13.5px] text-muted-foreground">Autosaved. Yours forever.</p>
       </div>
 
       <div className="mb-4 px-5 lg:px-2">
@@ -111,9 +107,7 @@ function NotesPage() {
               <div className="flex items-start justify-between gap-3">
                 <div className="min-w-0 flex-1">
                   <div className="flex items-center gap-1.5">
-                    {n.pinned ? (
-                      <Pin className="h-3.5 w-3.5 text-[var(--primary-glow)]" />
-                    ) : null}
+                    {n.pinned ? <Pin className="h-3.5 w-3.5 text-[var(--primary-glow)]" /> : null}
                     <div className="truncate text-[14.5px] font-semibold tracking-tight">
                       {n.title}
                     </div>

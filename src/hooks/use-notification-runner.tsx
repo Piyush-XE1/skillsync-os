@@ -55,56 +55,63 @@ export function useNotificationRunner() {
     if (!hasNativeBridge()) void ensureNotificationWorker();
 
     let disposed = false;
+    // Guard against overlapping runs (interval + focus/visibility can collide).
+    let running = false;
 
     const run = async () => {
-      if (disposed) return;
-      const state = useAppStore.getState();
-      const settings = state.notifications?.settings;
-      if (!settings) return;
+      if (disposed || running) return;
+      running = true;
+      try {
+        const state = useAppStore.getState();
+        const settings = state.notifications?.settings;
+        if (!settings) return;
 
-      // Keep the mirrored permission value honest (native read on Android).
-      const permission = await refreshPermission().catch(() => getPermission());
-      if (disposed) return;
-      if (permission !== settings.permission) {
-        state.updateNotificationSettings({ permission });
-      }
-
-      const now = new Date();
-      const data = state as unknown as AppData;
-      const candidates = buildDueCandidates(
-        data,
-        settings,
-        now,
-        getLastBackupMeta()?.createdAt ?? null,
-      );
-
-      const quiet = isQuietHours(settings, now);
-      const adapter = getAdapter();
-      const canDeliver = settings.enabled && permission === "granted" && !quiet;
-
-      for (const candidate of candidates) {
-        const item = state.pushNotification(candidate);
-        if (!item) continue;
-        if (canDeliver) {
-          void adapter.show(item).then((ok) => {
-            if (ok) {
-              useAppStore.setState((s) => ({
-                notifications: {
-                  ...s.notifications,
-                  items: s.notifications.items.map((i) =>
-                    i.id === item.id ? { ...i, delivered: true } : i,
-                  ),
-                },
-              }));
-            }
-          });
+        // Keep the mirrored permission value honest (native read on Android).
+        const permission = await refreshPermission().catch(() => getPermission());
+        if (disposed) return;
+        if (permission !== settings.permission) {
+          state.updateNotificationSettings({ permission });
         }
+
+        const now = new Date();
+        const data = state as unknown as AppData;
+        const candidates = buildDueCandidates(
+          data,
+          settings,
+          now,
+          getLastBackupMeta()?.createdAt ?? null,
+        );
+
+        const quiet = isQuietHours(settings, now);
+        const adapter = getAdapter();
+        const canDeliver = settings.enabled && permission === "granted" && !quiet;
+
+        for (const candidate of candidates) {
+          const item = state.pushNotification(candidate);
+          if (!item) continue;
+          if (canDeliver) {
+            void adapter.show(item).then((ok) => {
+              if (ok) {
+                useAppStore.setState((s) => ({
+                  notifications: {
+                    ...s.notifications,
+                    items: s.notifications.items.map((i) =>
+                      i.id === item.id ? { ...i, delivered: true } : i,
+                    ),
+                  },
+                }));
+              }
+            });
+          }
+        }
+
+        state.updateNotificationSettings({ lastRunAt: Date.now() });
+
+        // Mirror settings into real Android alarms so reminders fire when closed.
+        void syncNativeSchedules(settings, state.preferences?.modules);
+      } finally {
+        running = false;
       }
-
-      state.updateNotificationSettings({ lastRunAt: Date.now() });
-
-      // Mirror settings into real Android alarms so reminders fire when closed.
-      void syncNativeSchedules(settings, state.preferences?.modules);
     };
 
     void run();

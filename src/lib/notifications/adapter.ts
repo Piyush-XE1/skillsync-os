@@ -177,5 +177,3 @@ export function getAdapter(): NotificationAdapter {
   if (hasNativeBridge()) return nativeAdapter;
   return webAdapter;
 }
-
-export { isNativeShell } from "@/lib/native/bridge";

@@ -1,13 +1,6 @@
 import { useMemo } from "react";
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
-import {
-  ArrowLeft,
-  BellOff,
-  CheckCheck,
-  ChevronRight,
-  Settings2,
-  Trash2,
-} from "lucide-react";
+import { ArrowLeft, BellOff, CheckCheck, ChevronRight, Settings2, Trash2 } from "lucide-react";
 import { AppShell, PageHeader } from "@/components/layout/AppShell";
 import { Card } from "@/components/ui/primitives";
 import { EmptyState } from "@/components/common/EmptyState";

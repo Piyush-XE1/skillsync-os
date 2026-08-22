@@ -36,14 +36,7 @@ import { nativeBridge } from "@/lib/native/bridge";
 export type HapticIntensity = "light" | "standard" | "strong";
 
 type Level =
-  | "light"
-  | "medium"
-  | "heavy"
-  | "selection"
-  | "success"
-  | "warning"
-  | "error"
-  | "milestone";
+  "light" | "medium" | "heavy" | "selection" | "success" | "warning" | "error" | "milestone";
 
 /* ------------------------------- settings ------------------------------- */
 
@@ -270,14 +263,3 @@ export const haptics = {
   /** Level up, streak milestone, major goal completed. */
   milestone: () => fire("milestone"),
 } as const;
-
-/**
- * @deprecated Use the semantic `haptics.*` methods instead.
- * Kept so older call sites keep compiling; maps duration → nearest level.
- */
-export function haptic(pattern: number | number[] = 12) {
-  const d = Array.isArray(pattern) ? (pattern[0] ?? 12) : pattern;
-  if (d <= 8) haptics.selection();
-  else if (d <= 16) haptics.tap();
-  else haptics.impact();
-}

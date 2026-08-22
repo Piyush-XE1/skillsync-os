@@ -6,9 +6,10 @@ import { PrimaryAction } from "@/components/layout/PrimaryAction";
 import { Card, Chip, ProgressBar } from "@/components/ui/primitives";
 import { EmptyState } from "@/components/common/EmptyState";
 import { BottomSheet, ConfirmDialog } from "@/components/edit/Sheet";
-import { TextField, TextArea , NO_AUTOFILL_PROPS } from "@/components/edit/Fields";
+import { TextField, TextArea, NO_AUTOFILL_PROPS } from "@/components/edit/Fields";
 import { ActionButton, IconButton } from "@/components/edit/Buttons";
 import { useAppStore, useHydrated } from "@/store/useAppStore";
+import { isSafeUrl, safeHref } from "@/lib/url";
 import type { Project } from "@/lib/schema";
 import { haptics } from "@/lib/haptics";
 
@@ -49,7 +50,7 @@ function ProjectsPage() {
     [projects, filter],
   );
 
-  const current = editing ? projects.find((p) => p.id === editing.id) ?? editing : null;
+  const current = editing ? (projects.find((p) => p.id === editing.id) ?? editing) : null;
 
   return (
     <AppShell>
@@ -71,7 +72,6 @@ function ProjectsPage() {
           />
         }
       />
-
 
       <div className="mb-5 flex gap-2 px-5 lg:px-2">
         {(["all", "planning", "active", "done"] as Filter[]).map((f) => {
@@ -139,9 +139,7 @@ function ProjectsPage() {
                     </Chip>
                     {p.deadline ? <Chip>Due {p.deadline}</Chip> : null}
                   </div>
-                  <div className="text-[15px] font-semibold tracking-tight">
-                    {p.title}
-                  </div>
+                  <div className="text-[15px] font-semibold tracking-tight">{p.title}</div>
                   {p.description ? (
                     <div className="line-clamp-2 text-[12.5px] text-muted-foreground">
                       {p.description}
@@ -200,9 +198,7 @@ function ProjectsPage() {
               <TextArea
                 rows={3}
                 value={current.description}
-                onChange={(e) =>
-                  updateProject(current.id, { description: e.target.value })
-                }
+                onChange={(e) => updateProject(current.id, { description: e.target.value })}
               />
             </div>
 
@@ -246,9 +242,7 @@ function ProjectsPage() {
                 <label className="text-[11px] uppercase tracking-wider text-muted-foreground">
                   Progress
                 </label>
-                <span className="text-[12px] text-muted-foreground">
-                  {current.progress}%
-                </span>
+                <span className="text-[12px] text-muted-foreground">{current.progress}%</span>
               </div>
               <input
                 type="range"
@@ -324,16 +318,15 @@ function ProjectsPage() {
               <div className="flex gap-2">
                 <TextField
                   value={current.githubUrl}
-                  onChange={(e) =>
-                    updateProject(current.id, { githubUrl: e.target.value })
-                  }
+                  onChange={(e) => updateProject(current.id, { githubUrl: e.target.value })}
                   placeholder="https://github.com/..."
                 />
                 {current.githubUrl ? (
                   <a
-                    href={current.githubUrl}
+                    href={safeHref(current.githubUrl)}
                     target="_blank"
                     rel="noreferrer"
+                    aria-disabled={!isSafeUrl(current.githubUrl)}
                     className="flex h-10 w-10 items-center justify-center rounded-xl bg-white/[0.04] text-muted-foreground"
                   >
                     <ExternalLink className="h-4 w-4" />
@@ -414,9 +407,7 @@ function ProjectsPage() {
               <TextArea
                 rows={4}
                 value={current.notes}
-                onChange={(e) =>
-                  updateProject(current.id, { notes: e.target.value })
-                }
+                onChange={(e) => updateProject(current.id, { notes: e.target.value })}
               />
             </div>
 

@@ -28,9 +28,7 @@ export function EmptyState({
         </div>
       </div>
       <div className="space-y-1.5">
-        <div className="text-[15px] font-semibold tracking-tight text-foreground">
-          {title}
-        </div>
+        <div className="text-[15px] font-semibold tracking-tight text-foreground">{title}</div>
         {hint ? (
           <div className="mx-auto max-w-[260px] text-[13px] leading-relaxed text-muted-foreground">
             {hint}

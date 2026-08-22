@@ -49,11 +49,7 @@ function NoteDetail() {
       {!note ? (
         hydrated ? (
           <div className="px-5 lg:px-2">
-            <EmptyState
-              icon={StickyNote}
-              title="Note not found"
-              hint="It may have been deleted."
-            />
+            <EmptyState icon={StickyNote} title="Note not found" hint="It may have been deleted." />
           </div>
         ) : null
       ) : (

@@ -80,9 +80,7 @@ export function PageHeader({
             {title}
           </h1>
           {subtitle ? (
-            <p className="mt-2 text-fluid-body leading-relaxed text-muted-foreground">
-              {subtitle}
-            </p>
+            <p className="mt-2 text-fluid-body leading-relaxed text-muted-foreground">{subtitle}</p>
           ) : null}
         </div>
         {right}

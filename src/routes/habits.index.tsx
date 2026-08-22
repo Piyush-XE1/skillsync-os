@@ -93,96 +93,93 @@ function HabitsPage() {
             }
           />
         ) : null}
-        {hydrated && habits.map((h) => {
-          const doneToday = habitLogs.some(
-            (l) => l.habitId === h.id && l.date === today,
-          );
-          const streak = streakFor(h.id);
-          return (
-            <Card
-              key={h.id}
-              role="button"
-              tabIndex={0}
-              aria-label={`Open ${h.title} details`}
-              onClick={() =>
-                navigate({
-                  to: "/habits/$habitId",
-                  params: { habitId: h.id },
-                })
-              }
-              onKeyDown={(e) => {
-                if (e.key === "Enter" || e.key === " ") {
-                  e.preventDefault();
+        {hydrated &&
+          habits.map((h) => {
+            const doneToday = habitLogs.some((l) => l.habitId === h.id && l.date === today);
+            const streak = streakFor(h.id);
+            return (
+              <Card
+                key={h.id}
+                role="button"
+                tabIndex={0}
+                aria-label={`Open ${h.title} details`}
+                onClick={() =>
                   navigate({
                     to: "/habits/$habitId",
                     params: { habitId: h.id },
-                  });
+                  })
                 }
-              }}
-              className="cursor-pointer p-4"
-            >
-              <div className="flex items-center gap-3">
-                <button
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    if (doneToday) {
-                      haptics.tap();
-                    } else if ((streak + 1) % 7 === 0) {
-                      // Weekly streak milestone earns a richer confirmation.
-                      haptics.milestone();
-                    } else {
-                      haptics.success();
-                    }
-                    toggleHabitToday(h.id);
-                  }}
-                  aria-label="Toggle today"
-                  className={cn(
-                    "flex h-11 w-11 items-center justify-center rounded-2xl text-[18px] transition-all active:scale-95",
-                    doneToday
-                      ? "gradient-primary shadow-[0_10px_30px_-10px_rgba(124,58,237,0.6)]"
-                      : "bg-white/[0.04]",
-                  )}
-                >
-                  <span>{h.emoji}</span>
-                </button>
-                <div className="flex min-w-0 flex-1 items-center gap-2 text-left">
-                  <div className="min-w-0 flex-1">
-                    <div className="truncate text-[14.5px] font-semibold tracking-tight">
-                      {h.title}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter" || e.key === " ") {
+                    e.preventDefault();
+                    navigate({
+                      to: "/habits/$habitId",
+                      params: { habitId: h.id },
+                    });
+                  }
+                }}
+                className="cursor-pointer p-4"
+              >
+                <div className="flex items-center gap-3">
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      if (doneToday) {
+                        haptics.tap();
+                      } else if ((streak + 1) % 7 === 0) {
+                        // Weekly streak milestone earns a richer confirmation.
+                        haptics.milestone();
+                      } else {
+                        haptics.success();
+                      }
+                      toggleHabitToday(h.id);
+                    }}
+                    aria-label="Toggle today"
+                    className={cn(
+                      "flex h-11 w-11 items-center justify-center rounded-2xl text-[18px] transition-all active:scale-95",
+                      doneToday
+                        ? "gradient-primary shadow-[0_10px_30px_-10px_rgba(124,58,237,0.6)]"
+                        : "bg-white/[0.04]",
+                    )}
+                  >
+                    <span>{h.emoji}</span>
+                  </button>
+                  <div className="flex min-w-0 flex-1 items-center gap-2 text-left">
+                    <div className="min-w-0 flex-1">
+                      <div className="truncate text-[14.5px] font-semibold tracking-tight">
+                        {h.title}
+                      </div>
+                      <div className="mt-0.5 flex items-center gap-1 text-[11.5px] text-muted-foreground">
+                        <Flame className="h-3 w-3" /> {streak} day streak
+                      </div>
                     </div>
-                    <div className="mt-0.5 flex items-center gap-1 text-[11.5px] text-muted-foreground">
-                      <Flame className="h-3 w-3" /> {streak} day streak
-                    </div>
+                    <ChevronRight className="h-4 w-4 text-muted-foreground/60" />
                   </div>
-                  <ChevronRight className="h-4 w-4 text-muted-foreground/60" />
                 </div>
-              </div>
 
-              <div className="mt-4 flex justify-between gap-1.5">
-                {last7.map((iso) => {
-                  const done = habitLogs.some(
-                    (l) => l.habitId === h.id && l.date === iso,
-                  );
-                  const isToday = iso === today;
-                  return (
-                    <div
-                      key={iso}
-                      className={cn(
-                        "flex h-8 flex-1 items-center justify-center rounded-lg border text-[10px] font-medium",
-                        done
-                          ? "border-transparent gradient-primary text-white"
-                          : "border-white/[0.06] bg-white/[0.02] text-muted-foreground",
-                        isToday && !done ? "border-white/20" : "",
-                      )}
-                    >
-                      {new Date(iso).getDate()}
-                    </div>
-                  );
-                })}
-              </div>
-            </Card>
-          );
-        })}
+                <div className="mt-4 flex justify-between gap-1.5">
+                  {last7.map((iso) => {
+                    const done = habitLogs.some((l) => l.habitId === h.id && l.date === iso);
+                    const isToday = iso === today;
+                    return (
+                      <div
+                        key={iso}
+                        className={cn(
+                          "flex h-8 flex-1 items-center justify-center rounded-lg border text-[10px] font-medium",
+                          done
+                            ? "border-transparent gradient-primary text-white"
+                            : "border-white/[0.06] bg-white/[0.02] text-muted-foreground",
+                          isToday && !done ? "border-white/20" : "",
+                        )}
+                      >
+                        {new Date(iso).getDate()}
+                      </div>
+                    );
+                  })}
+                </div>
+              </Card>
+            );
+          })}
       </div>
 
       <BottomSheet open={open} onClose={() => setOpen(false)} title="New habit">

@@ -321,10 +321,6 @@ html.light .icon-tile-accent {
     0 28px 60px -28px oklch(0 0 0 / 0.95);
 }
 
-@utility hairline {
-  border: 1px solid var(--border);
-}
-
 @utility text-balance {
   text-wrap: balance;
 }
@@ -377,13 +373,6 @@ html.light .icon-tile-accent {
     gap: 16px;
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
-}
-
-/* Charts / canvases must always fill their responsive container */
-@utility chart-responsive {
-  width: 100%;
-  min-width: 0;
-  overflow: hidden;
 }
 
 
@@ -449,34 +438,6 @@ html.light .icon-tile-accent {
   }
 }
 
-@utility skeleton {
-  position: relative;
-  overflow: hidden;
-  background: oklch(1 0 0 / 0.04);
-  border-radius: 12px;
-}
-@utility skeleton {
-  &::after {
-    content: "";
-    position: absolute;
-    inset: 0;
-    background: linear-gradient(
-      90deg,
-      transparent,
-      oklch(1 0 0 / 0.07),
-      transparent
-    );
-    transform: translateX(-100%);
-    animation: shimmer 1.8s infinite;
-  }
-}
-
-@keyframes shimmer {
-  100% {
-    transform: translateX(100%);
-  }
-}
-
 @keyframes float-in {
   from {
     opacity: 0;
@@ -510,28 +471,6 @@ html.light .icon-tile-accent {
   }
 }
 
-@keyframes soft-bounce {
-  0% {
-    transform: scale(0.8);
-  }
-  60% {
-    transform: scale(1.08);
-  }
-  100% {
-    transform: scale(1);
-  }
-}
-
-@keyframes pulse-glow {
-  0%,
-  100% {
-    box-shadow: 0 0 0 0 color-mix(in oklab, var(--primary) 45%, transparent);
-  }
-  50% {
-    box-shadow: 0 0 0 10px transparent;
-  }
-}
-
 @utility animate-float-in {
   animation: float-in 0.42s var(--ease-out-soft) both;
 }
@@ -542,14 +481,6 @@ html.light .icon-tile-accent {
 
 @utility animate-dialog-pop {
   animation: dialog-pop 0.22s var(--ease-spring) both;
-}
-
-@utility animate-soft-bounce {
-  animation: soft-bounce 0.26s var(--ease-spring) both;
-}
-
-@utility animate-pulse-glow {
-  animation: pulse-glow 1.4s var(--ease-out-soft) 2;
 }
 
 /* Hide scrollbars on horizontal scrollers */
@@ -601,9 +532,6 @@ html.light .glass {
 html.light .icon-tile {
   background: linear-gradient(180deg, #ffffff, rgba(244, 245, 249, 0.9));
   box-shadow: 0 8px 20px -16px rgba(49, 46, 129, 0.4);
-}
-html.light .skeleton {
-  background: rgba(17, 24, 39, 0.05);
 }
 html.light .gradient-text {
   background-image: linear-gradient(120deg, var(--foreground), color-mix(in oklab, var(--primary) 85%, black));

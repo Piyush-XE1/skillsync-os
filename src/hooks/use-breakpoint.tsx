@@ -25,13 +25,3 @@ function useMediaQuery(query: string) {
 export function useIsDesktop() {
   return useMediaQuery(`(min-width: ${BREAKPOINTS.lg}px)`);
 }
-
-/** True from `md` up — dialog-style overlays instead of bottom sheets. */
-export function useIsTabletUp() {
-  return useMediaQuery(`(min-width: ${BREAKPOINTS.md}px)`);
-}
-
-/** True for pointer devices with hover (desktop-only affordances). */
-export function useHasHover() {
-  return useMediaQuery("(hover: hover) and (pointer: fine)");
-}

@@ -19,9 +19,9 @@ import { EmptyState } from "@/components/common/EmptyState";
 import { useAppStore, useHydrated } from "@/store/useAppStore";
 import { phasePct, roadmapPct, topicPct, subtopicPct } from "@/lib/progress";
 import { BottomSheet, ConfirmDialog } from "@/components/edit/Sheet";
-import { TextField, TextArea , NO_AUTOFILL_PROPS } from "@/components/edit/Fields";
+import { TextField, TextArea, NO_AUTOFILL_PROPS } from "@/components/edit/Fields";
 import { ActionButton, IconButton } from "@/components/edit/Buttons";
-import type { Topic, Subtopic } from "@/lib/schema";
+import type { Topic, Subtopic, ChecklistItem } from "@/lib/schema";
 import { haptics } from "@/lib/haptics";
 
 export const Route = createFileRoute("/learn/$roadmapId")({
@@ -49,9 +49,7 @@ function RoadmapDetail() {
   const navigate = useNavigate();
   const hydrated = useHydrated();
 
-  const roadmap = useAppStore((s) =>
-    s.roadmaps.find((r) => r.id === roadmapId),
-  );
+  const roadmap = useAppStore((s) => s.roadmaps.find((r) => r.id === roadmapId));
 
   const addPhase = useAppStore((s) => s.addPhase);
   const renamePhase = useAppStore((s) => s.renamePhase);
@@ -68,7 +66,6 @@ function RoadmapDetail() {
   const moveTopic = useAppStore((s) => s.moveTopic);
   const renameRoadmap = useAppStore((s) => s.renameRoadmap);
   const deleteRoadmap = useAppStore((s) => s.deleteRoadmap);
-
 
   const [collapsed, setCollapsed] = useState<Record<string, boolean>>({});
   const [subOpen, setSubOpen] = useState<Record<string, boolean>>({});
@@ -191,9 +188,7 @@ function RoadmapDetail() {
                   )}
                 </button>
                 <button
-                  onClick={() =>
-                    setCollapsed((c) => ({ ...c, [phase.id]: !c[phase.id] }))
-                  }
+                  onClick={() => setCollapsed((c) => ({ ...c, [phase.id]: !c[phase.id] }))}
                   className="flex flex-1 items-center gap-2 text-left"
                 >
                   {isCollapsed ? (
@@ -201,9 +196,7 @@ function RoadmapDetail() {
                   ) : (
                     <ChevronDown className="h-4 w-4 text-muted-foreground" />
                   )}
-                  <span className="text-[14px] font-semibold tracking-tight">
-                    {phase.title}
-                  </span>
+                  <span className="text-[14px] font-semibold tracking-tight">{phase.title}</span>
                   <Chip>{pPct}%</Chip>
                 </button>
                 <IconButton
@@ -225,9 +218,7 @@ function RoadmapDetail() {
                 <IconButton
                   aria-label="Rename phase"
                   size="sm"
-                  onClick={() =>
-                    setRenamingPhase({ id: phase.id, title: phase.title })
-                  }
+                  onClick={() => setRenamingPhase({ id: phase.id, title: phase.title })}
                 >
                   <Pencil className="h-3.5 w-3.5" />
                 </IconButton>
@@ -283,12 +274,7 @@ function RoadmapDetail() {
                                 e.stopPropagation();
                                 if (tPct === 100) haptics.selection();
                                 else haptics.success();
-                                setTopicComplete(
-                                  roadmap.id,
-                                  phase.id,
-                                  topic.id,
-                                  tPct !== 100,
-                                );
+                                setTopicComplete(roadmap.id, phase.id, topic.id, tPct !== 100);
                               }}
                               aria-label="Toggle topic"
                               className="flex h-5 w-5 items-center justify-center"
@@ -296,13 +282,14 @@ function RoadmapDetail() {
                               {tPct === 100 ? (
                                 <CheckCircle2 className="h-5 w-5 text-[var(--primary)]" />
                               ) : (
-                                <Circle className="h-5 w-5 text-muted-foreground/60" strokeWidth={1.5} />
+                                <Circle
+                                  className="h-5 w-5 text-muted-foreground/60"
+                                  strokeWidth={1.5}
+                                />
                               )}
                             </button>
                             <div className="flex-1 text-left">
-                              <div className="text-[13.5px] font-medium">
-                                {topic.title}
-                              </div>
+                              <div className="text-[13.5px] font-medium">{topic.title}</div>
                               <div className="mt-1 flex items-center gap-1.5 text-[11px] text-muted-foreground">
                                 <span>{tPct}%</span>
                                 {topic.subtopics.length > 0 ? (
@@ -311,9 +298,7 @@ function RoadmapDetail() {
                                 {topic.checklist.length > 0 ? (
                                   <span>· {topic.checklist.length} checks</span>
                                 ) : null}
-                                {topic.notes ? (
-                                  <StickyNote className="h-3 w-3" />
-                                ) : null}
+                                {topic.notes ? <StickyNote className="h-3 w-3" /> : null}
                               </div>
                             </div>
                             <IconButton
@@ -377,13 +362,20 @@ function RoadmapDetail() {
                                               !complete,
                                             );
                                           }}
-                                          aria-label={complete ? "Mark subtopic incomplete" : "Mark subtopic complete"}
+                                          aria-label={
+                                            complete
+                                              ? "Mark subtopic incomplete"
+                                              : "Mark subtopic complete"
+                                          }
                                           className="flex h-6 w-6 shrink-0 items-center justify-center"
                                         >
                                           {complete ? (
                                             <CheckCircle2 className="h-4 w-4 text-[var(--primary)]" />
                                           ) : (
-                                            <Circle className="h-4 w-4 text-muted-foreground/60" strokeWidth={1.5} />
+                                            <Circle
+                                              className="h-4 w-4 text-muted-foreground/60"
+                                              strokeWidth={1.5}
+                                            />
                                           )}
                                         </button>
                                         <button
@@ -442,7 +434,10 @@ function RoadmapDetail() {
                                                 {c.done ? (
                                                   <CheckCircle2 className="h-3.5 w-3.5 shrink-0 text-[var(--primary)]" />
                                                 ) : (
-                                                  <Circle className="h-3.5 w-3.5 shrink-0 text-muted-foreground/60" strokeWidth={1.5} />
+                                                  <Circle
+                                                    className="h-3.5 w-3.5 shrink-0 text-muted-foreground/60"
+                                                    strokeWidth={1.5}
+                                                  />
                                                 )}
                                                 <span
                                                   className={`flex-1 truncate text-[11.5px] ${c.done ? "text-muted-foreground line-through" : "text-foreground/75"}`}
@@ -491,11 +486,7 @@ function RoadmapDetail() {
       </div>
 
       {/* New phase sheet */}
-      <BottomSheet
-        open={newPhase}
-        onClose={() => setNewPhase(false)}
-        title="New phase"
-      >
+      <BottomSheet open={newPhase} onClose={() => setNewPhase(false)} title="New phase">
         <div className="space-y-3">
           <TextField
             autoFocus
@@ -528,9 +519,7 @@ function RoadmapDetail() {
             <TextField
               autoFocus
               value={renamingPhase.title}
-              onChange={(e) =>
-                setRenamingPhase({ ...renamingPhase, title: e.target.value })
-              }
+              onChange={(e) => setRenamingPhase({ ...renamingPhase, title: e.target.value })}
             />
             <ActionButton
               className="w-full"
@@ -603,7 +592,11 @@ function RoadmapDetail() {
         <TopicEditorSheet
           roadmapId={roadmap.id}
           phaseId={editing.phaseId}
-          topic={roadmap.phases.find((p) => p.id === editing.phaseId)?.topics.find((t) => t.id === editing.topic.id) ?? editing.topic}
+          topic={
+            roadmap.phases
+              .find((p) => p.id === editing.phaseId)
+              ?.topics.find((t) => t.id === editing.topic.id) ?? editing.topic
+          }
           onClose={() => setEditing(null)}
         />
       ) : null}
@@ -617,8 +610,7 @@ function RoadmapDetail() {
         onConfirm={() => {
           if (!confirm) return;
           if (confirm.kind === "phase") deletePhase(roadmap.id, confirm.id);
-          if (confirm.kind === "topic")
-            deleteTopic(roadmap.id, confirm.phaseId, confirm.topicId);
+          if (confirm.kind === "topic") deleteTopic(roadmap.id, confirm.phaseId, confirm.topicId);
           if (confirm.kind === "roadmap") {
             deleteRoadmap(roadmap.id);
             navigate({ to: "/learn" });
@@ -648,7 +640,6 @@ function TopicEditorSheet({
   const updateChecklistItem = useAppStore((s) => s.updateChecklistItem);
   const deleteChecklistItem = useAppStore((s) => s.deleteChecklistItem);
 
-
   const [newCheck, setNewCheck] = useState("");
   const [newSub, setNewSub] = useState("");
   const [openSubs, setOpenSubs] = useState<Record<string, boolean>>({});
@@ -662,9 +653,7 @@ function TopicEditorSheet({
           </label>
           <TextField
             value={topic.title}
-            onChange={(e) =>
-              updateTopic(roadmapId, phaseId, topic.id, { title: e.target.value })
-            }
+            onChange={(e) => updateTopic(roadmapId, phaseId, topic.id, { title: e.target.value })}
           />
         </div>
 
@@ -676,9 +665,7 @@ function TopicEditorSheet({
             rows={5}
             placeholder="Write anything…"
             value={topic.notes}
-            onChange={(e) =>
-              updateTopic(roadmapId, phaseId, topic.id, { notes: e.target.value })
-            }
+            onChange={(e) => updateTopic(roadmapId, phaseId, topic.id, { notes: e.target.value })}
           />
         </div>
 
@@ -696,11 +683,9 @@ function TopicEditorSheet({
               <div key={c.id} className="flex items-center gap-2">
                 <button
                   onClick={() =>
-                    updateChecklistItem(
-                      { roadmapId, phaseId, topicId: topic.id },
-                      c.id,
-                      { done: !c.done },
-                    )
+                    updateChecklistItem({ roadmapId, phaseId, topicId: topic.id }, c.id, {
+                      done: !c.done,
+                    })
                   }
                   className="flex h-5 w-5 items-center justify-center"
                 >
@@ -715,11 +700,9 @@ function TopicEditorSheet({
                   className="flex-1 bg-transparent text-[13.5px] outline-none"
                   value={c.title}
                   onChange={(e) =>
-                    updateChecklistItem(
-                      { roadmapId, phaseId, topicId: topic.id },
-                      c.id,
-                      { title: e.target.value },
-                    )
+                    updateChecklistItem({ roadmapId, phaseId, topicId: topic.id }, c.id, {
+                      title: e.target.value,
+                    })
                   }
                 />
                 <IconButton
@@ -727,10 +710,7 @@ function TopicEditorSheet({
                   variant="danger"
                   aria-label="Remove"
                   onClick={() =>
-                    deleteChecklistItem(
-                      { roadmapId, phaseId, topicId: topic.id },
-                      c.id,
-                    )
+                    deleteChecklistItem({ roadmapId, phaseId, topicId: topic.id }, c.id)
                   }
                 >
                   <Trash2 className="h-3.5 w-3.5" />
@@ -775,15 +755,9 @@ function TopicEditorSheet({
                 key={sub.id}
                 sub={sub}
                 open={!!openSubs[sub.id]}
-                onToggleOpen={() =>
-                  setOpenSubs((o) => ({ ...o, [sub.id]: !o[sub.id] }))
-                }
-                onChange={(patch) =>
-                  updateSubtopic(roadmapId, phaseId, topic.id, sub.id, patch)
-                }
-                onDelete={() =>
-                  deleteSubtopic(roadmapId, phaseId, topic.id, sub.id)
-                }
+                onToggleOpen={() => setOpenSubs((o) => ({ ...o, [sub.id]: !o[sub.id] }))}
+                onChange={(patch) => updateSubtopic(roadmapId, phaseId, topic.id, sub.id, patch)}
+                onDelete={() => deleteSubtopic(roadmapId, phaseId, topic.id, sub.id)}
                 addCheck={(title) =>
                   addChecklistItem(
                     { roadmapId, phaseId, topicId: topic.id, subtopicId: sub.id },
@@ -853,7 +827,7 @@ function SubtopicBlock({
   onChange: (patch: Partial<Subtopic>) => void;
   onDelete: () => void;
   addCheck: (title: string) => void;
-  updateCheck: (id: string, patch: any) => void;
+  updateCheck: (id: string, patch: Partial<ChecklistItem>) => void;
   deleteCheck: (id: string) => void;
 }) {
   const [newCheck, setNewCheck] = useState("");
@@ -861,10 +835,7 @@ function SubtopicBlock({
   return (
     <div className="rounded-xl border border-white/[0.05] bg-white/[0.015] p-3">
       <div className="flex items-center gap-2">
-        <button
-          onClick={onToggleOpen}
-          className="flex h-6 w-6 items-center justify-center"
-        >
+        <button onClick={onToggleOpen} className="flex h-6 w-6 items-center justify-center">
           {open ? (
             <ChevronDown className="h-4 w-4 text-muted-foreground" />
           ) : (
@@ -878,12 +849,7 @@ function SubtopicBlock({
           className="flex-1 bg-transparent text-[13px] font-medium outline-none"
         />
         <Chip>{pct}%</Chip>
-        <IconButton
-          size="sm"
-          variant="danger"
-          aria-label="Delete subtopic"
-          onClick={onDelete}
-        >
+        <IconButton size="sm" variant="danger" aria-label="Delete subtopic" onClick={onDelete}>
           <Trash2 className="h-3.5 w-3.5" />
         </IconButton>
       </div>

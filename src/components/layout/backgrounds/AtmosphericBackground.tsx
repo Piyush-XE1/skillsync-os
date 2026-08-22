@@ -28,8 +28,7 @@ export function AtmosphericBackground() {
       <div
         className="absolute inset-0"
         style={{
-          background:
-            "radial-gradient(75% 55% at 50% 50%, var(--aurora-core) 0%, transparent 75%)",
+          background: "radial-gradient(75% 55% at 50% 50%, var(--aurora-core) 0%, transparent 75%)",
         }}
       />
       {/* soft top sheen */}

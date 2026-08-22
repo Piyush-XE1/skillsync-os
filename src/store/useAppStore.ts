@@ -1,5 +1,5 @@
 import { create } from "zustand";
-import { persist, createJSONStorage } from "zustand/middleware";
+import { persist, createJSONStorage, type StateStorage } from "zustand/middleware";
 import type {
   AppData,
   Roadmap,
@@ -22,6 +22,7 @@ import { createInitialData } from "@/lib/seed";
 import { migrate } from "@/lib/migrations";
 import { newId } from "@/lib/id";
 import { todayISO } from "@/lib/date";
+import { errorMessage } from "@/lib/utils";
 import {
   HISTORY_LIMIT,
   type CategoryKey,
@@ -49,26 +50,11 @@ type State = AppData & {
   movePhase: (roadmapId: string, phaseId: string, dir: -1 | 1) => void;
 
   addTopic: (roadmapId: string, phaseId: string, title: string) => void;
-  updateTopic: (
-    roadmapId: string,
-    phaseId: string,
-    topicId: string,
-    patch: Partial<Topic>,
-  ) => void;
+  updateTopic: (roadmapId: string, phaseId: string, topicId: string, patch: Partial<Topic>) => void;
   deleteTopic: (roadmapId: string, phaseId: string, topicId: string) => void;
-  moveTopic: (
-    roadmapId: string,
-    phaseId: string,
-    topicId: string,
-    dir: -1 | 1,
-  ) => void;
+  moveTopic: (roadmapId: string, phaseId: string, topicId: string, dir: -1 | 1) => void;
 
-  addSubtopic: (
-    roadmapId: string,
-    phaseId: string,
-    topicId: string,
-    title: string,
-  ) => void;
+  addSubtopic: (roadmapId: string, phaseId: string, topicId: string, title: string) => void;
   updateSubtopic: (
     roadmapId: string,
     phaseId: string,
@@ -76,12 +62,7 @@ type State = AppData & {
     subtopicId: string,
     patch: Partial<Subtopic>,
   ) => void;
-  deleteSubtopic: (
-    roadmapId: string,
-    phaseId: string,
-    topicId: string,
-    subtopicId: string,
-  ) => void;
+  deleteSubtopic: (roadmapId: string, phaseId: string, topicId: string, subtopicId: string) => void;
 
   addChecklistItem: (
     path: {
@@ -113,17 +94,8 @@ type State = AppData & {
   ) => void;
 
   // hierarchical completion cascades
-  setPhaseComplete: (
-    roadmapId: string,
-    phaseId: string,
-    done: boolean,
-  ) => void;
-  setTopicComplete: (
-    roadmapId: string,
-    phaseId: string,
-    topicId: string,
-    done: boolean,
-  ) => void;
+  setPhaseComplete: (roadmapId: string, phaseId: string, done: boolean) => void;
+  setTopicComplete: (roadmapId: string, phaseId: string, topicId: string, done: boolean) => void;
   setSubtopicComplete: (
     roadmapId: string,
     phaseId: string,
@@ -142,11 +114,7 @@ type State = AppData & {
   updateProject: (id: string, patch: Partial<Project>) => void;
   deleteProject: (id: string) => void;
   addProjectTask: (projectId: string, title: string) => void;
-  updateProjectTask: (
-    projectId: string,
-    taskId: string,
-    patch: Partial<ProjectTask>,
-  ) => void;
+  updateProjectTask: (projectId: string, taskId: string, patch: Partial<ProjectTask>) => void;
   deleteProjectTask: (projectId: string, taskId: string) => void;
 
   // planner
@@ -169,7 +137,9 @@ type State = AppData & {
   touchStreak: () => void;
 
   // attendance
-  addSubject: (partial: Omit<Subject, "id" | "createdAt" | "present" | "absent"> & Partial<Subject>) => Subject;
+  addSubject: (
+    partial: Omit<Subject, "id" | "createdAt" | "present" | "absent"> & Partial<Subject>,
+  ) => Subject;
   updateSubject: (id: string, patch: Partial<Subject>) => void;
   deleteSubject: (id: string) => void;
 
@@ -208,14 +178,10 @@ type State = AppData & {
   resetAll: () => void;
 };
 
-const STORAGE_KEY = "skillsync:data:v1";
+export const STORAGE_KEY = "skillsync:data:v1";
 
 // ---------- helpers ----------
-function updateRoadmap(
-  state: State,
-  id: string,
-  fn: (r: Roadmap) => Roadmap,
-): Partial<State> {
+function updateRoadmap(state: State, id: string, fn: (r: Roadmap) => Roadmap): Partial<State> {
   return {
     roadmaps: state.roadmaps.map((r) => (r.id === id ? fn(r) : r)),
   };
@@ -285,18 +251,35 @@ function normalizeTopic(topic: Topic): Topic {
     ...topic,
     subtopics: topic.subtopics.map(normalizeSubtopic),
   };
-  const checksAllDone =
-    next.checklist.length === 0 || next.checklist.every((c) => c.done);
-  const subsAllDone =
-    next.subtopics.length === 0 || next.subtopics.every((s) => s.done);
+  const checksAllDone = next.checklist.length === 0 || next.checklist.every((c) => c.done);
+  const subsAllDone = next.subtopics.length === 0 || next.subtopics.every((s) => s.done);
   const hasAny = next.checklist.length > 0 || next.subtopics.length > 0;
   const allDone = hasAny && checksAllDone && subsAllDone;
   if (next.done === allDone) return next;
   return { ...next, done: allDone };
 }
 
+/** The plain-data subset of the store — what gets persisted and exported. */
+export function toAppData(state: AppData): AppData {
+  return {
+    schemaVersion: state.schemaVersion,
+    roadmaps: state.roadmaps,
+    notes: state.notes,
+    projects: state.projects,
+    planner: state.planner,
+    habits: state.habits,
+    habitLogs: state.habitLogs,
+    profile: state.profile,
+    preferences: state.preferences,
+    stats: state.stats,
+    attendance: state.attendance,
+    expenses: state.expenses,
+    notifications: state.notifications,
+  };
+}
+
 export const useAppStore = create<State>()(
-  persist(
+  persist<State, [], [], AppData>(
     (set, get) => ({
       ...createInitialData(),
       _hydrated: false,
@@ -316,12 +299,9 @@ export const useAppStore = create<State>()(
             },
           ],
         })),
-      renameRoadmap: (id, title) =>
-        set((s) => updateRoadmap(s, id, (r) => ({ ...r, title }))),
-      deleteRoadmap: (id) =>
-        set((s) => ({ roadmaps: s.roadmaps.filter((r) => r.id !== id) })),
-      importRoadmap: (roadmap) =>
-        set((s) => ({ roadmaps: [...s.roadmaps, roadmap] })),
+      renameRoadmap: (id, title) => set((s) => updateRoadmap(s, id, (r) => ({ ...r, title }))),
+      deleteRoadmap: (id) => set((s) => ({ roadmaps: s.roadmaps.filter((r) => r.id !== id) })),
+      importRoadmap: (roadmap) => set((s) => ({ roadmaps: [...s.roadmaps, roadmap] })),
       replaceRoadmap: (id, roadmap) =>
         set((s) => ({
           roadmaps: s.roadmaps.map((r) => (r.id === id ? roadmap : r)),
@@ -331,10 +311,7 @@ export const useAppStore = create<State>()(
         set((s) =>
           updateRoadmap(s, roadmapId, (r) => ({
             ...r,
-            phases: [
-              ...r.phases,
-              { id: newId(), title, topics: [], createdAt: Date.now() },
-            ],
+            phases: [...r.phases, { id: newId(), title, topics: [], createdAt: Date.now() }],
           })),
         ),
       renamePhase: (roadmapId, phaseId, title) =>
@@ -481,9 +458,7 @@ export const useAppStore = create<State>()(
             }
             return normalizeTopic({
               ...t,
-              checklist: t.checklist.map((c) =>
-                c.id === itemId ? { ...c, ...patch } : c,
-              ),
+              checklist: t.checklist.map((c) => (c.id === itemId ? { ...c, ...patch } : c)),
             });
           }),
         ),
@@ -522,11 +497,7 @@ export const useAppStore = create<State>()(
           ),
         ),
       setTopicComplete: (roadmapId, phaseId, topicId, done) =>
-        set((s) =>
-          updateTopicIn(s, roadmapId, phaseId, topicId, (t) =>
-            propagateTopic(t, done),
-          ),
-        ),
+        set((s) => updateTopicIn(s, roadmapId, phaseId, topicId, (t) => propagateTopic(t, done))),
       setPhaseComplete: (roadmapId, phaseId, done) =>
         set((s) =>
           updatePhase(s, roadmapId, phaseId, (p) => ({
@@ -552,12 +523,9 @@ export const useAppStore = create<State>()(
       },
       updateNote: (id, patch) =>
         set((s) => ({
-          notes: s.notes.map((n) =>
-            n.id === id ? { ...n, ...patch, updatedAt: Date.now() } : n,
-          ),
+          notes: s.notes.map((n) => (n.id === id ? { ...n, ...patch, updatedAt: Date.now() } : n)),
         })),
-      deleteNote: (id) =>
-        set((s) => ({ notes: s.notes.filter((n) => n.id !== id) })),
+      deleteNote: (id) => set((s) => ({ notes: s.notes.filter((n) => n.id !== id) })),
 
       addProject: (partial) => {
         const project: Project = {
@@ -578,22 +546,16 @@ export const useAppStore = create<State>()(
       },
       updateProject: (id, patch) =>
         set((s) => ({
-          projects: s.projects.map((p) =>
-            p.id === id ? { ...p, ...patch } : p,
-          ),
+          projects: s.projects.map((p) => (p.id === id ? { ...p, ...patch } : p)),
         })),
-      deleteProject: (id) =>
-        set((s) => ({ projects: s.projects.filter((p) => p.id !== id) })),
+      deleteProject: (id) => set((s) => ({ projects: s.projects.filter((p) => p.id !== id) })),
       addProjectTask: (projectId, title) =>
         set((s) => ({
           projects: s.projects.map((p) =>
             p.id === projectId
               ? {
                   ...p,
-                  tasks: [
-                    ...p.tasks,
-                    { id: newId(), title, done: false },
-                  ],
+                  tasks: [...p.tasks, { id: newId(), title, done: false }],
                 }
               : p,
           ),
@@ -604,9 +566,7 @@ export const useAppStore = create<State>()(
             p.id === projectId
               ? {
                   ...p,
-                  tasks: p.tasks.map((t) =>
-                    t.id === taskId ? { ...t, ...patch } : t,
-                  ),
+                  tasks: p.tasks.map((t) => (t.id === taskId ? { ...t, ...patch } : t)),
                 }
               : p,
           ),
@@ -614,9 +574,7 @@ export const useAppStore = create<State>()(
       deleteProjectTask: (projectId, taskId) =>
         set((s) => ({
           projects: s.projects.map((p) =>
-            p.id === projectId
-              ? { ...p, tasks: p.tasks.filter((t) => t.id !== taskId) }
-              : p,
+            p.id === projectId ? { ...p, tasks: p.tasks.filter((t) => t.id !== taskId) } : p,
           ),
         })),
 
@@ -636,12 +594,9 @@ export const useAppStore = create<State>()(
         })),
       updatePlannerTask: (id, patch) =>
         set((s) => ({
-          planner: s.planner.map((t) =>
-            t.id === id ? { ...t, ...patch } : t,
-          ),
+          planner: s.planner.map((t) => (t.id === id ? { ...t, ...patch } : t)),
         })),
-      deletePlannerTask: (id) =>
-        set((s) => ({ planner: s.planner.filter((t) => t.id !== id) })),
+      deletePlannerTask: (id) => set((s) => ({ planner: s.planner.filter((t) => t.id !== id) })),
 
       addHabit: (title, emoji = "✨") =>
         set((s) => ({
@@ -671,14 +626,10 @@ export const useAppStore = create<State>()(
         })),
       toggleHabitToday: (id, dateISO) => {
         const date = dateISO ?? todayISO();
-        const existing = get().habitLogs.find(
-          (l) => l.habitId === id && l.date === date,
-        );
+        const existing = get().habitLogs.find((l) => l.habitId === id && l.date === date);
         if (existing) {
           set((s) => ({
-            habitLogs: s.habitLogs.filter(
-              (l) => !(l.habitId === id && l.date === date),
-            ),
+            habitLogs: s.habitLogs.filter((l) => !(l.habitId === id && l.date === date)),
           }));
         } else {
           set((s) => ({
@@ -689,10 +640,8 @@ export const useAppStore = create<State>()(
         }
       },
 
-      updateProfile: (patch) =>
-        set((s) => ({ profile: { ...s.profile, ...patch } })),
-      updatePreferences: (patch) =>
-        set((s) => ({ preferences: { ...s.preferences, ...patch } })),
+      updateProfile: (patch) => set((s) => ({ profile: { ...s.profile, ...patch } })),
+      updatePreferences: (patch) => set((s) => ({ preferences: { ...s.preferences, ...patch } })),
       setModuleEnabled: (key, enabled) =>
         set((s) => ({
           preferences: {
@@ -711,8 +660,7 @@ export const useAppStore = create<State>()(
           const today = todayISO();
           if (s.stats.lastActive === today) return {};
           const yesterday = todayISO(new Date(Date.now() - 86400000));
-          const streak =
-            s.stats.lastActive === yesterday ? s.stats.streak + 1 : 1;
+          const streak = s.stats.lastActive === yesterday ? s.stats.streak + 1 : 1;
           return {
             stats: { ...s.stats, streak, lastActive: today },
           };
@@ -741,9 +689,7 @@ export const useAppStore = create<State>()(
         set((s) => ({
           attendance: {
             ...s.attendance,
-            subjects: s.attendance.subjects.map((x) =>
-              x.id === id ? { ...x, ...patch } : x,
-            ),
+            subjects: s.attendance.subjects.map((x) => (x.id === id ? { ...x, ...patch } : x)),
           },
         })),
       deleteSubject: (id) =>
@@ -756,10 +702,7 @@ export const useAppStore = create<State>()(
 
       addTransaction: (partial) => {
         const existing = get().expenses.transactions;
-        const minPos = existing.reduce(
-          (m, t) => Math.min(m, t.position ?? 0),
-          0,
-        );
+        const minPos = existing.reduce((m, t) => Math.min(m, t.position ?? 0), 0);
         const now = Date.now();
         const tx: Transaction = {
           id: newId(),
@@ -792,17 +735,12 @@ export const useAppStore = create<State>()(
       setTransactionOrder: (ids) =>
         set((s) => {
           const order = new Map(ids.map((id, i) => [id, i]));
-          const base = s.expenses.transactions.reduce(
-            (m, t) => Math.min(m, t.position ?? 0),
-            0,
-          );
+          const base = s.expenses.transactions.reduce((m, t) => Math.min(m, t.position ?? 0), 0);
           return {
             expenses: {
               ...s.expenses,
               transactions: s.expenses.transactions.map((t) =>
-                order.has(t.id)
-                  ? { ...t, position: base + (order.get(t.id) as number) }
-                  : t,
+                order.has(t.id) ? { ...t, position: base + (order.get(t.id) as number) } : t,
               ),
             },
           };
@@ -814,7 +752,6 @@ export const useAppStore = create<State>()(
             transactions: s.expenses.transactions.filter((t) => t.id !== id),
           },
         })),
-
 
       pushNotification: (input) => {
         const state = get();
@@ -842,9 +779,7 @@ export const useAppStore = create<State>()(
         set((s) => ({
           notifications: {
             ...s.notifications,
-            items: (s.notifications?.items ?? []).map((i) =>
-              i.id === id ? { ...i, read } : i,
-            ),
+            items: (s.notifications?.items ?? []).map((i) => (i.id === id ? { ...i, read } : i)),
           },
         })),
       markAllNotificationsRead: () =>
@@ -861,8 +796,7 @@ export const useAppStore = create<State>()(
             items: (s.notifications?.items ?? []).filter((i) => i.id !== id),
           },
         })),
-      clearNotifications: () =>
-        set((s) => ({ notifications: { ...s.notifications, items: [] } })),
+      clearNotifications: () => set((s) => ({ notifications: { ...s.notifications, items: [] } })),
       updateNotificationSettings: (patch) =>
         set((s) => ({
           notifications: {
@@ -908,25 +842,7 @@ export const useAppStore = create<State>()(
           },
         })),
 
-      exportJSON: () => {
-        const rest = get() as any;
-        const data: AppData = {
-          schemaVersion: rest.schemaVersion,
-          roadmaps: rest.roadmaps,
-          notes: rest.notes,
-          projects: rest.projects,
-          planner: rest.planner,
-          habits: rest.habits,
-          habitLogs: rest.habitLogs,
-          profile: rest.profile,
-          preferences: rest.preferences,
-          stats: rest.stats,
-          attendance: rest.attendance,
-          expenses: rest.expenses,
-          notifications: rest.notifications,
-        };
-        return JSON.stringify(data, null, 2);
-      },
+      exportJSON: () => JSON.stringify(toAppData(get()), null, 2),
       importJSON: (input) => {
         try {
           const parsed = JSON.parse(input);
@@ -934,8 +850,8 @@ export const useAppStore = create<State>()(
           const valid = AppDataSchema.parse(migrated);
           set({ ...valid });
           return { ok: true };
-        } catch (e: any) {
-          return { ok: false, error: e?.message ?? "Invalid file" };
+        } catch (e) {
+          return { ok: false, error: errorMessage(e, "Invalid file") };
         }
       },
       resetAll: () => set({ ...createInitialData() }),
@@ -944,33 +860,17 @@ export const useAppStore = create<State>()(
       name: STORAGE_KEY,
       version: 5,
       storage: createJSONStorage(() =>
+        // No storage during SSR — persist skips hydration when this is undefined.
         typeof window !== "undefined"
           ? window.localStorage
-          : (undefined as any),
+          : (undefined as unknown as StateStorage),
       ),
-      partialize: (state) => {
-        // Only persist plain data fields.
-        const data: AppData = {
-          schemaVersion: state.schemaVersion,
-          roadmaps: state.roadmaps,
-          notes: state.notes,
-          projects: state.projects,
-          planner: state.planner,
-          habits: state.habits,
-          habitLogs: state.habitLogs,
-          profile: state.profile,
-          preferences: state.preferences,
-          stats: state.stats,
-          attendance: state.attendance,
-          expenses: state.expenses,
-          notifications: state.notifications,
-        };
-        return data as any;
-      },
+      // Only persist plain data fields — never the action functions.
+      partialize: toAppData,
       onRehydrateStorage: () => (state) => {
         state?.markHydrated();
       },
-      migrate: (persistedState) => migrate(persistedState) as any,
+      migrate: (persistedState) => migrate(persistedState),
     },
   ),
 );

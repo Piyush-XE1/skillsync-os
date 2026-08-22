@@ -35,7 +35,10 @@ export const Route = createFileRoute("/learn/")({
   head: () => ({
     meta: [
       { title: "Learn — SkillSync" },
-      { name: "description", content: "Structured learning roadmaps for Python, AI/ML, DSA and Web." },
+      {
+        name: "description",
+        content: "Structured learning roadmaps for Python, AI/ML, DSA and Web.",
+      },
       { property: "og:title", content: "Learn — SkillSync" },
       { property: "og:description", content: "Structured learning roadmaps and progress." },
       { property: "og:type", content: "website" },
@@ -162,88 +165,78 @@ function LearnPage() {
         eyebrow="Roadmaps"
         title="Learn."
         subtitle="Curated paths built for depth, not noise."
-        right={
-          <PrimaryAction
-            label="New Roadmap"
-            onClick={() => setFabOpen(true)}
-          />
-        }
+        right={<PrimaryAction label="New Roadmap" onClick={() => setFabOpen(true)} />}
       />
       <div className="auto-grid px-5 pb-28 lg:px-2">
-        {!hydrated ? (
-          <div className="text-muted-foreground">Loading…</div>
-        ) : null}
-        {hydrated && roadmaps.map((r) => {
-          const pct = hydrated ? roadmapPct(r) : 0;
-          const counts = roadmapCounts(r);
-          return (
-            <button
-              type="button"
-              key={r.id}
-              onClick={() =>
-                navigate({
-                  to: "/learn/$roadmapId",
-                  params: { roadmapId: r.id },
-                })
-              }
-              className="block h-full w-full cursor-pointer text-left"
-              aria-label={`Open ${r.title} roadmap`}
-            >
-              <Card className="relative h-full overflow-hidden border-white/[0.08] p-5">
-                <div
-                  className="pointer-events-none absolute -right-16 -top-20 h-56 w-56 rounded-full opacity-30 blur-3xl"
-                  style={{
-                    background: `radial-gradient(circle, ${r.color}, transparent 70%)`,
-                  }}
-                />
-                <div className="relative">
-                  <div className="flex items-start justify-between">
-                    <div className="flex items-center gap-3">
-                      <div
-                        className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full"
-                        style={{
-                          background: `linear-gradient(135deg, ${r.color}, #2563eb)`,
-                          boxShadow: `0 10px 30px -10px ${r.color}80`,
-                        }}
-                      >
-                        <BookOpen className="h-[18px] w-[18px] text-white" strokeWidth={1.75} />
-                      </div>
-                      <div>
-                        <div className="text-[16px] font-semibold tracking-tight">
-                          {r.title}
+        {!hydrated ? <div className="text-muted-foreground">Loading…</div> : null}
+        {hydrated &&
+          roadmaps.map((r) => {
+            const pct = hydrated ? roadmapPct(r) : 0;
+            const counts = roadmapCounts(r);
+            return (
+              <button
+                type="button"
+                key={r.id}
+                onClick={() =>
+                  navigate({
+                    to: "/learn/$roadmapId",
+                    params: { roadmapId: r.id },
+                  })
+                }
+                className="block h-full w-full cursor-pointer text-left"
+                aria-label={`Open ${r.title} roadmap`}
+              >
+                <Card className="relative h-full overflow-hidden border-white/[0.08] p-5">
+                  <div
+                    className="pointer-events-none absolute -right-16 -top-20 h-56 w-56 rounded-full opacity-30 blur-3xl"
+                    style={{
+                      background: `radial-gradient(circle, ${r.color}, transparent 70%)`,
+                    }}
+                  />
+                  <div className="relative">
+                    <div className="flex items-start justify-between">
+                      <div className="flex items-center gap-3">
+                        <div
+                          className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full"
+                          style={{
+                            background: `linear-gradient(135deg, ${r.color}, #2563eb)`,
+                            boxShadow: `0 10px 30px -10px ${r.color}80`,
+                          }}
+                        >
+                          <BookOpen className="h-[18px] w-[18px] text-white" strokeWidth={1.75} />
                         </div>
-                        <div className="text-[12px] text-muted-foreground">
-                          {r.subtitle || `${r.phases.length} phases`}
+                        <div>
+                          <div className="text-[16px] font-semibold tracking-tight">{r.title}</div>
+                          <div className="text-[12px] text-muted-foreground">
+                            {r.subtitle || `${r.phases.length} phases`}
+                          </div>
                         </div>
                       </div>
+                      <ChevronRight className="h-4 w-4 text-muted-foreground/60" />
                     </div>
-                    <ChevronRight className="h-4 w-4 text-muted-foreground/60" />
-                  </div>
 
-                  <div className="mt-5 space-y-2.5">
-                    <div className="flex items-center justify-between text-[12px] text-muted-foreground">
-                      <span>Progress</span>
-                      <span className="text-foreground/80">
-                        {hydrated ? `${pct}%` : "— %"}
-                      </span>
+                    <div className="mt-5 space-y-2.5">
+                      <div className="flex items-center justify-between text-[12px] text-muted-foreground">
+                        <span>Progress</span>
+                        <span className="text-foreground/80">{hydrated ? `${pct}%` : "— %"}</span>
+                      </div>
+                      <ProgressBar value={pct} tone="gradient" />
                     </div>
-                    <ProgressBar value={pct} tone="gradient" />
-                  </div>
 
-                  <div className="mt-4 flex items-center gap-2">
-                    <Chip>
-                      <CheckCircle2 className="h-3 w-3" />
-                      {hydrated ? `${counts.done} / ${counts.topics} topics` : "— / — topics"}
-                    </Chip>
-                    <Chip>
-                      <Clock className="h-3 w-3" /> {r.phases.length} phases
-                    </Chip>
+                    <div className="mt-4 flex items-center gap-2">
+                      <Chip>
+                        <CheckCircle2 className="h-3 w-3" />
+                        {hydrated ? `${counts.done} / ${counts.topics} topics` : "— / — topics"}
+                      </Chip>
+                      <Chip>
+                        <Clock className="h-3 w-3" /> {r.phases.length} phases
+                      </Chip>
+                    </div>
                   </div>
-                </div>
-              </Card>
-            </button>
-          );
-        })}
+                </Card>
+              </button>
+            );
+          })}
       </div>
 
       {/* Hidden file input */}
@@ -260,11 +253,7 @@ function LearnPage() {
       />
 
       {/* FAB menu */}
-      <BottomSheet
-        open={fabOpen}
-        onClose={() => setFabOpen(false)}
-        title="New roadmap"
-      >
+      <BottomSheet open={fabOpen} onClose={() => setFabOpen(false)} title="New roadmap">
         <div className="space-y-2">
           <FabRow
             icon={<FilePlus2 className="h-5 w-5" />}
@@ -297,11 +286,7 @@ function LearnPage() {
       </BottomSheet>
 
       {/* Create roadmap */}
-      <BottomSheet
-        open={createOpen}
-        onClose={() => setCreateOpen(false)}
-        title="Create roadmap"
-      >
+      <BottomSheet open={createOpen} onClose={() => setCreateOpen(false)} title="Create roadmap">
         <div className="space-y-3">
           <label className="block text-[12px] text-muted-foreground">Title</label>
           <TextField
@@ -325,14 +310,8 @@ function LearnPage() {
       </BottomSheet>
 
       {/* Import preview */}
-      <BottomSheet
-        open={!!currentItem && !duplicate}
-        onClose={resetImport}
-        title="Import preview"
-      >
-        {currentItem ? (
-          <ImportPreview item={currentItem} />
-        ) : null}
+      <BottomSheet open={!!currentItem && !duplicate} onClose={resetImport} title="Import preview">
+        {currentItem ? <ImportPreview item={currentItem} /> : null}
         <div className="mt-5 flex gap-2">
           <button
             type="button"
@@ -363,23 +342,16 @@ function LearnPage() {
             <div className="flex items-start gap-2.5 rounded-xl border border-amber-400/20 bg-amber-400/[0.06] p-3">
               <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-amber-400" />
               <p className="text-[12.5px] leading-relaxed text-amber-100/90">
-                A roadmap titled <span className="font-semibold">"{duplicate.title}"</span> already exists. Choose how to import.
+                A roadmap titled <span className="font-semibold">"{duplicate.title}"</span> already
+                exists. Choose how to import.
               </p>
             </div>
             <ImportPreview item={currentItem} />
             <div className="space-y-2">
-              <ActionButton
-                variant="danger"
-                className="w-full"
-                onClick={handleReplace}
-              >
+              <ActionButton variant="danger" className="w-full" onClick={handleReplace}>
                 Replace existing roadmap
               </ActionButton>
-              <ActionButton
-                variant="primary"
-                className="w-full"
-                onClick={handleImportAsNew}
-              >
+              <ActionButton variant="primary" className="w-full" onClick={handleImportAsNew}>
                 Create duplicate
               </ActionButton>
               <button
@@ -395,25 +367,17 @@ function LearnPage() {
       </BottomSheet>
 
       {/* Import guide */}
-      <BottomSheet
-        open={guideOpen}
-        onClose={() => setGuideOpen(false)}
-        title="Import guide"
-      >
+      <BottomSheet open={guideOpen} onClose={() => setGuideOpen(false)} title="Import guide">
         <div className="space-y-5">
           <section className="space-y-2">
-            <h4 className="text-[13px] font-semibold tracking-tight">
-              Supported file format
-            </h4>
+            <h4 className="text-[13px] font-semibold tracking-tight">Supported file format</h4>
             <p className="text-[12.5px] leading-relaxed text-muted-foreground">
               Only JSON (<code className="text-foreground/80">.json</code>) files are supported.
             </p>
           </section>
 
           <section className="space-y-2">
-            <h4 className="text-[13px] font-semibold tracking-tight">
-              What gets imported
-            </h4>
+            <h4 className="text-[13px] font-semibold tracking-tight">What gets imported</h4>
             <ul className="space-y-1 text-[12.5px] text-muted-foreground">
               <li>✅ Roadmap</li>
               <li>✅ Phases</li>
@@ -499,9 +463,7 @@ function ImportPreview({ item }: { item: RoadmapImportItem }) {
   return (
     <div className="space-y-3">
       <div>
-        <div className="text-[16px] font-semibold tracking-tight">
-          {item.title}
-        </div>
+        <div className="text-[16px] font-semibold tracking-tight">{item.title}</div>
         {item.description ? (
           <p className="mt-1 text-[12.5px] leading-relaxed text-muted-foreground">
             {item.description}
@@ -511,7 +473,11 @@ function ImportPreview({ item }: { item: RoadmapImportItem }) {
       <div className="grid grid-cols-3 gap-2">
         <StatTile icon={<Layers className="h-3.5 w-3.5" />} label="Phases" value={c.phases} />
         <StatTile icon={<ListTree className="h-3.5 w-3.5" />} label="Topics" value={c.topics} />
-        <StatTile icon={<Sparkles className="h-3.5 w-3.5" />} label="Subtopics" value={c.subtopics} />
+        <StatTile
+          icon={<Sparkles className="h-3.5 w-3.5" />}
+          label="Subtopics"
+          value={c.subtopics}
+        />
       </div>
       {c.checklists > 0 ? (
         <p className="text-[11.5px] text-muted-foreground">
@@ -522,15 +488,7 @@ function ImportPreview({ item }: { item: RoadmapImportItem }) {
   );
 }
 
-function StatTile({
-  icon,
-  label,
-  value,
-}: {
-  icon: React.ReactNode;
-  label: string;
-  value: number;
-}) {
+function StatTile({ icon, label, value }: { icon: React.ReactNode; label: string; value: number }) {
   return (
     <div className="rounded-xl border border-white/[0.06] bg-white/[0.02] p-3">
       <div className="flex items-center gap-1.5 text-[11px] text-muted-foreground">

@@ -104,7 +104,6 @@ export function useAnyOverlayOpen() {
   return openCount > 0;
 }
 
-
 /** Escape / Android-back dismissal for the topmost overlay only. */
 export function useDismissOnEscape(open: boolean, isTop: boolean, onClose: () => void) {
   useEffect(() => {

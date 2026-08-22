@@ -18,8 +18,7 @@ export function LightAtmosphereBackground() {
       <div
         className="absolute inset-0"
         style={{
-          background:
-            "linear-gradient(180deg, #ffffff 0%, var(--bg-base) 46%, #f6f4f1 100%)",
+          background: "linear-gradient(180deg, #ffffff 0%, var(--bg-base) 46%, #f6f4f1 100%)",
         }}
       />
 
@@ -51,8 +50,7 @@ export function LightAtmosphereBackground() {
       <div
         className="absolute inset-x-0 top-[38%] h-[42vh]"
         style={{
-          background:
-            "linear-gradient(180deg, rgba(255,255,255,0.85), rgba(255,255,255,0) 70%)",
+          background: "linear-gradient(180deg, rgba(255,255,255,0.85), rgba(255,255,255,0) 70%)",
         }}
       />
 

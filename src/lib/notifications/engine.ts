@@ -5,7 +5,6 @@ import {
   type CategoryKey,
   type NotificationItem,
   type NotificationSettings,
-  type ScheduledNotification,
 } from "./types";
 
 /* ------------------------------- time utils ------------------------------- */
@@ -29,41 +28,6 @@ export function isQuietHours(settings: NotificationSettings, now: Date): boolean
   // Overnight window (e.g. 22:30 → 07:30).
   if (from > to) return cur >= from || cur < to;
   return cur >= from && cur < to;
-}
-
-/** Next timestamp a recurrence should fire, strictly after `from`. */
-export function nextOccurrence(
-  recurrence: NonNullable<ScheduledNotification["recurrence"]>,
-  from: Date,
-): number {
-  const mins = parseTime(recurrence.time);
-  const candidate = new Date(from);
-  candidate.setHours(Math.floor(mins / 60), mins % 60, 0, 0);
-  if (candidate.getTime() <= from.getTime()) candidate.setDate(candidate.getDate() + 1);
-
-  switch (recurrence.kind) {
-    case "daily":
-      return candidate.getTime();
-    case "weekdays": {
-      while (candidate.getDay() === 0 || candidate.getDay() === 6) {
-        candidate.setDate(candidate.getDate() + 1);
-      }
-      return candidate.getTime();
-    }
-    case "weekly": {
-      const target = recurrence.weekday ?? 0;
-      while (candidate.getDay() !== target) candidate.setDate(candidate.getDate() + 1);
-      return candidate.getTime();
-    }
-    case "monthly": {
-      const day = recurrence.day ?? 1;
-      const next = new Date(candidate);
-      next.setDate(day);
-      next.setHours(Math.floor(mins / 60), mins % 60, 0, 0);
-      if (next.getTime() <= from.getTime()) next.setMonth(next.getMonth() + 1);
-      return next.getTime();
-    }
-  }
 }
 
 /* ------------------------------ rule engine ------------------------------ */
@@ -276,14 +240,4 @@ export function buildDueCandidates(
   }
 
   return out;
-}
-
-/** Removes candidates whose sourceId already exists in history. */
-export function dedupe(candidates: Candidate[], existing: NotificationItem[]): Candidate[] {
-  const seen = new Set(existing.map((i) => i.sourceId).filter(Boolean) as string[]);
-  return candidates.filter((c) => {
-    if (seen.has(c.sourceId)) return false;
-    seen.add(c.sourceId);
-    return true;
-  });
 }

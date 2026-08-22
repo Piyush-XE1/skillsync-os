@@ -1,10 +1,10 @@
-import { haptics } from "@/lib/haptics";
 import { useEffect, useState } from "react";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { ArrowLeft, Bell, BellRing, Info, Moon, ShieldAlert } from "lucide-react";
 import { AppShell, PageHeader } from "@/components/layout/AppShell";
 import { Card, SectionHeader } from "@/components/ui/primitives";
 import { CategoryIcon } from "@/components/notifications/CategoryIcon";
+import { Toggle } from "@/components/common/Toggle";
 import { TextField } from "@/components/edit/Fields";
 import {
   CATEGORY_META,
@@ -45,39 +45,6 @@ export const Route = createFileRoute("/profile/notifications")({
   }),
   component: NotificationSettingsPage,
 });
-
-function Toggle({
-  on,
-  onChange,
-  label,
-}: {
-  on: boolean;
-  onChange: (v: boolean) => void;
-  label: string;
-}) {
-  return (
-    <button
-      type="button"
-      onClick={() => {
-        haptics.toggle(!on);
-        onChange(!on);
-      }}
-      aria-pressed={on}
-      aria-label={label}
-      className={cn(
-        "relative h-6 w-11 shrink-0 rounded-full transition-colors",
-        on ? "bg-[var(--primary)]" : "bg-white/10",
-      )}
-    >
-      <span
-        className={cn(
-          "absolute top-0.5 h-5 w-5 rounded-full bg-white shadow transition-transform",
-          on ? "translate-x-[22px]" : "translate-x-0.5",
-        )}
-      />
-    </button>
-  );
-}
 
 function NotificationSettingsPage() {
   const settings = useAppStore((s) => s.notifications.settings);

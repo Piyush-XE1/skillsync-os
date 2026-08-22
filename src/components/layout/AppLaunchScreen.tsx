@@ -80,10 +80,7 @@ export function AppLaunchScreen() {
       if (done) return;
       done = true;
       setLeaving(true);
-      window.setTimeout(
-        () => setVisible(false),
-        reduced.current ? REDUCED_EXIT : EXIT_MS,
-      );
+      window.setTimeout(() => setVisible(false), reduced.current ? REDUCED_EXIT : EXIT_MS);
     };
 
     const minWait = new Promise<void>((res) => window.setTimeout(res, timeline));
@@ -211,10 +208,7 @@ export function AppLaunchScreen() {
               { fill: "url(#ssx-a)", stroke: "#a855f7", rot: false },
               { fill: "url(#ssx-b)", stroke: "#22d3ee", rot: true },
             ].map((half, i) => (
-              <g
-                key={i}
-                transform={half.rot ? "rotate(180 60 60)" : undefined}
-              >
+              <g key={i} transform={half.rot ? "rotate(180 60 60)" : undefined}>
                 {!r ? (
                   <path
                     d={MARK_RIBBON_PATH}

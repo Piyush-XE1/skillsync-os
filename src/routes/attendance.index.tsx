@@ -104,19 +104,12 @@ function AttendancePage() {
               <div className="mt-3">
                 <ProgressBar
                   value={overall.pct}
-                  tone={
-                    overall.pct >= 75
-                      ? "gradient"
-                      : overall.pct >= 60
-                        ? "warning"
-                        : "danger"
-                  }
+                  tone={overall.pct >= 75 ? "gradient" : overall.pct >= 60 ? "warning" : "danger"}
                 />
               </div>
             </div>
           </div>
         </Card>
-
 
         {subjects.length === 0 ? (
           <EmptyState
@@ -148,9 +141,7 @@ function AttendancePage() {
                   {sem}
                 </div>
                 <div className="min-w-0 flex-1">
-                  <div className="text-[14px] font-semibold tracking-tight">
-                    Semester {sem}
-                  </div>
+                  <div className="text-[14px] font-semibold tracking-tight">Semester {sem}</div>
                   <div className="mt-0.5 flex flex-wrap items-center gap-1.5 text-[11.5px] text-muted-foreground">
                     <Chip>{arr.length} subjects</Chip>
                     {p + a > 0 ? <Chip tone="primary">{pct}%</Chip> : null}

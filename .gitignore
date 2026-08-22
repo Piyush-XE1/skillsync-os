@@ -35,3 +35,6 @@ dist-ssr
 android/keystore.properties
 *.jks
 *.keystore
+
+# Local agent scratch/tooling
+.arena/

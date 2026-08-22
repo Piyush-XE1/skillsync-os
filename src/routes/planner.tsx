@@ -5,7 +5,7 @@ import { AppShell, PageHeader } from "@/components/layout/AppShell";
 import { Card, Chip, SectionHeader } from "@/components/ui/primitives";
 import { EmptyState } from "@/components/common/EmptyState";
 import { BottomSheet } from "@/components/edit/Sheet";
-import { TextField , NO_AUTOFILL_PROPS } from "@/components/edit/Fields";
+import { TextField, NO_AUTOFILL_PROPS } from "@/components/edit/Fields";
 import { ActionButton, IconButton } from "@/components/edit/Buttons";
 import { useAppStore, useHydrated } from "@/store/useAppStore";
 import { addDaysISO, todayISO, fromISO } from "@/lib/date";
@@ -47,10 +47,7 @@ function PlannerPage() {
     return addDaysISO(selected, -monIdx);
   }, [selected]);
 
-  const weekDates = useMemo(
-    () => weekdays.map((_, i) => addDaysISO(monday, i)),
-    [monday],
-  );
+  const weekDates = useMemo(() => weekdays.map((_, i) => addDaysISO(monday, i)), [monday]);
 
   const tasksForSelected = useMemo(
     () => planner.filter((t) => t.date === selected).sort((a, b) => a.time.localeCompare(b.time)),
@@ -66,8 +63,7 @@ function PlannerPage() {
   }, [planner]);
 
   const weekCounts = useMemo(
-    () =>
-      weekDates.map((d) => planner.filter((t) => t.date === d).length),
+    () => weekDates.map((d) => planner.filter((t) => t.date === d).length),
     [weekDates, planner],
   );
   const maxCount = Math.max(1, ...weekCounts);
@@ -92,7 +88,10 @@ function PlannerPage() {
               className="flex h-10 w-10 items-center justify-center rounded-full active:scale-95"
               aria-label="Next week"
             >
-              <ChevronRight className="h-[17px] w-[17px] text-muted-foreground" strokeWidth={1.75} />
+              <ChevronRight
+                className="h-[17px] w-[17px] text-muted-foreground"
+                strokeWidth={1.75}
+              />
             </button>
           </div>
         }
@@ -146,7 +145,15 @@ function PlannerPage() {
 
         <section className="space-y-3">
           <SectionHeader
-            title={selected === todayISO() ? "Today" : fromISO(selected).toLocaleDateString(undefined, { weekday: "long", month: "short", day: "numeric" })}
+            title={
+              selected === todayISO()
+                ? "Today"
+                : fromISO(selected).toLocaleDateString(undefined, {
+                    weekday: "long",
+                    month: "short",
+                    day: "numeric",
+                  })
+            }
             action={
               <button onClick={() => setOpen(true)} className="inline-flex items-center gap-1">
                 <Plus className="h-3 w-3" /> Add
@@ -172,9 +179,7 @@ function PlannerPage() {
                       }}
                       className={cn(
                         "h-4 w-4 rounded-full border transition-colors",
-                        t.done
-                          ? "border-transparent gradient-primary"
-                          : "border-white/15",
+                        t.done ? "border-transparent gradient-primary" : "border-white/15",
                       )}
                       aria-label="Toggle"
                     />
@@ -222,14 +227,10 @@ function PlannerPage() {
                         <span className="text-[9px] font-medium uppercase text-muted-foreground">
                           {d.toLocaleString(undefined, { month: "short" })}
                         </span>
-                        <span className="text-[14px] font-semibold">
-                          {d.getDate()}
-                        </span>
+                        <span className="text-[14px] font-semibold">{d.getDate()}</span>
                       </div>
                       <div className="min-w-0 flex-1">
-                        <div className="truncate text-[13.5px] font-medium">
-                          {t.title}
-                        </div>
+                        <div className="truncate text-[13.5px] font-medium">{t.title}</div>
                         <div className="text-[11.5px] text-muted-foreground">
                           {t.time || "All day"}
                         </div>
@@ -254,9 +255,7 @@ function PlannerPage() {
                       className="w-full rounded-md bg-gradient-to-t from-[var(--primary)]/40 to-[var(--primary)]/70"
                       style={{ height: `${h}px` }}
                     />
-                    <span className="text-[10px] text-muted-foreground">
-                      {weekdays[i][0]}
-                    </span>
+                    <span className="text-[10px] text-muted-foreground">{weekdays[i][0]}</span>
                   </div>
                 );
               })}
@@ -274,16 +273,8 @@ function PlannerPage() {
             placeholder="What needs to happen?"
           />
           <div className="grid grid-cols-2 gap-2">
-            <TextField
-              type="date"
-              value={selected}
-              onChange={(e) => setSelected(e.target.value)}
-            />
-            <TextField
-              type="time"
-              value={time}
-              onChange={(e) => setTime(e.target.value)}
-            />
+            <TextField type="date" value={selected} onChange={(e) => setSelected(e.target.value)} />
+            <TextField type="time" value={time} onChange={(e) => setTime(e.target.value)} />
           </div>
           <ActionButton
             className="w-full"

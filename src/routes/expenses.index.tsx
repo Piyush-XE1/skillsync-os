@@ -1,23 +1,7 @@
 import { createFileRoute, Link, Navigate } from "@tanstack/react-router";
-import {
-  useCallback,
-  useEffect,
-  useMemo,
-  useRef,
-  useState,
-  memo,
-} from "react";
+import { useCallback, useEffect, useMemo, useRef, useState, memo } from "react";
 import { toast } from "sonner";
-import {
-  ArrowLeft,
-  Pencil,
-  Plus,
-  Search,
-  Trash2,
-  TrendingDown,
-  TrendingUp,
-  X,
-} from "lucide-react";
+import { ArrowLeft, Pencil, Plus, Search, Trash2, TrendingDown, TrendingUp, X } from "lucide-react";
 import { AppShell } from "@/components/layout/AppShell";
 import { PrimaryAction } from "@/components/layout/PrimaryAction";
 import { Card, Chip } from "@/components/ui/primitives";
@@ -36,8 +20,7 @@ export const Route = createFileRoute("/expenses/")({
       { title: "Expenses — SkillSync" },
       {
         name: "description",
-        content:
-          "Log credits and debits with descriptions, tags, search and manual ordering.",
+        content: "Log credits and debits with descriptions, tags, search and manual ordering.",
       },
       { property: "og:title", content: "Expenses — SkillSync" },
       { property: "og:description", content: "Track money in and out, month by month." },
@@ -119,9 +102,7 @@ function matchesFilter(t: Transaction, filter: string) {
 
 function matchesQuery(t: Transaction, q: string) {
   if (!q) return true;
-  const hay = [t.title, t.description ?? "", ...(t.tags ?? [])]
-    .join(" ")
-    .toLowerCase();
+  const hay = [t.title, t.description ?? "", ...(t.tags ?? [])].join(" ").toLowerCase();
   return hay.includes(q);
 }
 
@@ -302,10 +283,7 @@ function DragList({
     // Order resolution from the current pointer position.
     const delta = s.pointerY - s.startY + s.scrolled;
     const from = s.baseIds.indexOf(s.dragId!);
-    const target = Math.max(
-      0,
-      Math.min(s.ids.length - 1, from + Math.round(delta / s.rowH)),
-    );
+    const target = Math.max(0, Math.min(s.ids.length - 1, from + Math.round(delta / s.rowH)));
     if (target !== s.index) {
       const next = s.baseIds.filter((x) => x !== s.dragId);
       next.splice(target, 0, s.dragId!);
@@ -438,13 +416,7 @@ function DragList({
 
 /* -------------------------------- Tag input ------------------------------ */
 
-function TagPicker({
-  value,
-  onChange,
-}: {
-  value: string[];
-  onChange: (tags: string[]) => void;
-}) {
+function TagPicker({ value, onChange }: { value: string[]; onChange: (tags: string[]) => void }) {
   const [custom, setCustom] = useState("");
   const toggle = (tag: string) =>
     onChange(
@@ -460,9 +432,7 @@ function TagPicker({
     }
     setCustom("");
   };
-  const extras = value.filter(
-    (t) => !PRESET_TAGS.some((p) => p.toLowerCase() === t.toLowerCase()),
-  );
+  const extras = value.filter((t) => !PRESET_TAGS.some((p) => p.toLowerCase() === t.toLowerCase()));
 
   return (
     <div className="space-y-2">
@@ -538,9 +508,7 @@ function ExpensesPage() {
 
   const groups = useMemo(() => {
     const q = query.trim().toLowerCase();
-    const visible = transactions.filter(
-      (t) => matchesQuery(t, q) && matchesFilter(t, filter),
-    );
+    const visible = transactions.filter((t) => matchesQuery(t, q) && matchesFilter(t, filter));
     const byMonth = new Map<string, Transaction[]>();
     for (const t of visible) {
       const k = monthKey(t.at);
@@ -551,9 +519,7 @@ function ExpensesPage() {
     return Array.from(byMonth.entries())
       .sort((a, b) => (a[0] < b[0] ? 1 : -1))
       .map(([key, list]) => {
-        list.sort(
-          (a, b) => (a.position ?? 0) - (b.position ?? 0) || b.at - a.at,
-        );
+        list.sort((a, b) => (a.position ?? 0) - (b.position ?? 0) || b.at - a.at);
         let credit = 0;
         let debit = 0;
         for (const t of list) {
@@ -623,9 +589,7 @@ function ExpensesPage() {
           <ArrowLeft className="h-[17px] w-[17px] text-muted-foreground" strokeWidth={1.75} />
         </Link>
         <div className="min-w-0 flex-1">
-          <div className="text-[11px] uppercase tracking-[0.14em] text-muted-foreground">
-            Money
-          </div>
+          <div className="text-[11px] uppercase tracking-[0.14em] text-muted-foreground">Money</div>
           <h1 className="truncate text-[22px] font-semibold leading-tight tracking-[-0.02em]">
             Expenses.
           </h1>
@@ -677,9 +641,7 @@ function ExpensesPage() {
         {hydrated && groups.length === 0 ? (
           <EmptyState
             icon={TrendingUp}
-            title={
-              transactions.length === 0 ? "No transactions yet" : "No expenses found."
-            }
+            title={transactions.length === 0 ? "No transactions yet" : "No expenses found."}
             hint={
               transactions.length === 0
                 ? "Log a credit or debit to start tracking."
@@ -795,11 +757,7 @@ function ExpensesPage() {
         title="Edit Expense"
         footer={
           <div className="flex gap-2">
-            <ActionButton
-              variant="outline"
-              className="flex-1"
-              onClick={() => setEditing(null)}
-            >
+            <ActionButton variant="outline" className="flex-1" onClick={() => setEditing(null)}>
               Cancel
             </ActionButton>
             <ActionButton className="flex-1" onClick={saveEdit}>
@@ -865,10 +823,7 @@ function ExpensesPage() {
           </div>
           <div className="space-y-1.5">
             <label className="text-[12px] text-muted-foreground">Tags</label>
-            <TagPicker
-              value={form.tags}
-              onChange={(tags) => setForm((f) => ({ ...f, tags }))}
-            />
+            <TagPicker value={form.tags} onChange={(tags) => setForm((f) => ({ ...f, tags }))} />
           </div>
           <button
             onClick={() => setConfirmDelete(true)}

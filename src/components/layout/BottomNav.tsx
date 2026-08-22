@@ -33,7 +33,6 @@ export function BottomNav() {
         "pointer-events-none fixed inset-x-0 bottom-0 z-40 flex justify-center pb-[max(env(safe-area-inset-bottom),16px)] transition-all duration-200 ease-[var(--ease-out-soft)] lg:hidden",
         hidden && "pointer-events-none translate-y-[140%] opacity-0",
       )}
-
     >
       <div
         className={cn(
@@ -52,9 +51,7 @@ export function BottomNav() {
               to={item.to}
               className={cn(
                 "group relative flex flex-1 flex-col items-center gap-0.5 rounded-full px-2 py-2 transition-all duration-300",
-                active
-                  ? "text-foreground"
-                  : "text-muted-foreground hover:text-foreground/80",
+                active ? "text-foreground" : "text-muted-foreground hover:text-foreground/80",
               )}
               aria-label={item.label}
               onClick={() => {
@@ -69,10 +66,7 @@ export function BottomNav() {
                     : "group-active:scale-90",
                 )}
               >
-                <Icon
-                  className="h-[18px] w-[18px]"
-                  strokeWidth={active ? 2.25 : 1.75}
-                />
+                <Icon className="h-[18px] w-[18px]" strokeWidth={active ? 2.25 : 1.75} />
               </span>
               <span
                 className={cn(

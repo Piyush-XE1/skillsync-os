@@ -7,10 +7,7 @@ import { ConfirmDialog } from "@/components/edit/Sheet";
 import { TextField, TextArea } from "@/components/edit/Fields";
 import { ActionButton, IconButton } from "@/components/edit/Buttons";
 import { useAppStore, useHydrated } from "@/store/useAppStore";
-import {
-  useKeyboardInset,
-  useScrollFocusedIntoView,
-} from "@/hooks/use-keyboard-inset";
+import { useKeyboardInset, useScrollFocusedIntoView } from "@/hooks/use-keyboard-inset";
 
 export const Route = createFileRoute("/notes/$noteId_/edit")({
   head: () => ({

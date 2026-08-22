@@ -33,15 +33,16 @@ export const TextField = forwardRef<HTMLInputElement, InputHTMLAttributes<HTMLIn
   },
 );
 
-export const TextArea = forwardRef<HTMLTextAreaElement, TextareaHTMLAttributes<HTMLTextAreaElement>>(
-  function TextArea({ className, ...props }, ref) {
-    return (
-      <textarea
-        ref={ref}
-        {...NO_AUTOFILL_PROPS}
-        {...props}
-        className={cn(FIELD_BASE, "resize-none py-3 leading-relaxed", className)}
-      />
-    );
-  },
-);
+export const TextArea = forwardRef<
+  HTMLTextAreaElement,
+  TextareaHTMLAttributes<HTMLTextAreaElement>
+>(function TextArea({ className, ...props }, ref) {
+  return (
+    <textarea
+      ref={ref}
+      {...NO_AUTOFILL_PROPS}
+      {...props}
+      className={cn(FIELD_BASE, "resize-none py-3 leading-relaxed", className)}
+    />
+  );
+});

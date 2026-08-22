@@ -1,5 +1,6 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
+import { toast } from "sonner";
 import { z } from "zod";
 import {
   ArrowLeft,
@@ -16,12 +17,14 @@ import { AppShell } from "@/components/layout/AppShell";
 import { Card, Chip, ProgressBar, SectionHeader } from "@/components/ui/primitives";
 import { EmptyState } from "@/components/common/EmptyState";
 import { BottomSheet, ConfirmDialog } from "@/components/edit/Sheet";
-import { TextField, TextArea , NO_AUTOFILL_PROPS } from "@/components/edit/Fields";
+import { TextField, TextArea, NO_AUTOFILL_PROPS } from "@/components/edit/Fields";
 import { ActionButton, IconButton } from "@/components/edit/Buttons";
 import { useAppStore, useHydrated } from "@/store/useAppStore";
 import { topicPct, subtopicPct } from "@/lib/progress";
 import { newId } from "@/lib/id";
-import type { Subtopic } from "@/lib/schema";
+import { haptics } from "@/lib/haptics";
+import { isSafeUrl, safeHref } from "@/lib/url";
+import type { Subtopic, ChecklistItem } from "@/lib/schema";
 
 const searchSchema = z.object({
   phaseId: z.string(),
@@ -145,7 +148,13 @@ function TopicDetail() {
           </Chip>
           <Chip>{topic.subtopics.length} subtopics</Chip>
           <span className="text-[11px] text-muted-foreground">
-            Last edited {new Date(lastEdited).toLocaleDateString(undefined, { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" })}
+            Last edited{" "}
+            {new Date(lastEdited).toLocaleDateString(undefined, {
+              month: "short",
+              day: "numeric",
+              hour: "numeric",
+              minute: "2-digit",
+            })}
           </span>
         </div>
         <div className="mt-4">
@@ -187,7 +196,11 @@ function TopicDetail() {
           }
         />
         {topic.resources.length === 0 ? (
-          <EmptyState icon={LinkIcon} title="No resources yet" hint="Attach docs, videos or articles." />
+          <EmptyState
+            icon={LinkIcon}
+            title="No resources yet"
+            hint="Attach docs, videos or articles."
+          />
         ) : (
           <Card className="p-2">
             <div className="divide-y divide-white/[0.05]">
@@ -197,18 +210,20 @@ function TopicDetail() {
                     <LinkIcon className="h-3.5 w-3.5 text-muted-foreground" />
                   </span>
                   <a
-                    href={r.url}
+                    href={safeHref(r.url)}
                     target="_blank"
                     rel="noreferrer"
+                    aria-disabled={!isSafeUrl(r.url)}
                     className="min-w-0 flex-1"
                   >
                     <div className="truncate text-[13.5px] font-medium">{r.label}</div>
                     <div className="truncate text-[11px] text-muted-foreground">{r.url}</div>
                   </a>
                   <a
-                    href={r.url}
+                    href={safeHref(r.url)}
                     target="_blank"
                     rel="noreferrer"
+                    aria-disabled={!isSafeUrl(r.url)}
                     className="flex h-8 w-8 items-center justify-center rounded-lg bg-white/[0.03] text-muted-foreground"
                   >
                     <ExternalLink className="h-3.5 w-3.5" />
@@ -249,11 +264,7 @@ function TopicDetail() {
               <div key={c.id} className="flex items-center gap-2">
                 <button
                   onClick={() => {
-                    updateChecklistItem(
-                      { roadmapId, phaseId, topicId },
-                      c.id,
-                      { done: !c.done },
-                    );
+                    updateChecklistItem({ roadmapId, phaseId, topicId }, c.id, { done: !c.done });
                     touch();
                   }}
                   className="flex h-5 w-5 items-center justify-center"
@@ -272,11 +283,9 @@ function TopicDetail() {
                   }
                   value={c.title}
                   onChange={(e) => {
-                    updateChecklistItem(
-                      { roadmapId, phaseId, topicId },
-                      c.id,
-                      { title: e.target.value },
-                    );
+                    updateChecklistItem({ roadmapId, phaseId, topicId }, c.id, {
+                      title: e.target.value,
+                    });
                     touch();
                   }}
                 />
@@ -333,9 +342,7 @@ function TopicDetail() {
               key={sub.id}
               sub={sub}
               open={!!openSubs[sub.id]}
-              onToggleOpen={() =>
-                setOpenSubs((o) => ({ ...o, [sub.id]: !o[sub.id] }))
-              }
+              onToggleOpen={() => setOpenSubs((o) => ({ ...o, [sub.id]: !o[sub.id] }))}
               onChange={(patch) => {
                 updateSubtopic(roadmapId, phaseId, topicId, sub.id, patch);
                 touch();
@@ -345,25 +352,15 @@ function TopicDetail() {
                 touch();
               }}
               addCheck={(title) => {
-                addChecklistItem(
-                  { roadmapId, phaseId, topicId, subtopicId: sub.id },
-                  title,
-                );
+                addChecklistItem({ roadmapId, phaseId, topicId, subtopicId: sub.id }, title);
                 touch();
               }}
               updateCheck={(id, patch) => {
-                updateChecklistItem(
-                  { roadmapId, phaseId, topicId, subtopicId: sub.id },
-                  id,
-                  patch,
-                );
+                updateChecklistItem({ roadmapId, phaseId, topicId, subtopicId: sub.id }, id, patch);
                 touch();
               }}
               deleteCheck={(id) => {
-                deleteChecklistItem(
-                  { roadmapId, phaseId, topicId, subtopicId: sub.id },
-                  id,
-                );
+                deleteChecklistItem({ roadmapId, phaseId, topicId, subtopicId: sub.id }, id);
                 touch();
               }}
             />
@@ -399,11 +396,7 @@ function TopicDetail() {
       </section>
 
       {/* Add resource sheet */}
-      <BottomSheet
-        open={resOpen}
-        onClose={() => setResOpen(false)}
-        title="Add resource"
-      >
+      <BottomSheet open={resOpen} onClose={() => setResOpen(false)} title="Add resource">
         <div className="space-y-3">
           <TextField
             autoFocus
@@ -422,11 +415,13 @@ function TopicDetail() {
               const url = resUrl.trim();
               const label = resLabel.trim() || url;
               if (!url) return;
+              if (!isSafeUrl(url)) {
+                haptics.error();
+                toast.error("Enter a valid http(s) link.");
+                return;
+              }
               updateTopic(roadmapId, phaseId, topicId, {
-                resources: [
-                  ...topic.resources,
-                  { id: newId(), label, url },
-                ],
+                resources: [...topic.resources, { id: newId(), label, url }],
               });
               setResOpen(false);
               touch();
@@ -467,7 +462,7 @@ function SubtopicBlock({
   onChange: (patch: Partial<Subtopic>) => void;
   onDelete: () => void;
   addCheck: (title: string) => void;
-  updateCheck: (id: string, patch: any) => void;
+  updateCheck: (id: string, patch: Partial<ChecklistItem>) => void;
   deleteCheck: (id: string) => void;
 }) {
   const [newCheck, setNewCheck] = useState("");
@@ -475,10 +470,7 @@ function SubtopicBlock({
   return (
     <div className="rounded-2xl border border-white/[0.05] bg-white/[0.02] p-3">
       <div className="flex items-center gap-2">
-        <button
-          onClick={onToggleOpen}
-          className="flex h-6 w-6 items-center justify-center"
-        >
+        <button onClick={onToggleOpen} className="flex h-6 w-6 items-center justify-center">
           {open ? (
             <ChevronDown className="h-4 w-4 text-muted-foreground" />
           ) : (
@@ -492,12 +484,7 @@ function SubtopicBlock({
           className="flex-1 bg-transparent text-[13.5px] font-medium outline-none"
         />
         <Chip>{pct}%</Chip>
-        <IconButton
-          size="sm"
-          variant="danger"
-          aria-label="Delete subtopic"
-          onClick={onDelete}
-        >
+        <IconButton size="sm" variant="danger" aria-label="Delete subtopic" onClick={onDelete}>
           <Trash2 className="h-3.5 w-3.5" />
         </IconButton>
       </div>

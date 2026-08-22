@@ -47,16 +47,10 @@ export function SectionHeader({
         {title}
       </h2>
       {action ? (
-        <span className="text-[12px] font-medium text-muted-foreground">
-          {action}
-        </span>
+        <span className="text-[12px] font-medium text-muted-foreground">{action}</span>
       ) : null}
     </div>
   );
-}
-
-export function Skeleton({ className }: { className?: string }) {
-  return <div className={cn("skeleton", className)} />;
 }
 
 export function Chip({
@@ -116,10 +110,7 @@ export function ProgressBar({
       aria-valuenow={Math.round(pct)}
       aria-valuemin={0}
       aria-valuemax={100}
-      className={cn(
-        "h-1.5 w-full overflow-hidden rounded-full bg-white/[0.07]",
-        className,
-      )}
+      className={cn("h-1.5 w-full overflow-hidden rounded-full bg-white/[0.07]", className)}
     >
       <div
         className={cn(
@@ -160,10 +151,7 @@ export function CircularProgress({
   const id = `cp-${size}-${stroke}`;
 
   return (
-    <div
-      className={cn("relative shrink-0", className)}
-      style={{ width: size, height: size }}
-    >
+    <div className={cn("relative shrink-0", className)} style={{ width: size, height: size }}>
       <svg width={size} height={size} className="-rotate-90">
         <defs>
           <linearGradient id={id} x1="0" y1="0" x2="1" y2="1">
@@ -256,73 +244,5 @@ export function CountUp({
       {display.toFixed(decimals)}
       {suffix}
     </span>
-  );
-}
-
-/** Standard icon container used across the app. */
-export function IconTile({
-  children,
-  accent = false,
-  className,
-}: {
-  children: ReactNode;
-  accent?: boolean;
-  className?: string;
-}) {
-  return (
-    <div className={cn(accent ? "icon-tile-accent" : "icon-tile", className)}>
-      {children}
-    </div>
-  );
-}
-
-/** Compact sparkline for trend visualisation. */
-export function Sparkline({
-  points,
-  width = 96,
-  height = 28,
-  className,
-}: {
-  points: number[];
-  width?: number;
-  height?: number;
-  className?: string;
-}) {
-  if (!points.length) return null;
-  const max = Math.max(...points, 1);
-  const min = Math.min(...points, 0);
-  const span = max - min || 1;
-  const step = points.length > 1 ? width / (points.length - 1) : width;
-  const d = points
-    .map((p, i) => {
-      const x = i * step;
-      const y = height - ((p - min) / span) * (height - 2) - 1;
-      return `${i === 0 ? "M" : "L"}${x.toFixed(1)},${y.toFixed(1)}`;
-    })
-    .join(" ");
-
-  return (
-    <svg
-      viewBox={`0 0 ${width} ${height}`}
-      preserveAspectRatio="none"
-      height={height}
-      className={cn("chart-responsive block", className)}
-      aria-hidden="true"
-    >
-      <defs>
-        <linearGradient id="spark" x1="0" y1="0" x2="1" y2="0">
-          <stop offset="0%" stopColor="var(--primary)" />
-          <stop offset="100%" stopColor="var(--secondary)" />
-        </linearGradient>
-      </defs>
-      <path
-        d={d}
-        fill="none"
-        stroke="url(#spark)"
-        strokeWidth={1.75}
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
-    </svg>
   );
 }
