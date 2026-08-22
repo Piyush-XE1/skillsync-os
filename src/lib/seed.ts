@@ -30,9 +30,7 @@ function makePhase(roadmapId: string, title: string, topics: string[], index: nu
   return {
     id: `${roadmapId}-${phaseId}`,
     title,
-    topics: topics.map((topic, topicIndex) =>
-      makeTopic(roadmapId, phaseId, topic, topicIndex),
-    ),
+    topics: topics.map((topic, topicIndex) => makeTopic(roadmapId, phaseId, topic, topicIndex)),
     createdAt: SEED_CREATED_AT,
   };
 }
@@ -49,9 +47,7 @@ function makeRoadmap(
     title,
     subtitle,
     color,
-    phases: phaseGroups.map((phase, index) =>
-      makePhase(id, phase.title, phase.topics, index),
-    ),
+    phases: phaseGroups.map((phase, index) => makePhase(id, phase.title, phase.topics, index)),
     createdAt: SEED_CREATED_AT,
   };
 }
@@ -65,103 +61,124 @@ export function createInitialData(): AppData {
     schemaVersion: CURRENT_SCHEMA_VERSION,
     roadmaps: [
       makeRoadmap("roadmap-python", "Python", "Foundations → Mastery", "#7c3aed", [
-        { title: "Foundations", topics: [
-          "Syntax & variables",
-          "Data types & operators",
-          "Control flow",
-          "Functions & scope",
-        ] },
-        { title: "Core", topics: [
-          "Collections (list, dict, set, tuple)",
-          "Comprehensions",
-          "Modules & packages",
-          "File I/O",
-          "Errors & exceptions",
-        ] },
-        { title: "Intermediate", topics: [
-          "OOP: classes & inheritance",
-          "Iterators & generators",
-          "Decorators",
-          "Context managers",
-          "Typing & dataclasses",
-        ] },
-        { title: "Advanced", topics: [
-          "Async & concurrency",
-          "Testing (pytest)",
-          "Packaging & virtualenvs",
-          "Performance & profiling",
-        ] },
+        {
+          title: "Foundations",
+          topics: [
+            "Syntax & variables",
+            "Data types & operators",
+            "Control flow",
+            "Functions & scope",
+          ],
+        },
+        {
+          title: "Core",
+          topics: [
+            "Collections (list, dict, set, tuple)",
+            "Comprehensions",
+            "Modules & packages",
+            "File I/O",
+            "Errors & exceptions",
+          ],
+        },
+        {
+          title: "Intermediate",
+          topics: [
+            "OOP: classes & inheritance",
+            "Iterators & generators",
+            "Decorators",
+            "Context managers",
+            "Typing & dataclasses",
+          ],
+        },
+        {
+          title: "Advanced",
+          topics: [
+            "Async & concurrency",
+            "Testing (pytest)",
+            "Packaging & virtualenvs",
+            "Performance & profiling",
+          ],
+        },
       ]),
-      makeRoadmap("roadmap-ai-machine-learning", "AI / Machine Learning", "Math · Models · Systems", "#2563eb", [
-        { title: "Math foundations", topics: [
-          "Linear algebra",
-          "Probability & statistics",
-          "Calculus for ML",
-        ] },
-        { title: "Classical ML", topics: [
-          "Regression & classification",
-          "Trees & ensembles",
-          "Clustering & PCA",
-          "Model evaluation",
-        ] },
-        { title: "Deep learning", topics: [
-          "Neural networks basics",
-          "CNNs",
-          "RNNs & transformers",
-          "Training tricks & regularization",
-        ] },
-        { title: "LLMs & applied AI", topics: [
-          "Prompting & fine-tuning",
-          "Embeddings & RAG",
-          "Agents & tools",
-          "Evaluation & safety",
-        ] },
-      ]),
+      makeRoadmap(
+        "roadmap-ai-machine-learning",
+        "AI / Machine Learning",
+        "Math · Models · Systems",
+        "#2563eb",
+        [
+          {
+            title: "Math foundations",
+            topics: ["Linear algebra", "Probability & statistics", "Calculus for ML"],
+          },
+          {
+            title: "Classical ML",
+            topics: [
+              "Regression & classification",
+              "Trees & ensembles",
+              "Clustering & PCA",
+              "Model evaluation",
+            ],
+          },
+          {
+            title: "Deep learning",
+            topics: [
+              "Neural networks basics",
+              "CNNs",
+              "RNNs & transformers",
+              "Training tricks & regularization",
+            ],
+          },
+          {
+            title: "LLMs & applied AI",
+            topics: [
+              "Prompting & fine-tuning",
+              "Embeddings & RAG",
+              "Agents & tools",
+              "Evaluation & safety",
+            ],
+          },
+        ],
+      ),
       makeRoadmap("roadmap-dsa", "DSA", "Patterns · Problems", "#18181b", [
-        { title: "Foundations", topics: [
-          "Big-O & complexity",
-          "Arrays & strings",
-          "Hash maps & sets",
-        ] },
-        { title: "Linear structures", topics: [
-          "Two pointers",
-          "Sliding window",
-          "Stacks & queues",
-          "Linked lists",
-        ] },
-        { title: "Non-linear", topics: [
-          "Trees & BSTs",
-          "Heaps",
-          "Graphs (BFS / DFS)",
-          "Tries",
-        ] },
-        { title: "Algorithms", topics: [
-          "Binary search",
-          "Recursion & backtracking",
-          "Greedy",
-          "Dynamic programming",
-        ] },
+        {
+          title: "Foundations",
+          topics: ["Big-O & complexity", "Arrays & strings", "Hash maps & sets"],
+        },
+        {
+          title: "Linear structures",
+          topics: ["Two pointers", "Sliding window", "Stacks & queues", "Linked lists"],
+        },
+        { title: "Non-linear", topics: ["Trees & BSTs", "Heaps", "Graphs (BFS / DFS)", "Tries"] },
+        {
+          title: "Algorithms",
+          topics: ["Binary search", "Recursion & backtracking", "Greedy", "Dynamic programming"],
+        },
       ]),
-      makeRoadmap("roadmap-web-development", "Web Development", "Frontend · Backend · Infra", "#db2777", [
-        { title: "Frontend", topics: [
-          "HTML & semantic markup",
-          "CSS & responsive design",
-          "JavaScript essentials",
-          "React fundamentals",
-        ] },
-        { title: "Backend", topics: [
-          "HTTP & REST",
-          "Databases & SQL",
-          "Auth & sessions",
-          "APIs",
-        ] },
-        { title: "Infra & delivery", topics: [
-          "Git & workflows",
-          "CI/CD",
-          "Deployment & hosting",
-          "Observability",
-        ] },
-      ]),
+      makeRoadmap(
+        "roadmap-web-development",
+        "Web Development",
+        "Frontend · Backend · Infra",
+        "#db2777",
+        [
+          {
+            title: "Frontend",
+            topics: [
+              "HTML & semantic markup",
+              "CSS & responsive design",
+              "JavaScript essentials",
+              "React fundamentals",
+            ],
+          },
+          {
+            title: "Backend",
+            topics: ["HTTP & REST", "Databases & SQL", "Auth & sessions", "APIs"],
+          },
+          {
+            title: "Infra & delivery",
+            topics: ["Git & workflows", "CI/CD", "Deployment & hosting", "Observability"],
+          },
+        ],
+      ),
     ],
     notes: [],
     projects: [],
@@ -183,7 +200,6 @@ export function createInitialData(): AppData {
       background: "aurora",
       haptics: true,
       hapticIntensity: "standard",
-
     },
     stats: { xp: 0, level: 1, streak: 0, lastActive: "" },
     attendance: { subjects: [] },

@@ -1,8 +1,9 @@
 import { AppDataSchema, type AppData } from "./schema";
 import { migrate } from "./migrations";
+import { errorMessage } from "./utils";
+import { APP_VERSION } from "./version";
 
 export const BACKUP_VERSION = 1;
-export const APP_VERSION = "0.3";
 const LAST_META_KEY = "skillsync:backup:lastMeta";
 
 export type BackupMeta = {
@@ -20,7 +21,11 @@ export type BackupEnvelope = {
   data: AppData;
 };
 
-export function serializeBackup(data: AppData): { text: string; meta: BackupMeta; createdAtISO: string } {
+export function serializeBackup(data: AppData): {
+  text: string;
+  meta: BackupMeta;
+  createdAtISO: string;
+} {
   const createdAtISO = new Date().toISOString();
   const env: BackupEnvelope = {
     kind: "skillsync-backup",
@@ -53,7 +58,7 @@ export type ValidBackup = {
 export function validateBackup(
   input: string,
 ): { ok: true; backup: ValidBackup } | { ok: false; error: string } {
-  let parsed: any;
+  let parsed: unknown;
   try {
     parsed = JSON.parse(input);
   } catch {
@@ -62,21 +67,20 @@ export function validateBackup(
   if (!parsed || typeof parsed !== "object") {
     return { ok: false, error: "Backup file is empty or malformed." };
   }
+  const obj = parsed as Record<string, unknown>;
   const isEnvelope =
-    parsed.kind === "skillsync-backup" ||
-    (typeof parsed.backupVersion === "number" && parsed.data);
-  if (parsed.kind && parsed.kind !== "skillsync-backup") {
+    obj.kind === "skillsync-backup" || (typeof obj.backupVersion === "number" && Boolean(obj.data));
+  if (obj.kind !== undefined && obj.kind !== "skillsync-backup") {
     return { ok: false, error: "Not a SkillSync backup file." };
   }
-  const raw = isEnvelope ? parsed.data : parsed;
-  if (
-    isEnvelope &&
-    typeof parsed.backupVersion === "number" &&
-    parsed.backupVersion > BACKUP_VERSION
-  ) {
+  const raw = isEnvelope ? obj.data : obj;
+  const backupVersion = typeof obj.backupVersion === "number" ? obj.backupVersion : undefined;
+  const appVersion = typeof obj.appVersion === "string" ? obj.appVersion : undefined;
+  const createdAt = typeof obj.createdAt === "string" ? obj.createdAt : undefined;
+  if (isEnvelope && backupVersion !== undefined && backupVersion > BACKUP_VERSION) {
     return {
       ok: false,
-      error: `Backup was made with a newer app${parsed.appVersion ? ` (v${parsed.appVersion})` : ""}. Please update SkillSync.`,
+      error: `Backup was made with a newer app${appVersion ? ` (v${appVersion})` : ""}. Please update SkillSync.`,
     };
   }
   try {
@@ -85,15 +89,15 @@ export function validateBackup(
     return {
       ok: true,
       backup: {
-        backupVersion: isEnvelope ? (parsed.backupVersion ?? BACKUP_VERSION) : BACKUP_VERSION,
-        appVersion: isEnvelope ? (parsed.appVersion ?? "?") : "legacy",
-        createdAt: isEnvelope ? (parsed.createdAt ?? new Date().toISOString()) : new Date().toISOString(),
+        backupVersion: isEnvelope ? (backupVersion ?? BACKUP_VERSION) : BACKUP_VERSION,
+        appVersion: isEnvelope ? (appVersion ?? "?") : "legacy",
+        createdAt: isEnvelope ? (createdAt ?? new Date().toISOString()) : new Date().toISOString(),
         data,
         sizeBytes: new Blob([input]).size,
       },
     };
-  } catch (e: any) {
-    return { ok: false, error: e?.message ?? "Backup structure is invalid." };
+  } catch (e) {
+    return { ok: false, error: errorMessage(e, "Backup structure is invalid.") };
   }
 }
 
@@ -123,9 +127,7 @@ export function backupSummary(data: AppData): BackupSummary {
       topics += p.topics.length;
       for (const t of p.topics) {
         subtopics += t.subtopics.length;
-        checklists +=
-          t.checklist.length +
-          t.subtopics.reduce((n, s) => n + s.checklist.length, 0);
+        checklists += t.checklist.length + t.subtopics.reduce((n, s) => n + s.checklist.length, 0);
       }
     }
   }
@@ -232,81 +234,3 @@ export function fmtTime(ms: number): string {
     minute: "2-digit",
   });
 }
-
-/**
- * User-facing description of exactly what a backup file contains, derived from
- * the real serialized data model so nothing is claimed that is not stored.
- */
-export type IncludedCategory = {
-  key: string;
-  label: string;
-  detail: string;
-  count: number;
-};
-
-export function includedCategories(data: AppData): IncludedCategory[] {
-  const s = backupSummary(data);
-  return [
-    {
-      key: "roadmaps",
-      label: "Learning roadmaps",
-      detail: `${s.phases} phases · ${s.topics} topics · ${s.subtopics} subtopics · ${s.checklists} checklist items, with completion state and resources`,
-      count: s.roadmaps,
-    },
-    {
-      key: "notes",
-      label: "Notes",
-      detail: "Titles, full content and timestamps",
-      count: s.notes,
-    },
-    {
-      key: "projects",
-      label: "Projects",
-      detail: "Project details, status and their task lists",
-      count: s.projects,
-    },
-    {
-      key: "planner",
-      label: "Planner tasks",
-      detail: "Scheduled tasks with their day and done state",
-      count: s.plannerTasks,
-    },
-    {
-      key: "habits",
-      label: "Habits",
-      detail: `${s.habitLogs} logged completions, streak history and start dates`,
-      count: s.habits,
-    },
-    {
-      key: "attendance",
-      label: "Attendance subjects",
-      detail: "Semesters, faculty, minimum requirement and present/absent counts",
-      count: s.subjects,
-    },
-    {
-      key: "expenses",
-      label: "Expense entries",
-      detail: "Amounts, type, description, tags, dates and your custom order",
-      count: s.transactions,
-    },
-    {
-      key: "preferences",
-      label: "Preferences & settings",
-      detail: "Background/appearance, haptics, notification settings, optional modules, developer mode",
-      count: 1,
-    },
-    {
-      key: "profile",
-      label: "Profile & stats",
-      detail: "Your name, avatar, XP, level and streak",
-      count: 1,
-    },
-  ];
-}
-
-/** Things a backup deliberately does not contain. */
-export const NOT_INCLUDED: string[] = [
-  "Anything stored outside SkillSync on your device",
-  "Scheduled Android reminders (they are rebuilt from your settings after a restore)",
-  "Cloud accounts or sync — a backup is a single local file you control",
-];

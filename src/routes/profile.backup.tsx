@@ -13,7 +13,10 @@ export const Route = createFileRoute("/profile/backup")({
   head: () => ({
     meta: [
       { title: "Backup & Restore — SkillSync" },
-      { name: "description", content: "Create backups, restore your workspace, and reset SkillSync." },
+      {
+        name: "description",
+        content: "Create backups, restore your workspace, and reset SkillSync.",
+      },
       { property: "og:title", content: "Backup & Restore — SkillSync" },
       { property: "og:description", content: "Snapshot and restore your SkillSync workspace." },
       { property: "og:type", content: "website" },
@@ -56,9 +59,7 @@ function BackupPage() {
           <ArrowLeft className="h-[17px] w-[17px] text-muted-foreground" strokeWidth={1.75} />
         </Link>
         <div className="min-w-0 flex-1">
-          <div className="text-[11px] uppercase tracking-[0.14em] text-muted-foreground">
-            Data
-          </div>
+          <div className="text-[11px] uppercase tracking-[0.14em] text-muted-foreground">Data</div>
           <h1 className="truncate text-[22px] font-semibold leading-tight tracking-[-0.02em]">
             Backup &amp; Restore
           </h1>
@@ -76,8 +77,8 @@ function BackupPage() {
               <AlertTriangle className="h-4 w-4" strokeWidth={1.75} />
             </span>
             <p className="text-[12.5px] leading-relaxed text-muted-foreground">
-              This will permanently erase every roadmap, note, project, planner
-              task, habit log and profile change on this device.
+              This will permanently erase every roadmap, note, project, planner task, habit log and
+              profile change on this device.
             </p>
           </div>
           <div className="flex gap-2">
@@ -104,8 +105,7 @@ function BackupPage() {
               <AlertTriangle className="h-4 w-4" strokeWidth={1.75} />
             </span>
             <p className="text-[12.5px] leading-relaxed text-muted-foreground">
-              This action is permanent. To proceed, type the phrase below
-              exactly and press Confirm.
+              This action is permanent. To proceed, type the phrase below exactly and press Confirm.
             </p>
           </div>
           <div className="space-y-1.5">

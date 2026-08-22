@@ -55,11 +55,7 @@ type NativePlugin = {
     mimeType: string;
     text: string;
   }): Promise<{ ok: boolean; location?: string; filename?: string }>;
-  shareFile?(o: {
-    filename: string;
-    mimeType: string;
-    text: string;
-  }): Promise<{ ok: boolean }>;
+  shareFile?(o: { filename: string; mimeType: string; text: string }): Promise<{ ok: boolean }>;
 };
 
 export type NativeFileResult =
@@ -77,11 +73,6 @@ type CapacitorGlobal = {
 function capacitor(): CapacitorGlobal | undefined {
   if (typeof window === "undefined") return undefined;
   return (window as unknown as { Capacitor?: CapacitorGlobal }).Capacitor;
-}
-
-/** True inside the Capacitor Android/iOS shell. */
-export function isNativeShell(): boolean {
-  return Boolean(capacitor()?.isNativePlatform?.());
 }
 
 export function nativePlatform(): string {

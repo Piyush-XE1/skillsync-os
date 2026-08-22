@@ -1,8 +1,8 @@
-import { haptics } from "@/lib/haptics";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { ArrowLeft, GraduationCap, Wallet } from "lucide-react";
 import { AppShell } from "@/components/layout/AppShell";
 import { Card } from "@/components/ui/primitives";
+import { Toggle } from "@/components/common/Toggle";
 import { useAppStore } from "@/store/useAppStore";
 
 export const Route = createFileRoute("/profile/modules")({
@@ -18,29 +18,6 @@ export const Route = createFileRoute("/profile/modules")({
   }),
   component: ModulesPage,
 });
-
-function Toggle({ on, onChange }: { on: boolean; onChange: (v: boolean) => void }) {
-  return (
-    <button
-      onClick={() => {
-        haptics.toggle(!on);
-        onChange(!on);
-      }}
-      aria-pressed={on}
-      className={
-        "relative h-6 w-11 shrink-0 rounded-full transition-colors " +
-        (on ? "bg-[var(--primary)]" : "bg-white/10")
-      }
-    >
-      <span
-        className={
-          "absolute top-0.5 h-5 w-5 rounded-full bg-white shadow transition-transform " +
-          (on ? "translate-x-[22px]" : "translate-x-0.5")
-        }
-      />
-    </button>
-  );
-}
 
 function ModuleRow({
   icon: Icon,
@@ -65,9 +42,7 @@ function ModuleRow({
           <div className="text-[14px] font-semibold tracking-tight">{title}</div>
           <Toggle on={on} onChange={onChange} />
         </div>
-        <p className="mt-1 text-[12.5px] leading-relaxed text-muted-foreground">
-          {desc}
-        </p>
+        <p className="mt-1 text-[12.5px] leading-relaxed text-muted-foreground">{desc}</p>
       </div>
     </Card>
   );

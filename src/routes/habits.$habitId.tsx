@@ -1,14 +1,6 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
-import {
-  ArrowLeft,
-  Pencil,
-  Trash2,
-  Flame,
-  Trophy,
-  Percent,
-  Check,
-} from "lucide-react";
+import { ArrowLeft, Pencil, Trash2, Flame, Trophy, Percent, Check } from "lucide-react";
 import { AppShell } from "@/components/layout/AppShell";
 import { Card, Chip, ProgressBar, SectionHeader } from "@/components/ui/primitives";
 import { EmptyState } from "@/components/common/EmptyState";
@@ -40,13 +32,9 @@ function HabitDetail() {
 
   const habit = useAppStore((s) => s.habits.find((h) => h.id === habitId));
   const habitLogs = useAppStore((s) => s.habitLogs);
-  const startISO =
-    habit?.startDate ?? (habit ? todayISO(new Date(habit.createdAt)) : todayISO());
+  const startISO = habit?.startDate ?? (habit ? todayISO(new Date(habit.createdAt)) : todayISO());
   const logs = useMemo(
-    () =>
-      habitLogs.filter(
-        (l) => l.habitId === habitId && l.date >= startISO,
-      ),
+    () => habitLogs.filter((l) => l.habitId === habitId && l.date >= startISO),
     [habitLogs, habitId, startISO],
   );
   const renameHabit = useAppStore((s) => s.renameHabit);
@@ -109,8 +97,7 @@ function HabitDetail() {
     if (!habit) return 0;
     const start = new Date(startISO);
     const now = new Date();
-    const days =
-      Math.floor((now.getTime() - start.getTime()) / (1000 * 60 * 60 * 24)) + 1;
+    const days = Math.floor((now.getTime() - start.getTime()) / (1000 * 60 * 60 * 24)) + 1;
     if (days <= 0) return 0;
     return Math.round((logs.length / days) * 100);
   }, [habit, logs, startISO]);
@@ -177,11 +164,7 @@ function HabitDetail() {
           >
             <Pencil className="h-4 w-4" />
           </IconButton>
-          <IconButton
-            aria-label="Delete"
-            variant="danger"
-            onClick={() => setConfirmDelete(true)}
-          >
+          <IconButton aria-label="Delete" variant="danger" onClick={() => setConfirmDelete(true)}>
             <Trash2 className="h-4 w-4" />
           </IconButton>
         </div>
@@ -254,7 +237,14 @@ function HabitDetail() {
           <ProgressBar value={overallPct} tone="gradient" />
           <div className="mt-3 flex flex-wrap gap-1.5">
             <Chip>{logs.length} check-ins</Chip>
-            <Chip>Since {fromISO(startISO).toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" })}</Chip>
+            <Chip>
+              Since{" "}
+              {fromISO(startISO).toLocaleDateString(undefined, {
+                month: "short",
+                day: "numeric",
+                year: "numeric",
+              })}
+            </Chip>
           </div>
         </Card>
       </section>
@@ -312,11 +302,7 @@ function HabitDetail() {
         </Card>
       </section>
 
-      <BottomSheet
-        open={editOpen}
-        onClose={() => setEditOpen(false)}
-        title="Edit habit"
-      >
+      <BottomSheet open={editOpen} onClose={() => setEditOpen(false)} title="Edit habit">
         <div className="space-y-3">
           <div className="flex gap-2">
             <TextField
@@ -333,9 +319,7 @@ function HabitDetail() {
             />
           </div>
           <div className="space-y-1.5">
-            <label className="block text-[12px] text-muted-foreground">
-              Start date
-            </label>
+            <label className="block text-[12px] text-muted-foreground">Start date</label>
             <TextField
               type="date"
               value={startInput}
@@ -343,8 +327,8 @@ function HabitDetail() {
               onChange={(e) => setStartInput(e.target.value)}
             />
             <p className="text-[11.5px] text-muted-foreground/80">
-              Stats and calendar are calculated from this date. Check-ins before
-              this date are preserved but ignored in totals.
+              Stats and calendar are calculated from this date. Check-ins before this date are
+              preserved but ignored in totals.
             </p>
           </div>
           <ActionButton

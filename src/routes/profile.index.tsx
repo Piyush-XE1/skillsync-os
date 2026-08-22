@@ -28,14 +28,13 @@ import { Card, Chip, ProgressBar, SectionHeader } from "@/components/ui/primitiv
 import { BottomSheet } from "@/components/edit/Sheet";
 import { TextField } from "@/components/edit/Fields";
 import { ActionButton } from "@/components/edit/Buttons";
-import { useAppStore, useHydrated } from "@/store/useAppStore";
-import {
-  BACKGROUND_OPTIONS,
-  type BackgroundStyle,
-} from "@/components/layout/backgrounds";
+import { Toggle } from "@/components/common/Toggle";
+import { useShallow } from "zustand/react/shallow";
+import { STORAGE_KEY, toAppData, useAppStore, useHydrated } from "@/store/useAppStore";
+import { BACKGROUND_OPTIONS, type BackgroundStyle } from "@/components/layout/backgrounds";
+import { formatBytes } from "@/lib/backup";
+import { APP_VERSION } from "@/lib/version";
 import { haptics, hapticsSupported, type HapticIntensity } from "@/lib/haptics";
-
-
 
 export const Route = createFileRoute("/profile/")({
   head: () => ({
@@ -51,12 +50,7 @@ export const Route = createFileRoute("/profile/")({
   component: ProfilePage,
 });
 
-const APP_VERSION = "2.0";
-
-async function fileToResizedDataUrl(
-  file: File,
-  max = 256,
-): Promise<string> {
+async function fileToResizedDataUrl(file: File, max = 256): Promise<string> {
   const url = URL.createObjectURL(file);
   try {
     const img = await new Promise<HTMLImageElement>((resolve, reject) => {
@@ -87,15 +81,13 @@ function ProfilePage() {
   const updateProfile = useAppStore((s) => s.updateProfile);
   const updatePreferences = useAppStore((s) => s.updatePreferences);
   const exportJSON = useAppStore((s) => s.exportJSON);
-  const importJSON = useAppStore((s) => s.importJSON);
   const resetAll = useAppStore((s) => s.resetAll);
 
   const [openProfile, setOpenProfile] = useState(false);
   const [openJson, setOpenJson] = useState(false);
   const [openAppearance, setOpenAppearance] = useState(false);
   const [openHaptics, setOpenHaptics] = useState(false);
-  const [importMsg, setImportMsg] = useState<string | null>(null);
-  
+
   const avatarFileRef = useRef<HTMLInputElement>(null);
 
   // Friction dialogs
@@ -105,7 +97,6 @@ function ProfilePage() {
   const [resetMode, setResetMode] = useState<null | "demo" | "all">(null);
   const [resetStep, setResetStep] = useState<0 | 1 | 2>(0);
   const [resetPhraseInput, setResetPhraseInput] = useState("");
-
 
   const initials =
     (profile.name || "L")
@@ -117,14 +108,13 @@ function ProfilePage() {
 
   // export/import handled by BackupSection now
 
-
   const handleAvatarPick = async (file: File) => {
     try {
       const dataUrl = await fileToResizedDataUrl(file, 256);
       updateProfile({ avatar: dataUrl });
     } catch {
-      setImportMsg("Couldn't read that image.");
-      setTimeout(() => setImportMsg(null), 3000);
+      haptics.error();
+      toast.error("Couldn't read that image.");
     }
   };
 
@@ -181,21 +171,19 @@ function ProfilePage() {
     }
   };
 
-
+  // Re-measure whenever any persisted slice of the store changes.
+  const data = useAppStore(useShallow(toAppData));
   const storageSize = useMemo(() => {
-    if (typeof window === "undefined") return 0;
     try {
-      const raw = window.localStorage.getItem("skillsync:data:v1") ?? "";
-      return new Blob([raw]).size;
+      const raw = window.localStorage.getItem(STORAGE_KEY);
+      if (raw !== null) return new Blob([raw]).size;
     } catch {
-      return 0;
+      /* fall through to the serialized estimate */
     }
-  }, [hydrated, profile, preferences, stats]);
+    return new Blob([JSON.stringify(data)]).size;
+  }, [data]);
 
-  const jsonPreview = useMemo(
-    () => (openJson ? exportJSON() : ""),
-    [openJson, exportJSON],
-  );
+  const jsonPreview = useMemo(() => (openJson ? exportJSON() : ""), [openJson, exportJSON]);
 
   const xpToNext = stats.xp % 100;
 
@@ -213,15 +201,9 @@ function ProfilePage() {
               aria-label="Change profile picture"
             >
               {hydrated && profile.avatar ? (
-                <img
-                  src={profile.avatar}
-                  alt="Avatar"
-                  className="h-full w-full object-cover"
-                />
+                <img src={profile.avatar} alt="Avatar" className="h-full w-full object-cover" />
               ) : (
-                <span
-                  className="flex h-full w-full items-center justify-center bg-gradient-to-br from-[var(--primary)] to-[var(--secondary)]"
-                >
+                <span className="flex h-full w-full items-center justify-center bg-gradient-to-br from-[var(--primary)] to-[var(--secondary)]">
                   {initials}
                 </span>
               )}
@@ -290,14 +272,9 @@ function ProfilePage() {
               { k: "Level", v: hydrated ? String(stats.level) : "—" },
               { k: "XP", v: hydrated ? String(stats.xp) : "—" },
             ].map((s) => (
-              <div
-                key={s.k}
-                className="rounded-2xl border border-white/[0.05] bg-white/[0.02] p-3"
-              >
+              <div key={s.k} className="rounded-2xl border border-white/[0.05] bg-white/[0.02] p-3">
                 <div className="text-[11px] text-muted-foreground">{s.k}</div>
-                <div className="mt-1 text-[18px] font-semibold tracking-tight">
-                  {s.v}
-                </div>
+                <div className="mt-1 text-[18px] font-semibold tracking-tight">{s.v}</div>
               </div>
             ))}
           </div>
@@ -314,9 +291,7 @@ function ProfilePage() {
               <BarChart3 className="h-5 w-5 text-white" strokeWidth={1.75} />
             </div>
             <div className="flex-1">
-              <div className="text-[14px] font-semibold tracking-tight">
-                View analytics
-              </div>
+              <div className="text-[14px] font-semibold tracking-tight">View analytics</div>
               <div className="text-[12px] text-muted-foreground">
                 Learning, projects and habit trends
               </div>
@@ -331,12 +306,8 @@ function ProfilePage() {
               <Activity className="h-5 w-5 text-muted-foreground" strokeWidth={1.75} />
             </div>
             <div className="flex-1">
-              <div className="text-[14px] font-semibold tracking-tight">
-                Operation Rebirth
-              </div>
-              <div className="text-[12px] text-muted-foreground">
-                Daily habit tracking
-              </div>
+              <div className="text-[14px] font-semibold tracking-tight">Operation Rebirth</div>
+              <div className="text-[12px] text-muted-foreground">Daily habit tracking</div>
             </div>
             <ChevronRight className="h-4 w-4 text-muted-foreground/60" />
           </Link>
@@ -349,9 +320,7 @@ function ProfilePage() {
                 <GraduationCap className="h-5 w-5 text-muted-foreground" strokeWidth={1.75} />
               </div>
               <div className="min-w-0 flex-1">
-                <div className="text-[14px] font-semibold tracking-tight">
-                  College Attendance
-                </div>
+                <div className="text-[14px] font-semibold tracking-tight">College Attendance</div>
                 <div className="text-[12px] text-muted-foreground">
                   Semester-wise attendance tracker
                 </div>
@@ -368,9 +337,7 @@ function ProfilePage() {
                 <Wallet className="h-5 w-5 text-muted-foreground" strokeWidth={1.75} />
               </div>
               <div className="min-w-0 flex-1">
-                <div className="text-[14px] font-semibold tracking-tight">
-                  Expense Manager
-                </div>
+                <div className="text-[14px] font-semibold tracking-tight">Expense Manager</div>
                 <div className="text-[12px] text-muted-foreground">
                   Track monthly credits and debits
                 </div>
@@ -391,9 +358,7 @@ function ProfilePage() {
               <Save className="h-5 w-5 text-white" strokeWidth={1.75} />
             </div>
             <div className="min-w-0 flex-1">
-              <div className="text-[14px] font-semibold tracking-tight">
-                Backup &amp; Restore
-              </div>
+              <div className="text-[14px] font-semibold tracking-tight">Backup &amp; Restore</div>
               <div className="text-[12px] text-muted-foreground">
                 Snapshots, restores and reset controls
               </div>
@@ -413,9 +378,7 @@ function ProfilePage() {
               <SlidersHorizontal className="h-5 w-5 text-muted-foreground" strokeWidth={1.75} />
             </div>
             <div className="min-w-0 flex-1">
-              <div className="text-[14px] font-semibold tracking-tight">
-                Optional modules
-              </div>
+              <div className="text-[14px] font-semibold tracking-tight">Optional modules</div>
               <div className="text-[12px] text-muted-foreground">
                 Enable Attendance, Expenses and more
               </div>
@@ -467,9 +430,11 @@ function ProfilePage() {
                   right={
                     <span className="flex items-center gap-2">
                       <span className="text-[13px] text-muted-foreground">
-                        {BACKGROUND_OPTIONS.find(
-                          (o) => o.id === (preferences.background ?? "aurora"),
-                        )?.label}
+                        {
+                          BACKGROUND_OPTIONS.find(
+                            (o) => o.id === (preferences.background ?? "aurora"),
+                          )?.label
+                        }
                       </span>
                       <ChevronRight className="h-4 w-4 text-muted-foreground/60" />
                     </span>
@@ -487,14 +452,12 @@ function ProfilePage() {
               </span>
               <div className="min-w-0 flex-1">
                 <div className="flex items-center justify-between gap-3">
-                  <div className="text-[14px] font-semibold tracking-tight">
-                    Developer mode
-                  </div>
+                  <div className="text-[14px] font-semibold tracking-tight">Developer mode</div>
                   <Toggle
                     on={preferences.developerMode}
                     onChange={handleDevToggle}
+                    label="Developer mode"
                   />
-
                 </div>
                 <p className="mt-1 text-[12.5px] leading-relaxed text-muted-foreground">
                   Unlocks tools built for power-users and testing.
@@ -542,15 +505,11 @@ function ProfilePage() {
                   label="Reset to demo data"
                   onClick={() => beginReset("demo")}
                   danger
-
                 />
               </div>
             </Card>
           ) : null}
         </section>
-
-
-
 
         {/* About */}
         <section className="space-y-3">
@@ -562,9 +521,7 @@ function ProfilePage() {
                 <Sparkles className="h-5 w-5 text-white" strokeWidth={1.75} />
               </div>
               <div className="min-w-0 flex-1">
-                <div className="text-[15px] font-semibold tracking-tight">
-                  SkillSync OS
-                </div>
+                <div className="text-[15px] font-semibold tracking-tight">SkillSync OS</div>
                 <div className="text-[12.5px] text-muted-foreground">
                   Your personal growth operating system.
                 </div>
@@ -587,8 +544,8 @@ function ProfilePage() {
               />
             </div>
             <p className="relative mt-4 text-[11.5px] leading-relaxed text-muted-foreground">
-              Built for daily use. No accounts, no tracking, no cloud — every
-              roadmap, note and habit stays on your device.
+              Built for daily use. No accounts, no tracking, no cloud — every roadmap, note and
+              habit stays on your device.
             </p>
           </Card>
         </section>
@@ -598,30 +555,23 @@ function ProfilePage() {
         </p>
       </div>
 
-      <BottomSheet
-        open={openHaptics}
-        onClose={() => setOpenHaptics(false)}
-        title="Haptic feedback"
-      >
+      <BottomSheet open={openHaptics} onClose={() => setOpenHaptics(false)} title="Haptic feedback">
         <p className="mb-4 text-[13px] leading-relaxed text-muted-foreground">
-          Subtle vibrations on taps, toggles and completions. Mobile only —
-          desktop simply ignores it.
+          Subtle vibrations on taps, toggles and completions. Mobile only — desktop simply ignores
+          it.
         </p>
         <div className="space-y-3">
           <div className="flex items-center justify-between gap-3 rounded-[18px] border border-border bg-white/[0.03] px-4 py-3.5">
             <div className="min-w-0">
-              <div className="text-[14px] font-semibold tracking-tight">
-                Haptics
-              </div>
+              <div className="text-[14px] font-semibold tracking-tight">Haptics</div>
               <div className="text-[12px] text-muted-foreground">
-                {hapticsSupported()
-                  ? "Supported on this device"
-                  : "Not supported on this device"}
+                {hapticsSupported() ? "Supported on this device" : "Not supported on this device"}
               </div>
             </div>
             <Toggle
               on={preferences.haptics ?? true}
               onChange={(v) => updatePreferences({ haptics: v })}
+              label="Haptics"
             />
           </div>
 
@@ -631,9 +581,7 @@ function ProfilePage() {
               ((preferences.haptics ?? true) ? "" : "pointer-events-none opacity-40")
             }
           >
-            <div className="text-[13px] font-semibold tracking-tight">
-              Intensity
-            </div>
+            <div className="text-[13px] font-semibold tracking-tight">Intensity</div>
             <div className="mt-3 grid grid-cols-3 gap-2">
               {(["light", "standard", "strong"] as HapticIntensity[]).map((lvl) => {
                 const active = (preferences.hapticIntensity ?? "standard") === lvl;
@@ -660,7 +608,6 @@ function ProfilePage() {
           </div>
         </div>
       </BottomSheet>
-
 
       <BottomSheet
         open={openAppearance}
@@ -695,9 +642,7 @@ function ProfilePage() {
                 />
                 <div className="flex items-center justify-between gap-3 bg-white/[0.03] px-4 py-3">
                   <div className="min-w-0">
-                    <div className="text-[14px] font-semibold tracking-tight">
-                      {opt.label}
-                    </div>
+                    <div className="text-[14px] font-semibold tracking-tight">{opt.label}</div>
                     <div className="text-[12px] leading-relaxed text-muted-foreground">
                       {opt.description}
                     </div>
@@ -714,11 +659,7 @@ function ProfilePage() {
         </div>
       </BottomSheet>
 
-      <BottomSheet
-        open={openProfile}
-        onClose={() => setOpenProfile(false)}
-        title="Edit profile"
-      >
+      <BottomSheet open={openProfile} onClose={() => setOpenProfile(false)} title="Edit profile">
         <div className="space-y-3">
           <label className="block text-[12px] text-muted-foreground">Name</label>
           <TextField
@@ -768,14 +709,12 @@ function ProfilePage() {
               <Lock className="h-4 w-4" strokeWidth={1.75} />
             </span>
             <p className="text-[12.5px] leading-relaxed text-muted-foreground">
-              Developer mode unlocks raw data access and destructive reset
-              tools. Type your profile name to confirm it's really you.
+              Developer mode unlocks raw data access and destructive reset tools. Type your profile
+              name to confirm it's really you.
             </p>
           </div>
           <div className="space-y-1.5">
-            <label className="block text-[12px] text-muted-foreground">
-              Your profile name
-            </label>
+            <label className="block text-[12px] text-muted-foreground">Your profile name</label>
             <TextField
               autoFocus
               placeholder={profile.name || "Your name"}
@@ -841,8 +780,7 @@ function ProfilePage() {
               <AlertTriangle className="h-4 w-4" strokeWidth={1.75} />
             </span>
             <p className="text-[12.5px] leading-relaxed text-muted-foreground">
-              This action is permanent. To proceed, type the phrase below
-              exactly and press Confirm.
+              This action is permanent. To proceed, type the phrase below exactly and press Confirm.
             </p>
           </div>
           <div className="space-y-1.5">
@@ -884,12 +822,6 @@ function ProfilePage() {
   );
 }
 
-function formatBytes(n: number): string {
-  if (n < 1024) return `${n} B`;
-  if (n < 1024 * 1024) return `${(n / 1024).toFixed(1)} KB`;
-  return `${(n / 1024 / 1024).toFixed(2)} MB`;
-}
-
 function AboutStat({
   icon: Icon,
   label,
@@ -903,9 +835,7 @@ function AboutStat({
     <div className="flex items-center gap-2 rounded-xl border border-white/[0.05] bg-white/[0.02] px-3 py-2">
       <Icon className="h-3.5 w-3.5 text-muted-foreground" strokeWidth={1.75} />
       <div className="min-w-0 flex-1">
-        <div className="text-[10.5px] uppercase tracking-wider text-muted-foreground">
-          {label}
-        </div>
+        <div className="text-[10.5px] uppercase tracking-wider text-muted-foreground">{label}</div>
         <div className="truncate text-[12.5px] font-medium">{value}</div>
       </div>
     </div>
@@ -953,16 +883,14 @@ function SettingButtonRow({
       <span
         className={
           "flex h-9 w-9 items-center justify-center rounded-xl " +
-          (danger ? "bg-[var(--danger)]/10 text-[var(--danger)]" : "bg-white/[0.03] text-muted-foreground")
+          (danger
+            ? "bg-[var(--danger)]/10 text-[var(--danger)]"
+            : "bg-white/[0.03] text-muted-foreground")
         }
       >
         <Icon className="h-[16px] w-[16px]" strokeWidth={1.75} />
       </span>
-      <span
-        className={
-          "flex-1 text-[14px] font-medium " + (danger ? "text-[var(--danger)]" : "")
-        }
-      >
+      <span className={"flex-1 text-[14px] font-medium " + (danger ? "text-[var(--danger)]" : "")}>
         {label}
       </span>
       {danger ? (
@@ -970,35 +898,6 @@ function SettingButtonRow({
       ) : (
         <ChevronRight className="h-4 w-4 text-muted-foreground/60" />
       )}
-    </button>
-  );
-}
-
-function Toggle({
-  on,
-  onChange,
-}: {
-  on: boolean;
-  onChange: (v: boolean) => void;
-}) {
-  return (
-    <button
-      onClick={() => {
-        haptics.toggle(!on);
-        onChange(!on);
-      }}
-      aria-pressed={on}
-      className={
-        "relative h-6 w-11 rounded-full transition-colors " +
-        (on ? "bg-[var(--primary)]" : "bg-white/10")
-      }
-    >
-      <span
-        className={
-          "absolute top-0.5 h-5 w-5 rounded-full bg-white shadow transition-transform " +
-          (on ? "translate-x-[22px]" : "translate-x-0.5")
-        }
-      />
     </button>
   );
 }

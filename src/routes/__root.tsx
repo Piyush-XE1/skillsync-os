@@ -1,8 +1,7 @@
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import {
   Outlet,
   Link,
-  createRootRouteWithContext,
+  createRootRoute,
   useRouter,
   HeadContent,
   Scripts,
@@ -16,7 +15,6 @@ import { AppBackground } from "@/components/layout/backgrounds";
 import { AppLaunchScreen } from "@/components/layout/AppLaunchScreen";
 import { NotificationRunner } from "@/components/notifications/NotificationRunner";
 import { ThemeManager } from "@/hooks/use-theme";
-
 
 function NotFoundComponent() {
   return (
@@ -78,7 +76,7 @@ function ErrorComponent({ error, reset }: { error: Error; reset: () => void }) {
   );
 }
 
-export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()({
+export const Route = createRootRoute({
   // SkillSync is a local-first mobile app; render the app on the client so
   // persisted device data and browser-only mobile behavior never break SSR.
   ssr: false,
@@ -98,19 +96,20 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       { title: "SkillSync" },
       {
         name: "description",
-        content:
-          "Your personal growth dashboard: streaks, XP, focus and progress.",
+        content: "Your personal growth dashboard: streaks, XP, focus and progress.",
       },
       { property: "og:title", content: "SkillSync" },
       {
         property: "og:description",
-        content:
-          "Your personal growth dashboard: streaks, XP, focus and progress.",
+        content: "Your personal growth dashboard: streaks, XP, focus and progress.",
       },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary_large_image" },
       { name: "twitter:title", content: "SkillSync" },
-      { name: "twitter:description", content: "Your personal growth dashboard: streaks, XP, focus and progress." },
+      {
+        name: "twitter:description",
+        content: "Your personal growth dashboard: streaks, XP, focus and progress.",
+      },
     ],
     links: [
       { rel: "stylesheet", href: appCss },
@@ -155,10 +154,8 @@ function RootShell({ children }: { children: ReactNode }) {
 }
 
 function RootComponent() {
-  const { queryClient } = Route.useRouteContext();
-
   return (
-    <QueryClientProvider client={queryClient}>
+    <>
       <ThemeManager />
       <AppBackground />
       <AppLaunchScreen />
@@ -166,7 +163,6 @@ function RootComponent() {
       {/* Required: nested routes render here. Removing <Outlet /> breaks all child routes. */}
       <Outlet />
       <Toaster />
-    </QueryClientProvider>
-
+    </>
   );
 }

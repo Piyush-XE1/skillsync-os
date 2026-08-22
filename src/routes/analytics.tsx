@@ -33,9 +33,7 @@ function AnalyticsPage() {
     () =>
       roadmaps.length === 0
         ? 0
-        : Math.round(
-            roadmaps.reduce((s, r) => s + roadmapPct(r), 0) / roadmaps.length,
-          ),
+        : Math.round(roadmaps.reduce((s, r) => s + roadmapPct(r), 0) / roadmaps.length),
     [roadmaps],
   );
 
@@ -43,9 +41,7 @@ function AnalyticsPage() {
     () =>
       projects.length === 0
         ? 0
-        : Math.round(
-            projects.reduce((s, p) => s + p.progress, 0) / projects.length,
-          ),
+        : Math.round(projects.reduce((s, p) => s + p.progress, 0) / projects.length),
     [projects],
   );
 
@@ -78,9 +74,7 @@ function AnalyticsPage() {
         <h1 className="mt-1.5 text-[28px] font-semibold leading-tight tracking-[-0.02em]">
           Analytics.
         </h1>
-        <p className="mt-1 text-[13.5px] text-muted-foreground">
-          Progress, quietly measured.
-        </p>
+        <p className="mt-1 text-[13.5px] text-muted-foreground">Progress, quietly measured.</p>
       </div>
 
       <div className="space-y-6 px-5 lg:px-2 lg:auto-grid-wide lg:space-y-0 lg:items-start">
@@ -161,9 +155,7 @@ function AnalyticsPage() {
                     className="w-full rounded-md bg-gradient-to-t from-[var(--primary)]/40 to-[var(--primary)]/80"
                     style={{ height: `${8 + pct * 0.6}px` }}
                   />
-                  <span className="text-[10px] text-muted-foreground">
-                    {new Date(d).getDate()}
-                  </span>
+                  <span className="text-[10px] text-muted-foreground">{new Date(d).getDate()}</span>
                 </div>
               ))}
             </div>
@@ -183,9 +175,7 @@ function AnalyticsPage() {
                   <div key={p.id} className="space-y-1.5">
                     <div className="flex items-center justify-between">
                       <span className="text-[13px] font-medium">{p.title}</span>
-                      <span className="text-[11.5px] text-muted-foreground">
-                        {p.progress}%
-                      </span>
+                      <span className="text-[11.5px] text-muted-foreground">{p.progress}%</span>
                     </div>
                     <ProgressBar value={p.progress} tone="gradient" />
                   </div>

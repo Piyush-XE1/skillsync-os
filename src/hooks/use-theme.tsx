@@ -30,10 +30,7 @@ function applyTheme(resolved: ResolvedTheme, animate: boolean) {
   if (animate) {
     root.classList.add("theme-transition");
     window.clearTimeout(transitionTimer);
-    transitionTimer = window.setTimeout(
-      () => root.classList.remove("theme-transition"),
-      320,
-    );
+    transitionTimer = window.setTimeout(() => root.classList.remove("theme-transition"), 320);
   }
   root.classList.remove("light", "dark");
   root.classList.add(resolved);

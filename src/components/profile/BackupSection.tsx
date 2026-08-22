@@ -19,11 +19,11 @@ import {
   CheckCircle2,
 } from "lucide-react";
 import { Card, Chip, SectionHeader } from "@/components/ui/primitives";
+import { errorMessage, isAbortError } from "@/lib/utils";
 import { BottomSheet } from "@/components/edit/Sheet";
 
 import { useAppStore } from "@/store/useAppStore";
 import {
-  APP_VERSION,
   BACKUP_VERSION,
   backupStatus,
   backupSummary,
@@ -39,16 +39,11 @@ import {
   type BackupMeta,
   type ValidBackup,
 } from "@/lib/backup";
+import { APP_VERSION } from "@/lib/version";
 import { AppDataSchema, type AppData } from "@/lib/schema";
 import { nativeSaveFile, nativeShareFile } from "@/lib/native/bridge";
 
-type ResetIntent = "hard";
-
-export function BackupSection({
-  onRequestReset,
-}: {
-  onRequestReset: () => void;
-}) {
+export function BackupSection({ onRequestReset }: { onRequestReset: () => void }) {
   const exportJSON = useAppStore((s) => s.exportJSON);
   const importJSON = useAppStore((s) => s.importJSON);
 
@@ -102,9 +97,9 @@ export function BackupSection({
       setMeta(m);
       setCreateOpen(false);
       toast.success("Backup created");
-    } catch (e: any) {
+    } catch (e) {
       haptics.error();
-      toast.error(e?.message ?? "Could not create backup");
+      toast.error(errorMessage(e, "Could not create backup"));
     } finally {
       setCreating(false);
     }
@@ -136,9 +131,7 @@ export function BackupSection({
       if (native.status === "saved") {
         haptics.success();
         toast.success(
-          native.location
-            ? `Saved to ${native.location}`
-            : `Saved ${created.filename}`,
+          native.location ? `Saved to ${native.location}` : `Saved ${created.filename}`,
         );
         return;
       }
@@ -176,13 +169,13 @@ export function BackupSection({
           haptics.success();
           toast.success(`Saved ${created.filename}`);
           return;
-        } catch (e: any) {
-          if (e?.name === "AbortError") {
+        } catch (e) {
+          if (isAbortError(e)) {
             toast("Save cancelled");
             return;
           }
           haptics.error();
-          toast.error(e?.message ?? "Could not save backup");
+          toast.error(errorMessage(e, "Could not save backup"));
           return;
         }
       }
@@ -224,11 +217,11 @@ export function BackupSection({
             title: "SkillSync backup",
             text: `SkillSync backup · ${fmtDate(created.meta.createdAt)}`,
           });
-        } catch (e: any) {
-          if (e?.name === "AbortError") toast("Share cancelled");
+        } catch (e) {
+          if (isAbortError(e)) toast("Share cancelled");
           else {
             haptics.error();
-            toast.error(e?.message ?? "Could not share backup");
+            toast.error(errorMessage(e, "Could not share backup"));
           }
         }
         return;
@@ -252,9 +245,9 @@ export function BackupSection({
       }
       setPendingRestore(result.backup);
       setRestoreStep(1);
-    } catch (e: any) {
+    } catch (e) {
       haptics.error();
-      toast.error(e?.message ?? "Could not read file");
+      toast.error(errorMessage(e, "Could not read file"));
     }
   };
 
@@ -291,9 +284,7 @@ export function BackupSection({
 
   const summary = pendingRestore ? backupSummary(pendingRestore.data) : null;
   const createSummary = previewData ? backupSummary(previewData) : null;
-  const createSize = previewData
-    ? new Blob([JSON.stringify(previewData)]).size
-    : 0;
+  const createSize = previewData ? new Blob([JSON.stringify(previewData)]).size : 0;
 
   return (
     <section className="space-y-3">
@@ -304,9 +295,7 @@ export function BackupSection({
         <div className="flex items-start gap-3">
           <StatusIcon tone={status.tone} />
           <div className="min-w-0 flex-1">
-            <div className="text-[13.5px] font-semibold tracking-tight">
-              {status.label}
-            </div>
+            <div className="text-[13.5px] font-semibold tracking-tight">{status.label}</div>
             {meta ? (
               <div className="mt-2 grid grid-cols-2 gap-x-3 gap-y-1.5 text-[11.5px] text-muted-foreground">
                 <MetaLine k="Date" v={fmtDate(meta.createdAt)} />
@@ -393,8 +382,8 @@ export function BackupSection({
       >
         <div className="space-y-4">
           <p className="text-[12.5px] leading-relaxed text-muted-foreground">
-            One file containing your complete SkillSync workspace. Save it
-            somewhere safe — you can restore it any time.
+            One file containing your complete SkillSync workspace. Save it somewhere safe — you can
+            restore it any time.
           </p>
           {createSummary && previewData ? (
             <SummaryGrid data={previewData} sizeBytes={createSize} />
@@ -426,11 +415,7 @@ export function BackupSection({
       </BottomSheet>
 
       {/* Create success */}
-      <BottomSheet
-        open={created !== null}
-        onClose={() => setCreated(null)}
-        title="Backup ready"
-      >
+      <BottomSheet open={created !== null} onClose={() => setCreated(null)} title="Backup ready">
         {created ? (
           <div className="space-y-4">
             <div className="flex items-start gap-3 rounded-2xl border border-emerald-400/15 bg-emerald-400/[0.06] p-3">
@@ -438,8 +423,8 @@ export function BackupSection({
                 <CheckCircle2 className="h-4 w-4" strokeWidth={1.75} />
               </span>
               <div className="text-[12.5px] leading-relaxed text-muted-foreground">
-                Backup created successfully. Save the file to your device or
-                share it to another location.
+                Backup created successfully. Save the file to your device or share it to another
+                location.
               </div>
             </div>
             <div className="grid grid-cols-3 gap-2">
@@ -499,15 +484,9 @@ export function BackupSection({
               />
               <StatBox k="Backup version" v={`v${pendingRestore.backupVersion}`} />
               <StatBox k="App version" v={`v${pendingRestore.appVersion}`} />
-              <StatBox
-                k="Est. records"
-                v={String(totalRecords(summary))}
-              />
+              <StatBox k="Est. records" v={String(totalRecords(summary))} />
             </div>
-            <SummaryGrid
-              data={pendingRestore.data}
-              sizeBytes={pendingRestore.sizeBytes}
-            />
+            <SummaryGrid data={pendingRestore.data} sizeBytes={pendingRestore.sizeBytes} />
             <div className="flex gap-2">
               <button
                 onClick={() => {
@@ -541,8 +520,8 @@ export function BackupSection({
               <AlertTriangle className="h-4 w-4" strokeWidth={1.75} />
             </span>
             <p className="text-[12.5px] leading-relaxed text-muted-foreground">
-              Restoring this backup will replace your current SkillSync
-              workspace. This action cannot be undone.
+              Restoring this backup will replace your current SkillSync workspace. This action
+              cannot be undone.
             </p>
           </div>
           <div className="flex gap-2">
@@ -584,20 +563,13 @@ export function BackupSection({
                 <CheckCircle2 className="h-4 w-4" strokeWidth={1.75} />
               </span>
               <div className="text-[12.5px] leading-relaxed text-muted-foreground">
-                Your workspace has been restored. If anything feels off, close
-                and reopen SkillSync.
+                Your workspace has been restored. If anything feels off, close and reopen SkillSync.
               </div>
             </div>
             <div className="grid grid-cols-3 gap-2">
-              <StatBox
-                k="Backup date"
-                v={new Date(restored.createdAt).toLocaleDateString()}
-              />
+              <StatBox k="Backup date" v={new Date(restored.createdAt).toLocaleDateString()} />
               <StatBox k="Version" v={`v${restored.backupVersion}`} />
-              <StatBox
-                k="Records"
-                v={String(totalRecords(backupSummary(restored.data)))}
-              />
+              <StatBox k="Records" v={String(totalRecords(backupSummary(restored.data)))} />
             </div>
             <button
               onClick={() => setRestored(null)}
@@ -610,25 +582,12 @@ export function BackupSection({
       </BottomSheet>
 
       {/* Info sheet */}
-      <BottomSheet
-        open={infoOpen}
-        onClose={() => setInfoOpen(false)}
-        title="Backup information"
-      >
+      <BottomSheet open={infoOpen} onClose={() => setInfoOpen(false)} title="Backup information">
         <div className="space-y-4">
           <div className="grid grid-cols-2 gap-2 text-[12px]">
-            <StatBox
-              k="Last backup"
-              v={meta ? fmtDate(meta.createdAt) : "Never"}
-            />
-            <StatBox
-              k="Time"
-              v={meta ? fmtTime(meta.createdAt) : "—"}
-            />
-            <StatBox
-              k="Size"
-              v={meta ? formatBytes(meta.sizeBytes) : "—"}
-            />
+            <StatBox k="Last backup" v={meta ? fmtDate(meta.createdAt) : "Never"} />
+            <StatBox k="Time" v={meta ? fmtTime(meta.createdAt) : "—"} />
+            <StatBox k="Size" v={meta ? formatBytes(meta.sizeBytes) : "—"} />
             <StatBox k="Backup version" v={`v${BACKUP_VERSION}`} />
           </div>
           <div className="rounded-2xl border border-white/[0.06] bg-white/[0.02] p-3.5">
@@ -636,50 +595,40 @@ export function BackupSection({
               What is a SkillSync backup?
             </div>
             <p className="mt-1 text-[12.5px] leading-relaxed text-muted-foreground">
-              One file containing your complete SkillSync workspace — every
-              supported module — so you can fully restore your app later.
+              One file containing your complete SkillSync workspace — every supported module — so
+              you can fully restore your app later.
             </p>
           </div>
           <div className="grid grid-cols-2 gap-2">
             <div className="rounded-2xl border border-white/[0.06] bg-white/[0.02] p-3.5">
-              <div className="text-[12.5px] font-semibold tracking-tight">
-                Roadmap Export
-              </div>
+              <div className="text-[12.5px] font-semibold tracking-tight">Roadmap Export</div>
               <p className="mt-1 text-[11.5px] leading-relaxed text-muted-foreground">
                 For sharing or transferring individual roadmaps.
               </p>
             </div>
             <div className="rounded-2xl border border-white/[0.06] bg-white/[0.02] p-3.5">
-              <div className="text-[12.5px] font-semibold tracking-tight">
-                SkillSync Backup
-              </div>
+              <div className="text-[12.5px] font-semibold tracking-tight">SkillSync Backup</div>
               <p className="mt-1 text-[11.5px] leading-relaxed text-muted-foreground">
                 For restoring your complete SkillSync workspace.
               </p>
             </div>
           </div>
           <div className="rounded-2xl border border-white/[0.06] bg-white/[0.02] p-3.5">
-            <div className="text-[13px] font-semibold tracking-tight">
-              Restoring
-            </div>
+            <div className="text-[13px] font-semibold tracking-tight">Restoring</div>
             <p className="mt-1 text-[12.5px] leading-relaxed text-muted-foreground">
-              A restore fully replaces the workspace on this device with the
-              contents of the file — it is not merged.
+              A restore fully replaces the workspace on this device with the contents of the file —
+              it is not merged.
             </p>
           </div>
           <div className="rounded-2xl border border-white/[0.06] bg-white/[0.02] p-3.5">
-            <div className="text-[13px] font-semibold tracking-tight">
-              Limitations
-            </div>
+            <div className="text-[13px] font-semibold tracking-tight">Limitations</div>
             <p className="mt-1 text-[12.5px] leading-relaxed text-muted-foreground">
-              Backups are plain JSON files stored on this device. There is no
-              cloud sync — keep the file somewhere safe yourself.
+              Backups are plain JSON files stored on this device. There is no cloud sync — keep the
+              file somewhere safe yourself.
             </p>
           </div>
           <div className="rounded-2xl border border-white/[0.06] bg-white/[0.02] p-3.5">
-            <div className="text-[13px] font-semibold tracking-tight">
-              App version
-            </div>
+            <div className="text-[13px] font-semibold tracking-tight">App version</div>
             <p className="mt-1 text-[12.5px] text-muted-foreground">
               SkillSync v{APP_VERSION} · Backup format v{BACKUP_VERSION}
             </p>
@@ -695,9 +644,9 @@ export function BackupSection({
       >
         <div className="space-y-4">
           <p className="text-[12.5px] leading-relaxed text-muted-foreground">
-            A backup contains everything SkillSync stores on this device. These
-            are the live counts from your current workspace — restoring this
-            backup brings all of it back exactly as it is now.
+            A backup contains everything SkillSync stores on this device. These are the live counts
+            from your current workspace — restoring this backup brings all of it back exactly as it
+            is now.
           </p>
           {includedData ? (
             <div className="space-y-1.5">
@@ -715,21 +664,17 @@ export function BackupSection({
             </div>
           ) : null}
           <div className="rounded-2xl border border-white/[0.06] bg-white/[0.02] p-3.5">
-            <div className="text-[13px] font-semibold tracking-tight">
-              Roadmap detail
-            </div>
+            <div className="text-[13px] font-semibold tracking-tight">Roadmap detail</div>
             <p className="mt-1 text-[12.5px] leading-relaxed text-muted-foreground">
-              Every roadmap is saved in full — its phases, topics, subtopics and
-              checklist items, including what you've already completed.
+              Every roadmap is saved in full — its phases, topics, subtopics and checklist items,
+              including what you've already completed.
             </p>
           </div>
           <div className="rounded-2xl border border-white/[0.06] bg-white/[0.02] p-3.5">
-            <div className="text-[13px] font-semibold tracking-tight">
-              Not included
-            </div>
+            <div className="text-[13px] font-semibold tracking-tight">Not included</div>
             <p className="mt-1 text-[12.5px] leading-relaxed text-muted-foreground">
-              Nothing outside SkillSync's own local data — no device settings,
-              no files from other apps, and no accounts.
+              Nothing outside SkillSync's own local data — no device settings, no files from other
+              apps, and no accounts.
             </p>
           </div>
         </div>
@@ -812,9 +757,7 @@ function ActionCard({
 function StatBox({ k, v }: { k: string; v: string }) {
   return (
     <div className="rounded-xl border border-white/[0.05] bg-white/[0.02] px-3 py-2">
-      <div className="text-[10.5px] uppercase tracking-wider text-muted-foreground">
-        {k}
-      </div>
+      <div className="text-[10.5px] uppercase tracking-wider text-muted-foreground">{k}</div>
       <div className="mt-0.5 truncate text-[12.5px] font-medium">{v}</div>
     </div>
   );
@@ -827,9 +770,7 @@ function SummaryGrid({ data, sizeBytes }: { data: AppData; sizeBytes: number }) 
     <div className="space-y-3">
       <div className="rounded-2xl border border-white/[0.06] bg-white/[0.02] p-3">
         <div className="mb-2 flex items-center justify-between">
-          <div className="text-[12px] font-semibold tracking-tight">
-            Modules included
-          </div>
+          <div className="text-[12px] font-semibold tracking-tight">Modules included</div>
           <Chip>{formatBytes(sizeBytes)}</Chip>
         </div>
         <div className="grid grid-cols-2 gap-x-3 gap-y-1.5 text-[12px] text-muted-foreground">
@@ -850,6 +791,3 @@ function SummaryGrid({ data, sizeBytes }: { data: AppData; sizeBytes: number }) 
     </div>
   );
 }
-
-// exported to keep tree-shaking happy if unused
-export type { ResetIntent };

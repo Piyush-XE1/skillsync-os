@@ -74,10 +74,14 @@ if (typeof fetchHandler !== "function") {
   throw new Error("The built server entry does not expose a fetch handler.");
 }
 
-const response = await fetchHandler(new Request("http://localhost/"), {}, {
-  waitUntil() {},
-  passThroughOnException() {},
-});
+const response = await fetchHandler(
+  new Request("http://localhost/"),
+  {},
+  {
+    waitUntil() {},
+    passThroughOnException() {},
+  },
+);
 
 if (!response.ok) {
   throw new Error(`Rendering the app shell failed with status ${response.status}.`);

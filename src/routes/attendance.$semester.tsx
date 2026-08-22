@@ -99,7 +99,12 @@ function SemesterPage() {
             Semester {semNum}
           </h1>
         </div>
-        <IconButton variant="primary" size="lg" aria-label="Add subject" onClick={() => setAddOpen(true)}>
+        <IconButton
+          variant="primary"
+          size="lg"
+          aria-label="Add subject"
+          onClick={() => setAddOpen(true)}
+        >
           <Plus className="h-[17px] w-[17px]" strokeWidth={2} />
         </IconButton>
       </header>
@@ -134,13 +139,9 @@ function SemesterPage() {
             <Card key={sub.id} className="p-4">
               <div className="flex items-start justify-between gap-3">
                 <div className="min-w-0 flex-1">
-                  <div className="text-[14.5px] font-semibold tracking-tight">
-                    {sub.name}
-                  </div>
+                  <div className="text-[14.5px] font-semibold tracking-tight">{sub.name}</div>
                   {sub.faculty ? (
-                    <div className="mt-0.5 text-[11.5px] text-muted-foreground">
-                      {sub.faculty}
-                    </div>
+                    <div className="mt-0.5 text-[11.5px] text-muted-foreground">{sub.faculty}</div>
                   ) : null}
                   <div className="mt-1.5 flex flex-wrap items-center gap-1.5">
                     <Chip tone={below ? "danger" : "primary"}>{p}%</Chip>
@@ -171,17 +172,13 @@ function SemesterPage() {
 
               <div className="mt-4 grid grid-cols-2 gap-2">
                 <button
-                  onClick={() =>
-                    updateSubject(sub.id, { present: sub.present + 1 })
-                  }
+                  onClick={() => updateSubject(sub.id, { present: sub.present + 1 })}
                   className="flex items-center justify-center gap-1.5 rounded-xl border border-emerald-400/20 bg-emerald-400/[0.08] py-2 text-[12.5px] font-medium text-emerald-200 active:scale-[0.97]"
                 >
                   <Plus className="h-3.5 w-3.5" /> Present
                 </button>
                 <button
-                  onClick={() =>
-                    updateSubject(sub.id, { absent: sub.absent + 1 })
-                  }
+                  onClick={() => updateSubject(sub.id, { absent: sub.absent + 1 })}
                   className="flex items-center justify-center gap-1.5 rounded-xl border border-[var(--danger)]/20 bg-[var(--danger)]/[0.08] py-2 text-[12.5px] font-medium text-[var(--danger)] active:scale-[0.97]"
                 >
                   <Plus className="h-3.5 w-3.5" /> Absent
@@ -236,9 +233,7 @@ function SemesterPage() {
             />
           </div>
           <div className="space-y-1.5">
-            <label className="text-[12px] text-muted-foreground">
-              Minimum required %
-            </label>
+            <label className="text-[12px] text-muted-foreground">Minimum required %</label>
             <TextField
               type="number"
               inputMode="numeric"
@@ -260,24 +255,18 @@ function SemesterPage() {
               <label className="text-[12px] text-muted-foreground">Name</label>
               <TextField
                 value={editing.name}
-                onChange={(e) =>
-                  updateSubject(editing.id, { name: e.target.value })
-                }
+                onChange={(e) => updateSubject(editing.id, { name: e.target.value })}
               />
             </div>
             <div className="space-y-1.5">
               <label className="text-[12px] text-muted-foreground">Faculty</label>
               <TextField
                 value={editing.faculty}
-                onChange={(e) =>
-                  updateSubject(editing.id, { faculty: e.target.value })
-                }
+                onChange={(e) => updateSubject(editing.id, { faculty: e.target.value })}
               />
             </div>
             <div className="space-y-1.5">
-              <label className="text-[12px] text-muted-foreground">
-                Minimum required %
-              </label>
+              <label className="text-[12px] text-muted-foreground">Minimum required %</label>
               <TextField
                 type="number"
                 inputMode="numeric"

@@ -64,11 +64,7 @@ export function SkillSyncLogo({
 
       <g filter={glow ? `url(#${fx})` : undefined}>
         <path d={MARK_RIBBON_PATH} fill={`url(#${gA})`} />
-        <path
-          d={MARK_RIBBON_PATH}
-          fill={`url(#${gB})`}
-          transform="rotate(180 60 60)"
-        />
+        <path d={MARK_RIBBON_PATH} fill={`url(#${gB})`} transform="rotate(180 60 60)" />
       </g>
     </svg>
   );

@@ -26,13 +26,7 @@ const ICONS: Record<string, typeof Bell> = {
   sparkles: Sparkles,
 };
 
-export function CategoryIcon({
-  name,
-  className,
-}: {
-  name: string;
-  className?: string;
-}) {
+export function CategoryIcon({ name, className }: { name: string; className?: string }) {
   const Icon = ICONS[name] ?? Bell;
   return <Icon className={className} strokeWidth={1.75} />;
 }

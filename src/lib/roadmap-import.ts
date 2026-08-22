@@ -4,10 +4,7 @@ import type { Roadmap, Phase, Topic, Subtopic, ChecklistItem } from "./schema";
 
 // Official SkillSync Roadmap Import Schema (v1)
 // Ignores unknown fields; optional fields default gracefully.
-const ChecklistImportSchema = z.union([
-  z.string(),
-  z.object({ title: z.string() }).passthrough(),
-]);
+const ChecklistImportSchema = z.union([z.string(), z.object({ title: z.string() }).passthrough()]);
 
 const SubtopicImportSchema = z
   .object({
@@ -50,9 +47,7 @@ export const RoadmapImportFileSchema = z
 export type RoadmapImportFile = z.infer<typeof RoadmapImportFileSchema>;
 export type RoadmapImportItem = z.infer<typeof RoadmapImportSchema>;
 
-export type ParseResult =
-  | { ok: true; file: RoadmapImportFile }
-  | { ok: false; error: string };
+export type ParseResult = { ok: true; file: RoadmapImportFile } | { ok: false; error: string };
 
 export function parseImportJSON(raw: string): ParseResult {
   let data: unknown;
@@ -63,7 +58,7 @@ export function parseImportJSON(raw: string): ParseResult {
   }
   // Allow a single roadmap object as a convenience.
   if (data && typeof data === "object" && !Array.isArray(data)) {
-    const obj = data as any;
+    const obj = data as Record<string, unknown>;
     if (!obj.roadmaps && (obj.title || obj.phases)) {
       data = { version: 1, roadmaps: [obj] };
     }

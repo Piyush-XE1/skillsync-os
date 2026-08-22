@@ -101,9 +101,7 @@ function Dashboard() {
     }
     const total = p + a;
     const pct = total > 0 ? Math.round((p / total) * 100) : 0;
-    const currentSem = subjects.length > 0
-      ? Math.max(...subjects.map((s) => s.semester))
-      : null;
+    const currentSem = subjects.length > 0 ? Math.max(...subjects.map((s) => s.semester)) : null;
     return { present: p, total, pct, currentSem };
   }, [subjects]);
 
@@ -136,7 +134,6 @@ function Dashboard() {
             </Link>
           </div>
         }
-
       />
 
       <div className="space-y-6 px-5 lg:px-2">
@@ -160,8 +157,7 @@ function Dashboard() {
                   <div
                     key={i}
                     className={
-                      "h-1.5 flex-1 rounded-full " +
-                      (on ? "gradient-primary" : "bg-white/[0.06]")
+                      "h-1.5 flex-1 rounded-full " + (on ? "gradient-primary" : "bg-white/[0.06]")
                     }
                   />
                 );
@@ -238,9 +234,7 @@ function Dashboard() {
                 <span className="flex h-9 w-9 items-center justify-center rounded-full bg-white/[0.04]">
                   <Icon className="h-[17px] w-[17px]" strokeWidth={1.75} />
                 </span>
-                <span className="text-[11px] font-medium text-muted-foreground">
-                  {label}
-                </span>
+                <span className="text-[11px] font-medium text-muted-foreground">{label}</span>
               </Link>
             ))}
           </div>
@@ -270,9 +264,7 @@ function Dashboard() {
                     <div
                       className={
                         "h-4 w-4 rounded-full border " +
-                        (t.done
-                          ? "border-transparent gradient-primary"
-                          : "border-white/15")
+                        (t.done ? "border-transparent gradient-primary" : "border-white/15")
                       }
                     />
                     <span
@@ -293,41 +285,36 @@ function Dashboard() {
 
         {/* Learning Progress */}
         <section className="space-y-3">
-          <SectionHeader
-            title="Learning Progress"
-            action={<Link to="/learn">See all</Link>}
-          />
+          <SectionHeader title="Learning Progress" action={<Link to="/learn">See all</Link>} />
           <Card>
             <div className="space-y-4">
-              {hydrated && roadmaps.slice(0, 4).map((r) => {
-                const pct = roadmapPct(r);
-                return (
-                  <Link
-                    key={r.id}
-                    to="/learn/$roadmapId"
-                    params={{ roadmapId: r.id }}
-                    className="block space-y-2"
-                  >
-                    <div className="flex items-center justify-between">
-                      <span className="text-[13px] font-medium">{r.title}</span>
-                      <span className="text-[12px] text-muted-foreground">
-                        {hydrated ? `${pct}%` : "—"}
-                      </span>
-                    </div>
-                    <ProgressBar value={hydrated ? pct : 0} tone="gradient" />
-                  </Link>
-                );
-              })}
+              {hydrated &&
+                roadmaps.slice(0, 4).map((r) => {
+                  const pct = roadmapPct(r);
+                  return (
+                    <Link
+                      key={r.id}
+                      to="/learn/$roadmapId"
+                      params={{ roadmapId: r.id }}
+                      className="block space-y-2"
+                    >
+                      <div className="flex items-center justify-between">
+                        <span className="text-[13px] font-medium">{r.title}</span>
+                        <span className="text-[12px] text-muted-foreground">
+                          {hydrated ? `${pct}%` : "—"}
+                        </span>
+                      </div>
+                      <ProgressBar value={hydrated ? pct : 0} tone="gradient" />
+                    </Link>
+                  );
+                })}
             </div>
           </Card>
         </section>
 
         {/* Projects */}
         <section className="space-y-3">
-          <SectionHeader
-            title="Projects"
-            action={<Link to="/projects">See all</Link>}
-          />
+          <SectionHeader title="Projects" action={<Link to="/projects">See all</Link>} />
           {!hydrated || activeProjects.length === 0 ? (
             <EmptyState
               icon={FolderKanban}
@@ -345,9 +332,7 @@ function Dashboard() {
                   <Chip tone={p.status === "active" ? "primary" : "success"}>
                     {p.status === "active" ? "In progress" : "Planning"}
                   </Chip>
-                  <div className="text-[14px] font-semibold tracking-tight">
-                    {p.title}
-                  </div>
+                  <div className="text-[14px] font-semibold tracking-tight">{p.title}</div>
                   <div className="line-clamp-2 text-[12px] text-muted-foreground">
                     {p.description || "No description"}
                   </div>
@@ -360,16 +345,9 @@ function Dashboard() {
 
         {/* Recent Notes */}
         <section className="space-y-3">
-          <SectionHeader
-            title="Recent Notes"
-            action={<Link to="/notes">Open</Link>}
-          />
+          <SectionHeader title="Recent Notes" action={<Link to="/notes">Open</Link>} />
           {!hydrated || recentNotes.length === 0 ? (
-            <EmptyState
-              icon={StickyNote}
-              title="No notes yet"
-              hint="Capture ideas as you learn."
-            />
+            <EmptyState icon={StickyNote} title="No notes yet" hint="Capture ideas as you learn." />
           ) : (
             <Card>
               <div className="divide-y divide-white/[0.05]">
@@ -383,9 +361,7 @@ function Dashboard() {
                       <StickyNote className="h-4 w-4 text-muted-foreground" />
                     </div>
                     <div className="min-w-0 flex-1">
-                      <div className="truncate text-[13.5px] font-medium">
-                        {n.title}
-                      </div>
+                      <div className="truncate text-[13.5px] font-medium">{n.title}</div>
                       <div className="truncate text-[11.5px] text-muted-foreground">
                         {n.body || "Empty"}
                       </div>
@@ -400,10 +376,7 @@ function Dashboard() {
 
         {/* Operation Rebirth */}
         <section className="space-y-3">
-          <SectionHeader
-            title="Operation Rebirth"
-            action={<Link to="/habits">Habits</Link>}
-          />
+          <SectionHeader title="Operation Rebirth" action={<Link to="/habits">Habits</Link>} />
           <Card className="relative overflow-hidden">
             <div className="pointer-events-none absolute -right-10 -top-10 h-40 w-40 rounded-full bg-[var(--secondary)]/20 blur-3xl" />
             <div className="relative space-y-4">
@@ -427,10 +400,7 @@ function Dashboard() {
 
         {hydrated && modules.attendance ? (
           <section className="space-y-3">
-            <SectionHeader
-              title="Attendance"
-              action={<Link to="/attendance">Open</Link>}
-            />
+            <SectionHeader title="Attendance" action={<Link to="/attendance">Open</Link>} />
             <Link
               to="/attendance"
               className="card-surface flex items-center gap-3 p-4 transition-all active:scale-[0.98]"

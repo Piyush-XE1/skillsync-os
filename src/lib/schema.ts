@@ -1,11 +1,7 @@
 import { z } from "zod";
-import {
-  NotificationsStateSchema,
-  createDefaultNotifications,
-} from "./notifications/types";
+import { NotificationsStateSchema, createDefaultNotifications } from "./notifications/types";
 
 export const CURRENT_SCHEMA_VERSION = 5;
-
 
 export const ChecklistItemSchema = z.object({
   id: z.string(),
@@ -131,14 +127,11 @@ export const PreferencesSchema = z.object({
    * The single source of truth for the app's appearance. "light" activates the
    * Minimalist Light visual system; every other value is a dark variant.
    */
-  background: z
-    .enum(["aurora", "gradient", "atmospheric", "light"])
-    .default("aurora"),
+  background: z.enum(["aurora", "gradient", "atmospheric", "light"]).default("aurora"),
   /** Tactile feedback on supported devices. */
   haptics: z.boolean().default(true),
   hapticIntensity: z.enum(["light", "standard", "strong"]).default("standard"),
 });
-
 
 export const StatsSchema = z.object({
   xp: z.number().default(0),
@@ -196,16 +189,11 @@ export const AppDataSchema = z.object({
     background: "aurora",
     haptics: true,
     hapticIntensity: "standard",
-
-
   }),
   stats: StatsSchema.default({ xp: 0, level: 1, streak: 0, lastActive: "" }),
   attendance: AttendanceSchema.default({ subjects: [] }),
   expenses: ExpensesSchema.default({ transactions: [] }),
-  notifications: NotificationsStateSchema.default(() =>
-    createDefaultNotifications(),
-  ),
-
+  notifications: NotificationsStateSchema.default(() => createDefaultNotifications()),
 });
 
 export type ChecklistItem = z.infer<typeof ChecklistItemSchema>;

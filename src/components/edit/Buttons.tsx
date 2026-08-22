@@ -9,8 +9,7 @@ const VARIANTS: Record<Variant, string> = {
   primary:
     "gradient-primary text-primary-foreground shadow-[var(--shadow-glow)] hover:brightness-110",
   ghost: "bg-white/[0.045] text-foreground hover:bg-white/[0.07]",
-  outline:
-    "border border-border-strong text-foreground hover:bg-white/[0.04]",
+  outline: "border border-border-strong text-foreground hover:bg-white/[0.04]",
   danger: "bg-danger/12 text-danger hover:bg-danger/20",
 };
 
@@ -33,7 +32,10 @@ export function IconButton({
   return (
     <button
       onClick={(e) => {
-        if (!props.disabled) variant === "danger" ? haptics.impact() : haptics.tap();
+        if (!props.disabled) {
+          if (variant === "danger") haptics.impact();
+          else haptics.tap();
+        }
         props.onClick?.(e);
       }}
       className={cn(
@@ -69,7 +71,10 @@ export function ActionButton({
   return (
     <button
       onClick={(e) => {
-        if (!props.disabled) variant === "danger" ? haptics.impact() : haptics.tap();
+        if (!props.disabled) {
+          if (variant === "danger") haptics.impact();
+          else haptics.tap();
+        }
         props.onClick?.(e);
       }}
       className={cn(

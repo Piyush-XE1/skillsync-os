@@ -90,12 +90,8 @@ export function SideNav() {
           <div className="flex min-w-0 items-center gap-2.5 pl-1">
             <SkillSyncLogo size={26} />
             <div className="min-w-0">
-              <div className="truncate text-[15px] font-semibold tracking-tight">
-                SkillSync
-              </div>
-              <div className="truncate text-[11px] text-muted-foreground">
-                Personal Growth OS
-              </div>
+              <div className="truncate text-[15px] font-semibold tracking-tight">SkillSync</div>
+              <div className="truncate text-[11px] text-muted-foreground">Personal Growth OS</div>
             </div>
           </div>
         )}

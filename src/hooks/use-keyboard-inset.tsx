@@ -79,16 +79,10 @@ export function useKeyboardOpen() {
 /* ---------------- overlay (sheet / dialog) tracking ---------------- */
 
 /**
- * Overlay tracking now lives in `use-overlay` (single stack shared by every
- * sheet / dialog). These re-exports keep existing call sites working.
+ * Overlay tracking lives in `use-overlay` (single stack shared by every
+ * sheet / dialog). Re-exported here for the layout components.
  */
 export { useAnyOverlayOpen as useOverlayOpen } from "@/hooks/use-overlay";
-
-/** @deprecated overlays register themselves through `useOverlayLayer`. */
-export function useRegisterOverlay(_open: boolean) {
-  /* no-op — kept for backwards compatibility */
-}
-
 
 /**
  * Keeps the focused field visible inside a scroll container when the

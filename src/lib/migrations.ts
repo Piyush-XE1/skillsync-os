@@ -4,18 +4,28 @@ import { todayISO } from "./date";
 import { createDefaultNotifications } from "./notifications/types";
 
 /**
+ * Loose shape of persisted data while it is being migrated. It can come from
+ * any historical schema version (or a hand-edited backup file), so strict
+ * typing here would only add casts without adding safety; the final
+ * `AppDataSchema` parse is what guarantees the result.
+ */
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+type LegacyData = Record<string, any>;
+
+/**
  * v1 → v2: adds habit.startDate, attendance module, expenses module,
  * preferences.modules flags.
  */
-const migrators: Record<number, (data: any) => any> = {
+const migrators: Record<number, (data: LegacyData) => LegacyData> = {
   1: (data) => {
     const habits = Array.isArray(data.habits)
-      ? data.habits.map((h: any) => {
-          if (h && typeof h === "object" && h.startDate === undefined) {
-            const createdAt = typeof h.createdAt === "number" ? h.createdAt : Date.now();
-            return { ...h, startDate: todayISO(new Date(createdAt)) };
+      ? data.habits.map((h: unknown) => {
+          const habit = h as LegacyData;
+          if (habit && typeof habit === "object" && habit.startDate === undefined) {
+            const createdAt = typeof habit.createdAt === "number" ? habit.createdAt : Date.now();
+            return { ...habit, startDate: todayISO(new Date(createdAt)) };
           }
-          return h;
+          return habit;
         })
       : [];
     const preferences = {
@@ -61,7 +71,7 @@ export function migrate(input: unknown): AppData {
   const seed = createInitialData();
   if (!input || typeof input !== "object") return seed;
 
-  let data: any = { ...seed, ...(input as any) };
+  let data: LegacyData = { ...seed, ...(input as LegacyData) };
   const from = typeof data.schemaVersion === "number" ? data.schemaVersion : 0;
 
   for (let v = from; v < CURRENT_SCHEMA_VERSION; v++) {
@@ -85,7 +95,7 @@ export function migrate(input: unknown): AppData {
   // Appearance has exactly one source of truth: preferences.background.
   // A legacy light theme becomes the Minimalist Light background.
   {
-    const prefs = data.preferences as any;
+    const prefs = data.preferences as LegacyData;
     if (prefs.theme === "light") prefs.background = "light";
     delete prefs.theme;
     if (!["aurora", "gradient", "atmospheric", "light"].includes(prefs.background)) {
@@ -97,7 +107,7 @@ export function migrate(input: unknown): AppData {
   data.expenses = data.expenses ?? { transactions: [] };
   // Expense Manager V2: description / tags / position / updatedAt
   data.expenses.transactions = (data.expenses.transactions ?? []).map(
-    (t: any, i: number) => ({
+    (t: LegacyData, i: number) => ({
       ...t,
       description: t.description ?? "",
       tags: Array.isArray(t.tags) ? t.tags : [],
