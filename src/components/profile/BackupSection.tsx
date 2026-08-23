@@ -285,7 +285,7 @@ export function BackupSection({ onRequestReset }: { onRequestReset: () => void }
             onClick={() => {
               const next = { ...autoSettings, enabled: !autoSettings.enabled };
               setAutoBackupSettings(next);
-              if (next.enabled) createAutomaticSnapshot(snapshotData());
+              if (next.enabled) createAutomaticSnapshot(snapshotData(), true);
               setAutoSettings(getAutoBackupSettings());
               setAutoSnapshotCount(getAutomaticSnapshotCount());
             }}
