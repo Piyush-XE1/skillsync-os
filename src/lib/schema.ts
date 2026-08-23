@@ -1,7 +1,7 @@
 import { z } from "zod";
 import { NotificationsStateSchema, createDefaultNotifications } from "./notifications/types";
 
-export const CURRENT_SCHEMA_VERSION = 5;
+export const CURRENT_SCHEMA_VERSION = 6;
 
 export const ChecklistItemSchema = z.object({
   id: z.string(),
@@ -126,8 +126,9 @@ export const PreferencesSchema = z.object({
   /**
    * The single source of truth for the app's appearance. "light" activates the
    * Minimalist Light visual system; every other value is a dark variant.
+   * (Removed v5 values "gradient"/"atmospheric" are migrated to "aurora".)
    */
-  background: z.enum(["aurora", "gradient", "atmospheric", "light"]).default("aurora"),
+  background: z.enum(["aurora", "light", "atelier"]).default("aurora"),
   /** Tactile feedback on supported devices. */
   haptics: z.boolean().default(true),
   hapticIntensity: z.enum(["light", "standard", "strong"]).default("standard"),

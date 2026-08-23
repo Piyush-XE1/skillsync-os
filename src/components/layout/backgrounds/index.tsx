@@ -1,24 +1,20 @@
 import { useAppStore } from "@/store/useAppStore";
 
 import { AuroraBackground } from "./AuroraBackground";
-import { MinimalGradientBackground } from "./MinimalGradientBackground";
-import { AtmosphericBackground } from "./AtmosphericBackground";
 import { LightAtmosphereBackground } from "./LightAtmosphereBackground";
+import { AtelierBackground } from "./AtelierBackground";
 import type { BackgroundStyle } from "./shared";
 
 export { BACKGROUND_OPTIONS } from "./shared";
 export type { BackgroundStyle } from "./shared";
-export {
-  AuroraBackground,
-  MinimalGradientBackground,
-  AtmosphericBackground,
-  LightAtmosphereBackground,
-};
+export { AuroraBackground, LightAtmosphereBackground, AtelierBackground };
 
 export function BackgroundByStyle({ style }: { style: BackgroundStyle }) {
   if (style === "light") return <LightAtmosphereBackground />;
-  if (style === "gradient") return <MinimalGradientBackground />;
-  if (style === "atmospheric") return <AtmosphericBackground />;
+  if (style === "atelier") return <AtelierBackground />;
+  // "aurora" is the flagship default and the safe fallback for any value that
+  // somehow reaches the renderer unknown (pre-migration state, hand-edited
+  // backups): the app never renders unstyled.
   return <AuroraBackground />;
 }
 

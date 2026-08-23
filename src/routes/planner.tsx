@@ -122,7 +122,7 @@ function PlannerPage() {
                   className={cn(
                     "flex flex-col items-center gap-1.5 rounded-2xl border py-2.5 transition-all active:scale-[0.96]",
                     isSel
-                      ? "border-transparent gradient-primary text-white shadow-[0_10px_30px_-10px_rgba(124,58,237,0.6)]"
+                      ? "border-transparent gradient-primary text-white shadow-[var(--shadow-glow)]"
                       : "border-white/[0.05] bg-white/[0.02] text-muted-foreground",
                   )}
                 >

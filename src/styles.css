@@ -6,7 +6,10 @@
 
 /*
  * SkillSync — Personal Growth OS
- * Dark-only, premium, minimal. Inspired by Linear / Arc / Raycast / Notion.
+ * Three themes, one token system:
+ *   :root         → Animated Aurora (dark, default)
+ *   html.light    → Minimalist Light (warm paper + botanical accent)
+ *   html.atelier  → Atelier (warm graphite, ivory ink, restrained brass)
  * Design tokens are the single source of truth — components must never
  * hardcode raw colors, shadows or radii.
  */
@@ -107,26 +110,13 @@ body {
   --space-5: 32px;
   --space-6: 48px;
 
-  /* --- Background engine tokens (dark) --- */
+  /* --- Background engine tokens (dark aurora) --- */
   --bg-base: #070b19;
-  --aurora-1: 139, 92, 246; /* purple */
-  --aurora-2: 37, 99, 235; /* blue */
-  --aurora-3: 34, 211, 238; /* cyan */
-  --aurora-op-1: 0.13;
-  --aurora-op-2: 0.1;
-  --aurora-op-3: 0.075;
-  --aurora-blur-1: 150px;
-  --aurora-blur-2: 180px;
-  --aurora-blur-3: 130px;
-  --aurora-sheen: 0.045;
-  --aurora-core: rgba(0, 0, 0, 0.5);
-  --aurora-vignette: rgba(0, 0, 0, 0.55);
-  --aurora-noise: 0.03;
   --aurora-sky: 1;
   --aurora-stars: 0.6;
   --aurora-stars-2: 0.3;
-  --aurora-haze: 0.9;
-  --overlay-tint: 255, 255, 255;
+  --aurora-noise: 0.03;
+  --aurora-vignette: rgba(0, 0, 0, 0.55);
   /* Launch-animation energy intensity */
   --launch-glow: 1;
 
@@ -134,63 +124,102 @@ body {
 }
 
 /* ============================================================
-   LIGHT THEME — intentional, not inverted.
-   White / silver / indigo / soft lavender.
+   LIGHT THEME — "Paper & Botanical".
+   Warm paper foundation, ink text, one deep botanical accent.
+   Minimal and bright, but deliberately art-directed: warm neutrals
+   instead of computer-gray, a quiet forest accent instead of the
+   default bright blue. --primary-glow is the *darker* accent here,
+   because small accent text/icons sit on light surfaces.
    ============================================================ */
 html.light,
 html.light body {
-  --background: #fbfaf8;
-  --foreground: #16181d;
+  --background: #f7f6f2;
+  --foreground: #1e1d19;
   --surface: #ffffff;
-  --surface-2: #f5f3f0;
+  --surface-2: #f0eee7;
   --surface-elevated: #ffffff;
   --card: #ffffff;
-  --card-foreground: #111827;
+  --card-foreground: #1e1d19;
   --popover: #ffffff;
-  --popover-foreground: #111827;
+  --popover-foreground: #1e1d19;
 
-  --primary: #4f46e5;
-  --primary-glow: #8b5cf6;
-  --primary-foreground: #ffffff;
-  --secondary: #7c3aed;
-  --secondary-foreground: #ffffff;
-  --glow: color-mix(in oklab, var(--primary) 32%, transparent);
+  --primary: #20573f;
+  --primary-glow: #17402e;
+  --primary-foreground: #fbfaf5;
+  --secondary: #33714f;
+  --secondary-foreground: #f7f9f5;
+  --glow: color-mix(in oklab, var(--primary) 26%, transparent);
 
-  --muted: #f3f1ee;
-  --muted-foreground: #5d6270;
-  --accent: #efedea;
-  --accent-foreground: #111827;
+  --muted: #f0eee7;
+  --muted-foreground: #6c675c;
+  --accent: #eae7de;
+  --accent-foreground: #1e1d19;
 
-  --success: #16a34a;
-  --warning: #d97706;
-  --danger: #dc2626;
-  --info: #0284c7;
+  --success: #1a7f42;
+  --warning: #a15c07;
+  --danger: #c22e2e;
+  --info: #4d6f8e;
 
-  --border: rgba(17, 24, 39, 0.08);
-  --border-strong: rgba(17, 24, 39, 0.12);
-  --divider: rgba(17, 24, 39, 0.06);
-  --input: rgba(17, 24, 39, 0.1);
+  --border: rgba(30, 29, 25, 0.09);
+  --border-strong: rgba(30, 29, 25, 0.14);
+  --divider: rgba(30, 29, 25, 0.06);
+  --input: rgba(30, 29, 25, 0.12);
   --ring: var(--primary);
 
-  --bg-base: #fbfaf8;
-  --aurora-1: 99, 102, 241; /* indigo */
-  --aurora-2: 167, 139, 250; /* soft violet */
-  --aurora-3: 148, 163, 184; /* silver */
-  --aurora-op-1: 0.075;
-  --aurora-op-2: 0.06;
-  --aurora-op-3: 0.045;
-  --aurora-sheen: 0.7;
-  --aurora-core: rgba(255, 255, 255, 0.55);
-  --aurora-vignette: rgba(148, 163, 184, 0.22);
-  --aurora-noise: 0.018;
-  --aurora-sky: 0;
-  --aurora-stars: 0;
-  --aurora-stars-2: 0;
-  --aurora-haze: 0.3;
-  --overlay-tint: 17, 24, 39;
+  --bg-base: #f7f6f2;
   --launch-glow: 0.35;
 
   color-scheme: light;
+}
+
+/* ============================================================
+   ATELIER — the premium studio theme.
+   Warm graphite surfaces, ivory ink, one restrained brass accent
+   with a deep olive counterweight. No neon, no blue, no glassy
+   spectacle: quiet paper-like depth, warm hairline borders and
+   brass reserved for the moments that matter.
+   ============================================================ */
+html.atelier,
+html.atelier body {
+  --background: #16130f;
+  --foreground: #ece6d8;
+  --surface: #1c1914;
+  --surface-2: #221e17;
+  --surface-elevated: #262119;
+  --card: #1e1a14;
+  --card-foreground: #ece6d8;
+  --popover: #1c1914;
+  --popover-foreground: #ece6d8;
+
+  --primary: #c9a35c;
+  --primary-glow: #debd83;
+  --primary-foreground: #261d0d;
+  --secondary: #6e6f47;
+  --secondary-foreground: #f2efe3;
+  --glow: color-mix(in oklab, var(--primary) 40%, transparent);
+
+  --muted: #221e17;
+  --muted-foreground: #a29886;
+  --accent: #282219;
+  --accent-foreground: #ece6d8;
+
+  --success: #83a86f;
+  --warning: #d18f42;
+  --danger: #cf6350;
+  --info: #93a2ae;
+
+  --border: rgba(236, 230, 216, 0.09);
+  --border-strong: rgba(236, 230, 216, 0.14);
+  --divider: rgba(236, 230, 216, 0.06);
+  --input: rgba(236, 230, 216, 0.11);
+  --ring: var(--primary);
+
+  --bg-base: #12100c;
+  --aurora-noise: 0.026;
+  --aurora-vignette: rgba(16, 12, 7, 0.55);
+  --launch-glow: 0.55;
+
+  color-scheme: dark;
 }
 
 html {
@@ -226,15 +255,15 @@ html.theme-transition * {
 }
 
 /* Light-theme compatibility: white translucent overlays used across the app
-   are re-tinted to ink so surfaces keep their intended hierarchy. */
+   are re-tinted to warm ink so surfaces keep their intended hierarchy. */
 html.light [class*="bg-white/"] {
-  background-color: color-mix(in oklab, #111827 var(--overlay-strength, 4%), transparent);
+  background-color: color-mix(in oklab, #1e1d19 var(--overlay-strength, 4%), transparent);
 }
 html.light [class*="border-white/"] {
-  border-color: rgba(17, 24, 39, 0.1);
+  border-color: rgba(30, 29, 25, 0.1);
 }
 html.light [class*="divide-white/"] > * + * {
-  border-color: rgba(17, 24, 39, 0.07);
+  border-color: rgba(30, 29, 25, 0.07);
 }
 html.light [class*="text-white"] {
   color: var(--foreground);
@@ -246,9 +275,9 @@ html.light [class*="text-white/4"] {
   color: var(--muted-foreground);
 }
 html.light .icon-tile {
-  background: linear-gradient(180deg, rgba(17, 24, 39, 0.05), rgba(17, 24, 39, 0.02));
-  border-color: rgba(17, 24, 39, 0.09);
-  box-shadow: 0 8px 20px -16px rgba(17, 24, 39, 0.35);
+  background: linear-gradient(180deg, rgba(30, 29, 25, 0.045), rgba(30, 29, 25, 0.02));
+  border-color: rgba(30, 29, 25, 0.09);
+  box-shadow: 0 8px 20px -16px rgba(30, 29, 25, 0.3);
   color: var(--foreground);
 }
 html.light .icon-tile svg,
@@ -262,13 +291,15 @@ html.light .card-surface,
 html.light .card-elevated {
   box-shadow:
     0 1px 0 0 rgba(255, 255, 255, 0.9) inset,
-    0 18px 40px -30px rgba(17, 24, 39, 0.32);
+    0 18px 40px -30px rgba(30, 29, 25, 0.26);
 }
+/* Text and icons sitting on the botanical gradient stay white — the blanket
+   "text-white → ink" retint above must not leak into accent surfaces. */
 html.light .gradient-primary,
-html.light .icon-tile-accent {
+html.light .gradient-primary[class*="text-white"],
+html.light .gradient-primary [class*="text-white"] {
   color: #ffffff;
 }
-
 
 @layer base {
   * {
@@ -300,9 +331,7 @@ html.light .icon-tile-accent {
 /* Floating surface: ambient shadow + hairline gradient border + inner light */
 @utility card-surface {
   position: relative;
-  background:
-    linear-gradient(180deg, oklch(1 0 0 / 0.035), oklch(1 0 0 / 0.012)),
-    var(--card);
+  background: linear-gradient(180deg, oklch(1 0 0 / 0.035), oklch(1 0 0 / 0.012)), var(--card);
   border: 1px solid var(--border);
   border-radius: 20px;
   box-shadow:
@@ -312,8 +341,7 @@ html.light .icon-tile-accent {
 
 @utility card-elevated {
   background:
-    linear-gradient(180deg, oklch(1 0 0 / 0.06), oklch(1 0 0 / 0.02)),
-    var(--surface-elevated);
+    linear-gradient(180deg, oklch(1 0 0 / 0.06), oklch(1 0 0 / 0.02)), var(--surface-elevated);
   border: 1px solid var(--border-strong);
   border-radius: 20px;
   box-shadow:
@@ -375,13 +403,16 @@ html.light .icon-tile-accent {
   }
 }
 
-
 @utility gradient-primary {
   background-image: linear-gradient(135deg, var(--primary) 0%, var(--secondary) 100%);
 }
 
 @utility gradient-text {
-  background-image: linear-gradient(120deg, var(--foreground), color-mix(in oklab, var(--primary-glow) 75%, white));
+  background-image: linear-gradient(
+    120deg,
+    var(--foreground),
+    color-mix(in oklab, var(--primary-glow) 75%, white)
+  );
   -webkit-background-clip: text;
   background-clip: text;
   color: transparent;
@@ -389,8 +420,16 @@ html.light .icon-tile-accent {
 
 @utility gradient-mesh {
   background:
-    radial-gradient(600px 300px at 0% 0%, color-mix(in oklab, var(--primary) 32%, transparent), transparent 60%),
-    radial-gradient(600px 300px at 100% 100%, color-mix(in oklab, var(--secondary) 26%, transparent), transparent 60%),
+    radial-gradient(
+      600px 300px at 0% 0%,
+      color-mix(in oklab, var(--primary) 32%, transparent),
+      transparent 60%
+    ),
+    radial-gradient(
+      600px 300px at 100% 100%,
+      color-mix(in oklab, var(--secondary) 26%, transparent),
+      transparent 60%
+    ),
     linear-gradient(180deg, #17171a, #101012);
 }
 
@@ -504,41 +543,101 @@ html.light .icon-tile-accent {
 
 /* ============================================================
    LIGHT THEME surface refinements — ambient shadows & reflections
-   so cards still feel lifted off the animated background.
+   so cards still feel lifted off the animated background. Shadow
+   tints use the warm ink hue, never chromatic indigo.
    ============================================================ */
 html.light .card-surface {
   background:
-    linear-gradient(180deg, rgba(255, 255, 255, 0.9), rgba(255, 255, 255, 0.72)),
-    var(--card);
+    linear-gradient(180deg, rgba(255, 255, 255, 0.9), rgba(255, 255, 255, 0.72)), var(--card);
   border: 1px solid var(--border);
   box-shadow:
     0 1px 0 0 rgba(255, 255, 255, 0.9) inset,
-    0 1px 2px 0 rgba(17, 24, 39, 0.04),
-    0 18px 40px -28px rgba(49, 46, 129, 0.28);
+    0 1px 2px 0 rgba(30, 29, 25, 0.04),
+    0 18px 40px -28px rgba(30, 29, 25, 0.22);
 }
 html.light .card-elevated {
-  background:
-    linear-gradient(180deg, #ffffff, rgba(255, 255, 255, 0.86)),
-    var(--surface-elevated);
+  background: linear-gradient(180deg, #ffffff, rgba(255, 255, 255, 0.86)), var(--surface-elevated);
   border: 1px solid var(--border-strong);
   box-shadow:
     0 1px 0 0 rgba(255, 255, 255, 1) inset,
-    0 24px 56px -28px rgba(49, 46, 129, 0.3);
+    0 24px 56px -28px rgba(30, 29, 25, 0.24);
 }
 html.light .glass {
   background: linear-gradient(180deg, rgba(255, 255, 255, 0.78), rgba(255, 255, 255, 0.6));
   border: 1px solid var(--border-strong);
 }
 html.light .icon-tile {
-  background: linear-gradient(180deg, #ffffff, rgba(244, 245, 249, 0.9));
-  box-shadow: 0 8px 20px -16px rgba(49, 46, 129, 0.4);
+  background: linear-gradient(180deg, #ffffff, rgba(241, 239, 231, 0.9));
+  box-shadow: 0 8px 20px -16px rgba(30, 29, 25, 0.28);
 }
 html.light .gradient-text {
-  background-image: linear-gradient(120deg, var(--foreground), color-mix(in oklab, var(--primary) 85%, black));
+  background-image: linear-gradient(
+    120deg,
+    var(--foreground),
+    color-mix(in oklab, var(--primary) 85%, black)
+  );
 }
 html.light .gradient-mesh {
   background:
-    radial-gradient(600px 300px at 0% 0%, color-mix(in oklab, var(--primary) 18%, transparent), transparent 60%),
-    radial-gradient(600px 300px at 100% 100%, color-mix(in oklab, var(--secondary) 14%, transparent), transparent 60%),
-    linear-gradient(180deg, #ffffff, #f4f5f9);
+    radial-gradient(
+      600px 300px at 0% 0%,
+      color-mix(in oklab, var(--primary) 14%, transparent),
+      transparent 60%
+    ),
+    radial-gradient(
+      600px 300px at 100% 100%,
+      color-mix(in oklab, var(--secondary) 10%, transparent),
+      transparent 60%
+    ),
+    linear-gradient(180deg, #ffffff, #f3f1ea);
+}
+
+/* ============================================================
+   ATELIER surface refinements — warm ivory tints instead of cool
+   white overlays, deep warm-keyed shadows. Brass surfaces carry
+   espresso content for proper contrast. Mirror of the light block:
+   same specificity, no component changes required.
+   ============================================================ */
+html.atelier .card-surface {
+  background:
+    linear-gradient(180deg, rgba(238, 229, 209, 0.03), rgba(238, 229, 209, 0.012)), var(--card);
+  border: 1px solid var(--border);
+  box-shadow:
+    0 1px 0 0 rgba(238, 229, 209, 0.05) inset,
+    0 18px 40px -28px rgba(8, 6, 3, 0.85);
+}
+html.atelier .card-elevated {
+  background:
+    linear-gradient(180deg, rgba(238, 229, 209, 0.05), rgba(238, 229, 209, 0.018)),
+    var(--surface-elevated);
+  border: 1px solid var(--border-strong);
+  box-shadow:
+    0 1px 0 0 rgba(238, 229, 209, 0.07) inset,
+    0 28px 60px -30px rgba(8, 6, 3, 0.9);
+}
+html.atelier .glass {
+  background: linear-gradient(180deg, rgba(238, 229, 209, 0.05), rgba(238, 229, 209, 0.02));
+}
+html.atelier .icon-tile {
+  background: linear-gradient(180deg, rgba(238, 229, 209, 0.06), rgba(238, 229, 209, 0.025));
+  box-shadow: 0 8px 20px -14px rgba(8, 6, 3, 0.8);
+}
+html.atelier .gradient-primary,
+html.atelier .gradient-primary[class*="text-white"],
+html.atelier .gradient-primary [class*="text-white"] {
+  color: var(--primary-foreground);
+}
+html.atelier .gradient-mesh {
+  background:
+    radial-gradient(
+      600px 300px at 0% 0%,
+      color-mix(in oklab, var(--primary) 20%, transparent),
+      transparent 60%
+    ),
+    radial-gradient(
+      600px 300px at 100% 100%,
+      color-mix(in oklab, var(--secondary) 16%, transparent),
+      transparent 60%
+    ),
+    linear-gradient(180deg, #1b1712, #131009);
 }

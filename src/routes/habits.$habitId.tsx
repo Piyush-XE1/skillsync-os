@@ -190,7 +190,7 @@ function HabitDetail() {
           className={cn(
             "mt-5 flex w-full items-center justify-center gap-2 rounded-2xl py-3.5 text-[14px] font-medium transition-all active:scale-[0.98]",
             doneToday
-              ? "gradient-primary text-white shadow-[0_10px_30px_-10px_rgba(124,58,237,0.6)]"
+              ? "gradient-primary text-white shadow-[var(--shadow-glow)]"
               : "border border-white/[0.08] bg-white/[0.02] text-foreground",
           )}
         >
