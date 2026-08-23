@@ -134,7 +134,10 @@ const ExpenseRow = memo(function ExpenseRow({
         touchAction: "pan-y",
       }}
       className={cn(
-        "relative flex items-start gap-3 rounded-2xl border border-white/[0.05] bg-white/[0.02] px-3 py-3 select-none",
+        // transition-transform lets untouched neighbour rows glide out of the
+        // way while dragging and lets the dropped row settle into place; paint()
+        // pins the ACTIVE row to the finger with inline `transition: none`.
+        "relative flex items-start gap-3 rounded-2xl border border-white/[0.05] bg-white/[0.02] px-3 py-3 transition-transform duration-200 ease-out select-none motion-reduce:transition-none",
         dragging &&
           "z-20 scale-[1.03] border-white/[0.12] bg-white/[0.06] shadow-[0_20px_45px_-18px_rgba(0,0,0,0.8)] ring-1 ring-primary/25 brightness-110",
       )}
@@ -247,6 +250,14 @@ function DragList({
     return order.map((id) => map.get(id)!).filter(Boolean);
   }, [items, order]);
 
+  // Once the store is the source of truth again (a commit landed, or the
+  // underlying items changed), drop the local drag order. Without this, a
+  // transaction added after a reorder never appeared in the list — it had no
+  // entry in the stale in-flight order.
+  useEffect(() => {
+    setOrder(null);
+  }, [items]);
+
   /** Writes every row's transform for the current in-flight order. */
   const paint = useCallback(() => {
     const s = state.current;
@@ -319,6 +330,7 @@ function DragList({
     s.dragId = null;
   }, [stopLoop]);
 
+  /** Pointer released: commit the in-flight order if a drag was active. */
   const finish = useCallback(() => {
     const s = state.current;
     const committed = s.active ? s.ids.slice() : null;
@@ -331,8 +343,16 @@ function DragList({
     }
   }, [cleanup, onReorder]);
 
+  /** Gesture stolen/cancelled (OS took the pointer, mouse button lost): roll back. */
+  const cancel = useCallback(() => {
+    cleanup();
+    setActiveId(null);
+  }, [cleanup]);
+
   const onLongPressStart = useCallback(
     (id: string, e: React.PointerEvent<HTMLDivElement>) => {
+      // Ignore non-primary buttons (right/middle click, barrel buttons).
+      if (e.pointerType === "mouse" && e.button !== 0) return;
       const el = e.currentTarget;
       const pointerId = e.pointerId;
       const ids = list.map((t) => t.id);
@@ -349,6 +369,7 @@ function DragList({
       s.active = false;
 
       const move = (ev: PointerEvent) => {
+        if (ev.pointerId !== pointerId) return;
         if (!s.active) {
           // Movement before the long press wins → treat as a scroll, bail out.
           if (Math.abs(ev.clientY - s.startY) > 8) {
@@ -357,25 +378,40 @@ function DragList({
           }
           return;
         }
+        // A mouse that lost its button without pointerup (off-window release)
+        // must not leave the drag running.
+        if (ev.pointerType === "mouse" && (ev.buttons & 1) === 0) {
+          detach();
+          cancel();
+          return;
+        }
         ev.preventDefault();
         s.pointerY = ev.clientY;
         const edge = 90;
         const vh = window.innerHeight;
         s.scrollDir = ev.clientY < edge ? -1 : ev.clientY > vh - edge ? 1 : 0;
       };
-      const up = () => {
+      const up = (ev: PointerEvent) => {
+        if (ev.pointerId !== pointerId) return;
         detach();
         finish();
       };
+      const cancelled = (ev: PointerEvent) => {
+        if (ev.pointerId !== pointerId) return;
+        detach();
+        cancel();
+      };
+      // Window-scoped listeners: a gesture must always terminate, even when
+      // the pointer ends outside the row (mouse drags leave the element).
       const detach = () => {
-        el.removeEventListener("pointermove", move);
-        el.removeEventListener("pointerup", up);
-        el.removeEventListener("pointercancel", up);
+        window.removeEventListener("pointermove", move);
+        window.removeEventListener("pointerup", up);
+        window.removeEventListener("pointercancel", cancelled);
       };
 
-      el.addEventListener("pointermove", move, { passive: false });
-      el.addEventListener("pointerup", up);
-      el.addEventListener("pointercancel", up);
+      window.addEventListener("pointermove", move, { passive: false });
+      window.addEventListener("pointerup", up);
+      window.addEventListener("pointercancel", cancelled);
 
       s.timer = setTimeout(() => {
         s.active = true;
@@ -393,7 +429,7 @@ function DragList({
         s.raf = requestAnimationFrame(loop);
       }, 380);
     },
-    [finish, list, loop, paint],
+    [cancel, finish, list, loop, paint],
   );
 
   useEffect(() => cleanup, [cleanup]);
@@ -494,6 +530,11 @@ function ExpensesPage() {
 
   const [query, setQuery] = useState("");
   const [filter, setFilter] = useState("All");
+  /** Re-entrancy guard: rapid double taps must not create duplicate entries. */
+  const addGuard = useRef(false);
+  useEffect(() => {
+    if (addOpen) addGuard.current = false;
+  }, [addOpen]);
 
   const [editing, setEditing] = useState<Transaction | null>(null);
   const [form, setForm] = useState({
@@ -531,11 +572,14 @@ function ExpensesPage() {
   }, [transactions, query, filter]);
 
   const submit = () => {
+    if (addGuard.current) return;
     const value = Number(amount);
     if (!title.trim() || !value || value <= 0) {
       toast.error("Add a title and a positive amount");
       return;
     }
+    addGuard.current = true;
+    haptics.success();
     addTransaction({ title: title.trim(), amount: value, type });
     setTitle("");
     setAmount("");

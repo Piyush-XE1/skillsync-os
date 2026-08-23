@@ -354,7 +354,8 @@ function Dashboard() {
                 {recentNotes.map((n) => (
                   <Link
                     key={n.id}
-                    to="/notes"
+                    to="/notes/$noteId"
+                    params={{ noteId: n.id }}
                     className="flex items-center gap-3 py-3 first:pt-0 last:pb-0"
                   >
                     <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-white/[0.04]">

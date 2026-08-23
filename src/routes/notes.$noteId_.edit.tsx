@@ -118,7 +118,7 @@ function NoteEditor() {
         <div className="flex items-center gap-2">
           <span
             aria-live="polite"
-            className="flex items-center gap-1.5 text-[11px] text-muted-foreground"
+            className="flex min-w-[64px] items-center justify-end gap-1.5 text-[11px] text-muted-foreground"
           >
             {status === "saving" ? (
               <>

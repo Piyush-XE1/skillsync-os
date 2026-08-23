@@ -24,6 +24,19 @@ const APPEARANCE: Record<string, { cls: string; scheme: ResolvedTheme; themeColo
 };
 const FALLBACK_APPEARANCE = APPEARANCE.aurora;
 const MANAGED_CLASSES = Object.values(APPEARANCE).map((a) => a.cls);
+const VALID_BACKGROUNDS = Object.keys(APPEARANCE);
+const APPEARANCE_KEY = "skillsync:data:v1";
+
+/**
+ * Blocking, dependency-free pre-paint script rendered into <head> by the root
+ * shell. Without it, the persisted background is only applied by ThemeManager's
+ * first effect — AFTER the first paint — so anyone on a non-default background
+ * (e.g. Minimalist Light) saw a dark flash on every cold start, and the launch
+ * screen visibly flipped colours mid-animation. This reads the zustand persist
+ * value the same way the store does and sets the class + colour scheme + status
+ * bar colour synchronously, before any frame is produced.
+ */
+export const APPEARANCE_INIT_SCRIPT = `(function(){try{var raw=window.localStorage.getItem(${JSON.stringify(APPEARANCE_KEY)});var bg="aurora";if(raw){var st=JSON.parse(raw);var val=st&&st.state&&st.state.preferences?st.state.preferences.background:null;if(${JSON.stringify(VALID_BACKGROUNDS)}.indexOf(val)>=0)bg=val;}var map=${JSON.stringify(APPEARANCE)};var a=map[bg]||map.aurora;var el=document.documentElement;el.classList.remove(${MANAGED_CLASSES.map((c) => JSON.stringify(c)).join(",")});el.classList.add(a.cls);el.style.colorScheme=a.scheme;var m=document.querySelector('meta[name="theme-color"]');if(m)m.setAttribute("content",a.themeColor);}catch(e){}})();`;
 
 /** Maps a background preference onto the resolved light/dark visual system. */
 export function resolveTheme(background: string | undefined): ResolvedTheme {

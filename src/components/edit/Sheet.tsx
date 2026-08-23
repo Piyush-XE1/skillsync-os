@@ -1,4 +1,4 @@
-import { useEffect, useId, useRef, useState, type ReactNode } from "react";
+import { useEffect, useId, useRef, type ReactNode } from "react";
 import { createPortal } from "react-dom";
 import { X } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -8,19 +8,23 @@ import {
   useDismissOnEscape,
   useFocusTrap,
   useOverlayLayer,
+  usePresence,
   useScrollLock,
 } from "@/hooks/use-overlay";
 
 /** Portals overlays to <body> so no route-level stacking context can trap them. */
 function OverlayPortal({ children }: { children: ReactNode }) {
-  const [mounted, setMounted] = useState(false);
-  useEffect(() => setMounted(true), []);
-  if (!mounted || typeof document === "undefined") return null;
+  if (typeof document === "undefined") return null;
   return createPortal(children, document.body);
 }
 
-const BACKDROP =
+/** Exit choreography duration — mirrors the entry animations. */
+const OVERLAY_EXIT_MS = 200;
+
+const BACKDROP_ENTER =
   "absolute inset-0 bg-black/45 backdrop-blur-[2px] animate-in fade-in duration-200 motion-reduce:animate-none";
+const BACKDROP_EXIT =
+  "absolute inset-0 bg-black/45 backdrop-blur-[2px] opacity-0 transition-opacity duration-200 motion-reduce:transition-none";
 
 /**
  * Responsive edit surface:
@@ -49,21 +53,26 @@ export function BottomSheet({
   const surfaceRef = useRef<HTMLDivElement>(null);
   const titleId = useId();
 
-  const { zIndex, isTop } = useOverlayLayer(open);
-  useScrollLock(open);
+  const { mounted, closing } = usePresence(open, OVERLAY_EXIT_MS);
+  const { zIndex, isTop } = useOverlayLayer(mounted);
+  useScrollLock(mounted);
   useDismissOnEscape(open, isTop, onClose);
-  useFocusTrap(surfaceRef, open);
-  useScrollFocusedIntoView(bodyRef, open);
+  useFocusTrap(surfaceRef, mounted);
+  useScrollFocusedIntoView(bodyRef, mounted);
 
-  if (!open) return null;
+  if (!mounted) return null;
 
   return (
     <OverlayPortal>
       <div
-        className="fixed inset-0 flex items-end justify-center md:items-center md:p-8"
+        className={cn(
+          "fixed inset-0 flex items-end justify-center md:items-center md:p-8",
+          // Inert while closing: no double actions, no background interaction.
+          closing && "pointer-events-none",
+        )}
         style={{ zIndex }}
       >
-        <div className={BACKDROP} onClick={onClose} aria-hidden />
+        <div className={closing ? BACKDROP_EXIT : BACKDROP_ENTER} onClick={onClose} aria-hidden />
         <div
           ref={surfaceRef}
           role="dialog"
@@ -72,9 +81,12 @@ export function BottomSheet({
           aria-label={title ? undefined : "Dialog"}
           tabIndex={-1}
           className={cn(
-            "animate-sheet-up glass relative mx-auto flex w-full max-w-md flex-col overflow-hidden rounded-t-[28px] bg-surface/90 shadow-[var(--shadow-float)] outline-none transition-[max-height,margin] duration-200 ease-[var(--ease-out-soft)] motion-reduce:animate-none motion-reduce:transition-none",
+            "glass relative mx-auto flex w-full max-w-md flex-col overflow-hidden rounded-t-[28px] bg-surface/90 shadow-[var(--shadow-float)] outline-none transition-[max-height,margin] duration-200 ease-[var(--ease-out-soft)] motion-reduce:animate-none motion-reduce:transition-none",
             // Tablet & desktop: centered dialog / modal instead of a bottom sheet.
-            "md:animate-dialog-pop md:max-w-lg md:rounded-[24px] lg:max-w-xl",
+            "md:max-w-lg md:rounded-[24px] lg:max-w-xl",
+            closing
+              ? "translate-y-[14px] opacity-0 transition-[opacity,transform] duration-200 ease-in md:translate-y-0 md:scale-[0.96]"
+              : "animate-sheet-up md:animate-dialog-pop",
             className,
           )}
           style={{
@@ -147,25 +159,29 @@ export function ConfirmDialog({
   const titleId = useId();
   const descId = useId();
 
-  const { zIndex, isTop } = useOverlayLayer(open);
-  useScrollLock(open);
+  const { mounted, closing } = usePresence(open, OVERLAY_EXIT_MS);
+  const { zIndex, isTop } = useOverlayLayer(mounted);
+  useScrollLock(mounted);
   useDismissOnEscape(open, isTop, onClose);
-  useFocusTrap(surfaceRef, open);
+  useFocusTrap(surfaceRef, mounted);
 
   // Destructive confirmations announce themselves tactilely, exactly once.
   useEffect(() => {
     if (open && destructive) haptics.warning();
   }, [open, destructive]);
 
-  if (!open) return null;
+  if (!mounted) return null;
 
   return (
     <OverlayPortal>
       <div
-        className="fixed inset-0 flex items-center justify-center p-6"
+        className={cn(
+          "fixed inset-0 flex items-center justify-center p-6",
+          closing && "pointer-events-none",
+        )}
         style={{ zIndex, paddingBottom: kb ? kb + 24 : undefined }}
       >
-        <div className={BACKDROP} onClick={onClose} aria-hidden />
+        <div className={closing ? BACKDROP_EXIT : BACKDROP_ENTER} onClick={onClose} aria-hidden />
         <div
           ref={surfaceRef}
           role="alertdialog"
@@ -173,7 +189,12 @@ export function ConfirmDialog({
           aria-labelledby={titleId}
           aria-describedby={description ? descId : undefined}
           tabIndex={-1}
-          className="animate-dialog-pop glass relative w-full max-w-sm rounded-[24px] bg-surface/95 p-6 shadow-[var(--shadow-float)] outline-none motion-reduce:animate-none"
+          className={cn(
+            "glass relative w-full max-w-sm rounded-[24px] bg-surface/95 p-6 shadow-[var(--shadow-float)] outline-none motion-reduce:animate-none motion-reduce:transition-none",
+            closing
+              ? "scale-[0.96] opacity-0 transition-[opacity,transform] duration-200 ease-in"
+              : "animate-dialog-pop",
+          )}
         >
           <h3 id={titleId} className="text-[17px] font-semibold tracking-tight">
             {title}

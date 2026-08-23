@@ -57,6 +57,7 @@ let stack: symbol[] = [];
 const stackListeners = new Set<() => void>();
 
 function emitStack() {
+  publishOverlayCount();
   for (const l of stackListeners) l();
 }
 
@@ -102,6 +103,48 @@ export function useAnyOverlayOpen() {
     };
   }, []);
   return openCount > 0;
+}
+
+/** Mirror for the native shell: Android back consulting how many overlays are up. */
+function publishOverlayCount() {
+  if (typeof window === "undefined") return;
+  (window as unknown as { __skillsyncOverlays?: number }).__skillsyncOverlays = stack.length;
+}
+
+/**
+ * Keeps an overlay mounted for `exitMs` after `open` goes false so its
+ * closing transition can play, instead of vanishing mid-frame (the abrupt
+ * "modal snap-out" flicker). While `closing`, the overlay must be inert —
+ * this is also what prevents double actions from rapid taps during the exit.
+ */
+export function usePresence(open: boolean, exitMs: number) {
+  const [mounted, setMounted] = useState(open);
+  const [closing, setClosing] = useState(false);
+
+  // Render-time adjustments (React's derive-state-from-props pattern):
+  // mounting happens in the very commit where `open` flips true — the enter
+  // animation starts on the first painted frame, never one frame late. A
+  // reopen during the exit window cancels the close so the overlay never
+  // gets stuck in its faded/outgoing state.
+  if (open && mounted && closing) {
+    setClosing(false);
+  } else if (open && !mounted) {
+    setMounted(true);
+    setClosing(false);
+  } else if (!open && mounted && !closing) {
+    setClosing(true);
+  }
+
+  useEffect(() => {
+    if (!closing) return;
+    const timer = window.setTimeout(() => {
+      setMounted(false);
+      setClosing(false);
+    }, exitMs);
+    return () => window.clearTimeout(timer);
+  }, [closing, exitMs]);
+
+  return { mounted, closing };
 }
 
 /** Escape / Android-back dismissal for the topmost overlay only. */

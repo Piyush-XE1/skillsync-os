@@ -1,5 +1,5 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { ArrowLeft, Plus, Flame, ChevronRight } from "lucide-react";
 import { AppShell } from "@/components/layout/AppShell";
 import { PrimaryAction } from "@/components/layout/PrimaryAction";
@@ -38,6 +38,11 @@ function HabitsPage() {
   const [open, setOpen] = useState(false);
   const [title, setTitle] = useState("");
   const [emoji, setEmoji] = useState("✨");
+  /** Re-entrancy guard: a double tap must never create two habits. */
+  const addGuard = useRef(false);
+  useEffect(() => {
+    if (open) addGuard.current = false;
+  }, [open]);
 
   const today = todayISO();
   const last7 = useMemo(
@@ -110,6 +115,9 @@ function HabitsPage() {
                   })
                 }
                 onKeyDown={(e) => {
+                  // Ignore keys bubbling from the nested check-in button —
+                  // otherwise Enter on it toggles AND navigates.
+                  if (e.target !== e.currentTarget) return;
                   if (e.key === "Enter" || e.key === " ") {
                     e.preventDefault();
                     navigate({
@@ -202,7 +210,8 @@ function HabitsPage() {
           <ActionButton
             className="w-full"
             onClick={() => {
-              if (!title.trim()) return;
+              if (!title.trim() || addGuard.current) return;
+              addGuard.current = true;
               addHabit(title.trim(), emoji || "✨");
               haptics.success();
               setTitle("");

@@ -84,6 +84,7 @@ function ProfilePage() {
   const resetAll = useAppStore((s) => s.resetAll);
 
   const [openProfile, setOpenProfile] = useState(false);
+  const [nameDraft, setNameDraft] = useState("");
   const [openJson, setOpenJson] = useState(false);
   const [openAppearance, setOpenAppearance] = useState(false);
   const [openHaptics, setOpenHaptics] = useState(false);
@@ -107,6 +108,18 @@ function ProfilePage() {
       .toUpperCase() || "L";
 
   // export/import handled by BackupSection now
+
+  const openNameEditor = () => {
+    setNameDraft(profile.name);
+    setOpenProfile(true);
+  };
+
+  // Committed on Done / dismiss — the previous blur-only commit silently lost
+  // the new name when the sheet was closed without the input losing focus.
+  const commitName = () => {
+    const next = nameDraft.trim();
+    if (next !== profile.name) updateProfile({ name: next });
+  };
 
   const handleAvatarPick = async (file: File) => {
     try {
@@ -216,10 +229,7 @@ function ProfilePage() {
                 <Chip tone="primary">Lv {hydrated ? stats.level : "—"}</Chip>
               </div>
               <div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 text-[12px] text-muted-foreground">
-                <button
-                  onClick={() => setOpenProfile(true)}
-                  className="underline-offset-2 hover:underline"
-                >
+                <button onClick={openNameEditor} className="underline-offset-2 hover:underline">
                   Edit name
                 </button>
                 <span className="text-white/10">·</span>
@@ -659,15 +669,34 @@ function ProfilePage() {
         </div>
       </BottomSheet>
 
-      <BottomSheet open={openProfile} onClose={() => setOpenProfile(false)} title="Edit profile">
+      <BottomSheet
+        open={openProfile}
+        onClose={() => {
+          commitName();
+          setOpenProfile(false);
+        }}
+        title="Edit profile"
+      >
         <div className="space-y-3">
           <label className="block text-[12px] text-muted-foreground">Name</label>
           <TextField
             autoFocus
-            defaultValue={profile.name}
-            onBlur={(e) => updateProfile({ name: e.target.value })}
+            value={nameDraft}
+            onChange={(e) => setNameDraft(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === "Enter") {
+                commitName();
+                setOpenProfile(false);
+              }
+            }}
           />
-          <ActionButton className="w-full" onClick={() => setOpenProfile(false)}>
+          <ActionButton
+            className="w-full"
+            onClick={() => {
+              commitName();
+              setOpenProfile(false);
+            }}
+          >
             Done
           </ActionButton>
         </div>

@@ -19,9 +19,8 @@ import { EmptyState } from "@/components/common/EmptyState";
 import { useAppStore, useHydrated } from "@/store/useAppStore";
 import { phasePct, roadmapPct, topicPct, subtopicPct } from "@/lib/progress";
 import { BottomSheet, ConfirmDialog } from "@/components/edit/Sheet";
-import { TextField, TextArea, NO_AUTOFILL_PROPS } from "@/components/edit/Fields";
+import { TextField } from "@/components/edit/Fields";
 import { ActionButton, IconButton } from "@/components/edit/Buttons";
-import type { Topic, Subtopic, ChecklistItem } from "@/lib/schema";
 import { haptics } from "@/lib/haptics";
 
 export const Route = createFileRoute("/learn/$roadmapId")({
@@ -38,12 +37,6 @@ export const Route = createFileRoute("/learn/$roadmapId")({
   component: RoadmapDetail,
 });
 
-type EditingTopic = {
-  phaseId: string;
-  topic: Topic;
-  subtopicId?: string;
-} | null;
-
 function RoadmapDetail() {
   const { roadmapId } = Route.useParams();
   const navigate = useNavigate();
@@ -56,8 +49,6 @@ function RoadmapDetail() {
   const deletePhase = useAppStore((s) => s.deletePhase);
   const movePhase = useAppStore((s) => s.movePhase);
   const addTopic = useAppStore((s) => s.addTopic);
-  const updateTopic = useAppStore((s) => s.updateTopic);
-  const updateSubtopic = useAppStore((s) => s.updateSubtopic);
   const setPhaseComplete = useAppStore((s) => s.setPhaseComplete);
   const setTopicComplete = useAppStore((s) => s.setTopicComplete);
   const setSubtopicComplete = useAppStore((s) => s.setSubtopicComplete);
@@ -73,7 +64,6 @@ function RoadmapDetail() {
   const [phaseTitle, setPhaseTitle] = useState("");
   const [addTopicToPhase, setAddTopicToPhase] = useState<string | null>(null);
   const [topicTitle, setTopicTitle] = useState("");
-  const [editing, setEditing] = useState<EditingTopic>(null);
   const [renamingPhase, setRenamingPhase] = useState<{ id: string; title: string } | null>(null);
   const [renamingRoadmap, setRenamingRoadmap] = useState(false);
   const [roadmapTitle, setRoadmapTitle] = useState("");
@@ -257,6 +247,8 @@ function RoadmapDetail() {
                             })
                           }
                           onKeyDown={(e) => {
+                            // Ignore keys bubbling from nested action buttons.
+                            if (e.target !== e.currentTarget) return;
                             if (e.key === "Enter" || e.key === " ") {
                               e.preventDefault();
                               navigate({
@@ -587,20 +579,6 @@ function RoadmapDetail() {
         </div>
       </BottomSheet>
 
-      {/* Topic editor */}
-      {editing ? (
-        <TopicEditorSheet
-          roadmapId={roadmap.id}
-          phaseId={editing.phaseId}
-          topic={
-            roadmap.phases
-              .find((p) => p.id === editing.phaseId)
-              ?.topics.find((t) => t.id === editing.topic.id) ?? editing.topic
-          }
-          onClose={() => setEditing(null)}
-        />
-      ) : null}
-
       {/* Confirm */}
       <ConfirmDialog
         open={!!confirm}
@@ -618,307 +596,5 @@ function RoadmapDetail() {
         }}
       />
     </AppShell>
-  );
-}
-
-function TopicEditorSheet({
-  roadmapId,
-  phaseId,
-  topic,
-  onClose,
-}: {
-  roadmapId: string;
-  phaseId: string;
-  topic: Topic;
-  onClose: () => void;
-}) {
-  const updateTopic = useAppStore((s) => s.updateTopic);
-  const addSubtopic = useAppStore((s) => s.addSubtopic);
-  const updateSubtopic = useAppStore((s) => s.updateSubtopic);
-  const deleteSubtopic = useAppStore((s) => s.deleteSubtopic);
-  const addChecklistItem = useAppStore((s) => s.addChecklistItem);
-  const updateChecklistItem = useAppStore((s) => s.updateChecklistItem);
-  const deleteChecklistItem = useAppStore((s) => s.deleteChecklistItem);
-
-  const [newCheck, setNewCheck] = useState("");
-  const [newSub, setNewSub] = useState("");
-  const [openSubs, setOpenSubs] = useState<Record<string, boolean>>({});
-
-  return (
-    <BottomSheet open onClose={onClose} title="Edit topic" className="max-h-[95dvh]">
-      <div className="space-y-5">
-        <div className="space-y-2">
-          <label className="text-[11px] uppercase tracking-wider text-muted-foreground">
-            Title
-          </label>
-          <TextField
-            value={topic.title}
-            onChange={(e) => updateTopic(roadmapId, phaseId, topic.id, { title: e.target.value })}
-          />
-        </div>
-
-        <div className="space-y-2">
-          <label className="text-[11px] uppercase tracking-wider text-muted-foreground">
-            Notes
-          </label>
-          <TextArea
-            rows={5}
-            placeholder="Write anything…"
-            value={topic.notes}
-            onChange={(e) => updateTopic(roadmapId, phaseId, topic.id, { notes: e.target.value })}
-          />
-        </div>
-
-        <div className="space-y-2">
-          <div className="flex items-center justify-between">
-            <label className="text-[11px] uppercase tracking-wider text-muted-foreground">
-              Checklist
-            </label>
-            <Chip>
-              {topic.checklist.filter((c) => c.done).length} / {topic.checklist.length}
-            </Chip>
-          </div>
-          <div className="space-y-1.5">
-            {topic.checklist.map((c) => (
-              <div key={c.id} className="flex items-center gap-2">
-                <button
-                  onClick={() =>
-                    updateChecklistItem({ roadmapId, phaseId, topicId: topic.id }, c.id, {
-                      done: !c.done,
-                    })
-                  }
-                  className="flex h-5 w-5 items-center justify-center"
-                >
-                  {c.done ? (
-                    <CheckCircle2 className="h-5 w-5 text-[var(--primary)]" />
-                  ) : (
-                    <Circle className="h-5 w-5 text-muted-foreground/60" strokeWidth={1.5} />
-                  )}
-                </button>
-                <input
-                  {...NO_AUTOFILL_PROPS}
-                  className="flex-1 bg-transparent text-[13.5px] outline-none"
-                  value={c.title}
-                  onChange={(e) =>
-                    updateChecklistItem({ roadmapId, phaseId, topicId: topic.id }, c.id, {
-                      title: e.target.value,
-                    })
-                  }
-                />
-                <IconButton
-                  size="sm"
-                  variant="danger"
-                  aria-label="Remove"
-                  onClick={() =>
-                    deleteChecklistItem({ roadmapId, phaseId, topicId: topic.id }, c.id)
-                  }
-                >
-                  <Trash2 className="h-3.5 w-3.5" />
-                </IconButton>
-              </div>
-            ))}
-          </div>
-          <div className="flex gap-2">
-            <TextField
-              value={newCheck}
-              onChange={(e) => setNewCheck(e.target.value)}
-              placeholder="New checklist item"
-              onKeyDown={(e) => {
-                if (e.key === "Enter" && newCheck.trim()) {
-                  addChecklistItem({ roadmapId, phaseId, topicId: topic.id }, newCheck.trim());
-                  setNewCheck("");
-                }
-              }}
-            />
-            <IconButton
-              variant="primary"
-              size="lg"
-              aria-label="Add check"
-              onClick={() => {
-                if (!newCheck.trim()) return;
-                addChecklistItem({ roadmapId, phaseId, topicId: topic.id }, newCheck.trim());
-                setNewCheck("");
-              }}
-            >
-              <Plus className="h-4 w-4" />
-            </IconButton>
-          </div>
-        </div>
-
-        <div className="space-y-2">
-          <label className="text-[11px] uppercase tracking-wider text-muted-foreground">
-            Subtopics
-          </label>
-          <div className="space-y-2">
-            {topic.subtopics.map((sub) => (
-              <SubtopicBlock
-                key={sub.id}
-                sub={sub}
-                open={!!openSubs[sub.id]}
-                onToggleOpen={() => setOpenSubs((o) => ({ ...o, [sub.id]: !o[sub.id] }))}
-                onChange={(patch) => updateSubtopic(roadmapId, phaseId, topic.id, sub.id, patch)}
-                onDelete={() => deleteSubtopic(roadmapId, phaseId, topic.id, sub.id)}
-                addCheck={(title) =>
-                  addChecklistItem(
-                    { roadmapId, phaseId, topicId: topic.id, subtopicId: sub.id },
-                    title,
-                  )
-                }
-                updateCheck={(id, patch) =>
-                  updateChecklistItem(
-                    { roadmapId, phaseId, topicId: topic.id, subtopicId: sub.id },
-                    id,
-                    patch,
-                  )
-                }
-                deleteCheck={(id) =>
-                  deleteChecklistItem(
-                    { roadmapId, phaseId, topicId: topic.id, subtopicId: sub.id },
-                    id,
-                  )
-                }
-              />
-            ))}
-          </div>
-          <div className="flex gap-2">
-            <TextField
-              value={newSub}
-              onChange={(e) => setNewSub(e.target.value)}
-              placeholder="New subtopic"
-              onKeyDown={(e) => {
-                if (e.key === "Enter" && newSub.trim()) {
-                  addSubtopic(roadmapId, phaseId, topic.id, newSub.trim());
-                  setNewSub("");
-                }
-              }}
-            />
-            <IconButton
-              variant="primary"
-              size="lg"
-              aria-label="Add subtopic"
-              onClick={() => {
-                if (!newSub.trim()) return;
-                addSubtopic(roadmapId, phaseId, topic.id, newSub.trim());
-                setNewSub("");
-              }}
-            >
-              <Plus className="h-4 w-4" />
-            </IconButton>
-          </div>
-        </div>
-      </div>
-    </BottomSheet>
-  );
-}
-
-function SubtopicBlock({
-  sub,
-  open,
-  onToggleOpen,
-  onChange,
-  onDelete,
-  addCheck,
-  updateCheck,
-  deleteCheck,
-}: {
-  sub: Subtopic;
-  open: boolean;
-  onToggleOpen: () => void;
-  onChange: (patch: Partial<Subtopic>) => void;
-  onDelete: () => void;
-  addCheck: (title: string) => void;
-  updateCheck: (id: string, patch: Partial<ChecklistItem>) => void;
-  deleteCheck: (id: string) => void;
-}) {
-  const [newCheck, setNewCheck] = useState("");
-  const pct = subtopicPct(sub);
-  return (
-    <div className="rounded-xl border border-white/[0.05] bg-white/[0.015] p-3">
-      <div className="flex items-center gap-2">
-        <button onClick={onToggleOpen} className="flex h-6 w-6 items-center justify-center">
-          {open ? (
-            <ChevronDown className="h-4 w-4 text-muted-foreground" />
-          ) : (
-            <ChevronRight className="h-4 w-4 text-muted-foreground" />
-          )}
-        </button>
-        <input
-          {...NO_AUTOFILL_PROPS}
-          value={sub.title}
-          onChange={(e) => onChange({ title: e.target.value })}
-          className="flex-1 bg-transparent text-[13px] font-medium outline-none"
-        />
-        <Chip>{pct}%</Chip>
-        <IconButton size="sm" variant="danger" aria-label="Delete subtopic" onClick={onDelete}>
-          <Trash2 className="h-3.5 w-3.5" />
-        </IconButton>
-      </div>
-
-      {open ? (
-        <div className="mt-3 space-y-2 pl-8">
-          <TextArea
-            rows={2}
-            value={sub.notes}
-            onChange={(e) => onChange({ notes: e.target.value })}
-            placeholder="Notes…"
-          />
-          <div className="space-y-1.5">
-            {sub.checklist.map((c) => (
-              <div key={c.id} className="flex items-center gap-2">
-                <button
-                  onClick={() => updateCheck(c.id, { done: !c.done })}
-                  className="flex h-5 w-5 items-center justify-center"
-                >
-                  {c.done ? (
-                    <CheckCircle2 className="h-4.5 w-4.5 text-[var(--primary)]" />
-                  ) : (
-                    <Circle className="h-4.5 w-4.5 text-muted-foreground/60" strokeWidth={1.5} />
-                  )}
-                </button>
-                <input
-                  {...NO_AUTOFILL_PROPS}
-                  className="flex-1 bg-transparent text-[13px] outline-none"
-                  value={c.title}
-                  onChange={(e) => updateCheck(c.id, { title: e.target.value })}
-                />
-                <IconButton
-                  size="sm"
-                  variant="danger"
-                  aria-label="Remove"
-                  onClick={() => deleteCheck(c.id)}
-                >
-                  <Trash2 className="h-3.5 w-3.5" />
-                </IconButton>
-              </div>
-            ))}
-          </div>
-          <div className="flex gap-2">
-            <TextField
-              value={newCheck}
-              onChange={(e) => setNewCheck(e.target.value)}
-              placeholder="Check item"
-              onKeyDown={(e) => {
-                if (e.key === "Enter" && newCheck.trim()) {
-                  addCheck(newCheck.trim());
-                  setNewCheck("");
-                }
-              }}
-            />
-            <IconButton
-              variant="primary"
-              size="lg"
-              aria-label="Add check"
-              onClick={() => {
-                if (!newCheck.trim()) return;
-                addCheck(newCheck.trim());
-                setNewCheck("");
-              }}
-            >
-              <Plus className="h-4 w-4" />
-            </IconButton>
-          </div>
-        </div>
-      ) : null}
-    </div>
   );
 }
