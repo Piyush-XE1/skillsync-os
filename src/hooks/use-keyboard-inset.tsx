@@ -8,6 +8,17 @@ import { useIsDesktop } from "@/hooks/use-breakpoint";
  */
 
 let inset = 0;
+let open = false;
+/**
+ * Largest visual-viewport height observed while no editable element is
+ * focused. In `interactive-widget=resizes-content` / WebView `adjustResize`
+ * modes the layout viewport shrinks with the keyboard, so the raw inset
+ * difference stays 0 — detecting "open" needs the focus + shrink fallback.
+ */
+let baselineHeight = 0;
+let editableFocusCount = 0;
+
+const KEYBOARD_THRESHOLD = 120;
 
 const listeners = new Set<() => void>();
 
@@ -20,23 +31,32 @@ function subscribe(cb: () => void) {
   return () => listeners.delete(cb);
 }
 
+// Immutable snapshot — useSyncExternalStore detects changes by reference.
+let snapshot = { inset: 0, open: false };
+
 function getSnapshot() {
-  return inset;
+  return snapshot;
 }
 
 function getServerSnapshot() {
-  return 0;
+  return snapshot;
 }
 
-function setInset(next: number) {
-  const rounded = Math.max(0, Math.round(next));
-  if (rounded === inset) return;
-  inset = rounded;
+function publish(nextInset: number, nextOpen: boolean) {
+  if (nextInset === inset && nextOpen === open) return;
+  inset = nextInset;
+  open = nextOpen;
+  snapshot = { inset, open };
   if (typeof document !== "undefined") {
     document.documentElement.style.setProperty("--kb-inset", `${inset}px`);
-    document.documentElement.dataset.keyboard = inset > 120 ? "open" : "closed";
+    document.documentElement.dataset.keyboard = open ? "open" : "closed";
   }
   emit();
+}
+
+function isEditable(target: EventTarget | null): boolean {
+  if (!(target instanceof HTMLElement)) return false;
+  return Boolean(target.closest("input, textarea, select") || (target.isContentEditable ?? false));
 }
 
 let started = false;
@@ -45,21 +65,59 @@ function start() {
   started = true;
   const vv = window.visualViewport;
   if (!vv) return;
+
+  window.addEventListener(
+    "focusin",
+    (e) => {
+      if (isEditable(e.target)) {
+        editableFocusCount += 1;
+        measure();
+      }
+    },
+    { passive: true },
+  );
+  window.addEventListener(
+    "focusout",
+    (e) => {
+      if (isEditable(e.target)) {
+        editableFocusCount = Math.max(0, editableFocusCount - 1);
+        // The keyboard dismissal animation resizes the viewport; measure both
+        // now and just after it typically completes.
+        measure();
+        setTimeout(measure, 400);
+      }
+    },
+    { passive: true },
+  );
+
   let frame = 0;
+  const measureNow = () => {
+    // Refreshed only while nothing editable is focused, so an open keyboard
+    // never poisons the baseline.
+    if (editableFocusCount === 0) {
+      baselineHeight = Math.max(baselineHeight, vv.height);
+    }
+    const raw = window.innerHeight - (vv.height + vv.offsetTop);
+    const shrink = baselineHeight > 0 ? baselineHeight - (vv.height + vv.offsetTop) : 0;
+    publish(
+      Math.max(0, Math.round(raw)),
+      raw > KEYBOARD_THRESHOLD || (editableFocusCount > 0 && shrink > KEYBOARD_THRESHOLD),
+    );
+  };
   const measure = () => {
     if (frame) return;
     frame = requestAnimationFrame(() => {
       frame = 0;
-      setInset(window.innerHeight - (vv.height + vv.offsetTop));
+      measureNow();
     });
   };
   vv.addEventListener("resize", measure, { passive: true });
   vv.addEventListener("scroll", measure, { passive: true });
-  measure();
+  measureNow();
 }
 
 /**
- * Raw keyboard inset in px (0 when closed / unsupported).
+ * Raw keyboard inset in px (0 when closed / unsupported), for layout margins.
  * Always 0 on desktop-class viewports: keyboard insets, viewport shifts and
  * sheet repositioning are mobile-only behaviour.
  */
@@ -67,13 +125,18 @@ export function useKeyboardInset() {
   useEffect(() => {
     start();
   }, []);
-  const raw = useSyncExternalStore(subscribe, getSnapshot, getServerSnapshot);
+  const { inset: raw } = useSyncExternalStore(subscribe, getSnapshot, getServerSnapshot);
   const isDesktop = useIsDesktop();
   return isDesktop ? 0 : raw;
 }
 
 export function useKeyboardOpen() {
-  return useKeyboardInset() > 120;
+  useEffect(() => {
+    start();
+  }, []);
+  const { open: isOpen } = useSyncExternalStore(subscribe, getSnapshot, getServerSnapshot);
+  const isDesktop = useIsDesktop();
+  return !isDesktop && isOpen;
 }
 
 /* ---------------- overlay (sheet / dialog) tracking ---------------- */

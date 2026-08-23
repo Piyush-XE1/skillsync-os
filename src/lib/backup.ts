@@ -73,30 +73,32 @@ export function validateBackup(
     return { ok: false, error: "Backup file is empty or malformed." };
   const obj = parsed as Record<string, unknown>;
   if (obj.kind !== "skillsync-backup") return { ok: false, error: "Not a SkillSync backup file." };
+  const backupVersion = obj.backupVersion;
   if (
-    !Number.isInteger(obj.backupVersion) ||
+    typeof backupVersion !== "number" ||
+    !Number.isInteger(backupVersion) ||
     typeof obj.appVersion !== "string" ||
     typeof obj.createdAt !== "string" ||
     !obj.data
   )
     return { ok: false, error: "Backup is missing required metadata or data." };
-  if (obj.backupVersion >= 2 && (typeof obj.backupId !== "string" || !obj.backupId))
+  if (backupVersion >= 2 && (typeof obj.backupId !== "string" || !obj.backupId))
     return { ok: false, error: "Backup is missing its backup ID." };
   if (Number.isNaN(Date.parse(obj.createdAt)))
     return { ok: false, error: "Backup creation date is invalid." };
-  if (obj.backupVersion > BACKUP_VERSION)
+  if (backupVersion > BACKUP_VERSION)
     return {
       ok: false,
       error: `Backup was made with newer SkillSync (v${obj.appVersion}). Please update SkillSync.`,
     };
-  if (obj.backupVersion < 1) return { ok: false, error: "Unsupported backup version." };
+  if (backupVersion < 1) return { ok: false, error: "Unsupported backup version." };
   try {
     const data = AppDataSchema.parse(migrate(obj.data));
     return {
       ok: true,
       backup: {
         kind: "skillsync-backup",
-        backupVersion: obj.backupVersion,
+        backupVersion,
         appVersion: obj.appVersion,
         backupId: typeof obj.backupId === "string" ? obj.backupId : `legacy-${obj.createdAt}`,
         createdAt: obj.createdAt,
@@ -186,6 +188,20 @@ export function setLastBackupMeta(meta: BackupMeta | null) {
     else localStorage.removeItem(LAST_META_KEY);
   } catch {
     /* quota/storage unavailable */
+  }
+}
+
+/**
+ * Wipes backup-related local artifacts. Called on "Reset SkillSync": without
+ * this, a fresh workspace would still show the previous install's backup
+ * status, and retained recovery snapshots could resurrect wiped data.
+ */
+export function clearBackupArtifacts() {
+  try {
+    localStorage.removeItem(LAST_META_KEY);
+    localStorage.removeItem(AUTO_SNAPSHOTS_KEY);
+  } catch {
+    /* storage unavailable */
   }
 }
 export type BackupStatus = { tone: "none" | "green" | "yellow" | "red"; label: string };

@@ -20,6 +20,7 @@ import type {
 import { AppDataSchema } from "@/lib/schema";
 import { createInitialData } from "@/lib/seed";
 import { migrate } from "@/lib/migrations";
+import { clearBackupArtifacts } from "@/lib/backup";
 import { newId } from "@/lib/id";
 import { todayISO } from "@/lib/date";
 import { errorMessage } from "@/lib/utils";
@@ -845,7 +846,18 @@ export const useAppStore = create<State>()(
       exportJSON: () => JSON.stringify(toAppData(get()), null, 2),
       importJSON: (input) => {
         try {
-          const parsed = JSON.parse(input);
+          const parsed: unknown = JSON.parse(input);
+          // Untrusted file input: reject anything that does not look like a
+          // SkillSync export BEFORE touching the store. Without this guard a
+          // random JSON object would migrate into seed data and silently wipe
+          // the user's workspace with a "success" message.
+          if (
+            !parsed ||
+            typeof parsed !== "object" ||
+            typeof (parsed as Record<string, unknown>).schemaVersion !== "number"
+          ) {
+            return { ok: false, error: "Not a SkillSync export (missing schema version)." };
+          }
           const migrated = migrate(parsed);
           const valid = AppDataSchema.parse(migrated);
           set({ ...valid });
@@ -854,7 +866,12 @@ export const useAppStore = create<State>()(
           return { ok: false, error: errorMessage(e, "Invalid file") };
         }
       },
-      resetAll: () => set({ ...createInitialData() }),
+      resetAll: () => {
+        set({ ...createInitialData() });
+        // A wipe must not leave the previous workspace's backup status or
+        // recovery snapshots behind.
+        clearBackupArtifacts();
+      },
     }),
     {
       name: STORAGE_KEY,

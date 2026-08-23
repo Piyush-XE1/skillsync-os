@@ -10,7 +10,11 @@ export const BREAKPOINTS = {
 } as const;
 
 function useMediaQuery(query: string) {
-  const [matches, setMatches] = useState(false);
+  // Lazy init with the real value: starting from `false` made the first
+  // painted frame render the wrong breakpoint branch on desktop viewports.
+  const [matches, setMatches] = useState(
+    () => typeof window !== "undefined" && window.matchMedia(query).matches,
+  );
   useEffect(() => {
     const mql = window.matchMedia(query);
     const onChange = () => setMatches(mql.matches);

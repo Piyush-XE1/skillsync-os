@@ -1,3 +1,4 @@
+import { z } from "zod";
 import { CURRENT_SCHEMA_VERSION, AppDataSchema, type AppData } from "./schema";
 import { createInitialData } from "./seed";
 import { todayISO } from "./date";
@@ -158,5 +159,18 @@ export function migrate(input: unknown): AppData {
 
   const parsed = AppDataSchema.safeParse(data);
   if (parsed.success) return parsed.data;
-  return { ...seed, ...data, schemaVersion: CURRENT_SCHEMA_VERSION };
+
+  // Corrupted or partially-incompatible data (e.g. one module written by an
+  // old broken build): salvage valid top-level fields individually, reverting
+  // broken ones to seed values. Never return an invalid shape — callers like
+  // zustand persist would otherwise adopt it and crash the app at runtime.
+  const salvaged: LegacyData = { ...seed };
+  for (const [key, fieldSchema] of Object.entries(AppDataSchema.shape)) {
+    if (data[key] === undefined) continue;
+    const fieldParsed = (fieldSchema as z.ZodTypeAny).safeParse(data[key]);
+    if (fieldParsed.success) salvaged[key] = fieldParsed.data;
+  }
+  salvaged.schemaVersion = CURRENT_SCHEMA_VERSION;
+  const finalParse = AppDataSchema.safeParse(salvaged);
+  return finalParse.success ? finalParse.data : seed;
 }

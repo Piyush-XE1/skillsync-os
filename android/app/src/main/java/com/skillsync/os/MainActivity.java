@@ -38,17 +38,31 @@ public class MainActivity extends BridgeActivity {
         ReminderScheduler.ensureChannel(this);
         ReminderScheduler.rescheduleAll(this);
 
-        // Android back: walk the WebView history first, only finish at the root.
-        // Registered after Capacitor's own callback, so this one wins.
+        // Android back: an open sheet/dialog dismisses first, then walk the
+        // WebView history, and only finish at the root. Registered after
+        // Capacitor's own callback, so this one wins.
         getOnBackPressedDispatcher().addCallback(this, new OnBackPressedCallback(true) {
             @Override
             public void handleOnBackPressed() {
-                WebView webView = getBridge() != null ? getBridge().getWebView() : null;
-                if (webView != null && webView.canGoBack()) {
-                    webView.goBack();
+                final WebView webView = getBridge() != null ? getBridge().getWebView() : null;
+                if (webView == null) {
+                    finish();
                     return;
                 }
-                finish();
+                webView.evaluateJavascript("(window.__skillsyncOverlays||0) > 0", result -> {
+                    if ("true".equals(result)) {
+                        // The topmost overlay listens for Escape and closes itself.
+                        webView.evaluateJavascript(
+                                "document.dispatchEvent(new KeyboardEvent('keydown',{key:'Escape'}))",
+                                null);
+                        return;
+                    }
+                    if (webView.canGoBack()) {
+                        webView.goBack();
+                        return;
+                    }
+                    finish();
+                });
             }
         });
 

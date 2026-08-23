@@ -14,7 +14,7 @@ import { Toaster } from "@/components/ui/sonner";
 import { AppBackground } from "@/components/layout/backgrounds";
 import { AppLaunchScreen } from "@/components/layout/AppLaunchScreen";
 import { NotificationRunner } from "@/components/notifications/NotificationRunner";
-import { ThemeManager } from "@/hooks/use-theme";
+import { ThemeManager, APPEARANCE_INIT_SCRIPT } from "@/hooks/use-theme";
 
 function NotFoundComponent() {
   return (
@@ -141,9 +141,13 @@ export const Route = createRootRoute({
 
 function RootShell({ children }: { children: ReactNode }) {
   return (
-    <html lang="en" className="dark">
+    // suppressHydrationWarning: the appearance class is deliberately owned by
+    // the pre-paint init script below (and ThemeManager afterwards), not by
+    // React, so the persisted background is applied with zero flash.
+    <html lang="en" className="dark" suppressHydrationWarning>
       <head>
         <HeadContent />
+        <script dangerouslySetInnerHTML={{ __html: APPEARANCE_INIT_SCRIPT }} />
       </head>
       <body className="min-h-[100dvh] bg-background text-foreground antialiased">
         {children}

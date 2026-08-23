@@ -1,5 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useMemo, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import { ChevronLeft, ChevronRight, Plus, Trash2, CalendarClock } from "lucide-react";
 import { AppShell, PageHeader } from "@/components/layout/AppShell";
 import { Card, Chip, SectionHeader } from "@/components/ui/primitives";
@@ -39,6 +39,8 @@ function PlannerPage() {
   const [open, setOpen] = useState(false);
   const [title, setTitle] = useState("");
   const [time, setTime] = useState("");
+  /** Re-entrancy guard: a double tap must never create two tasks. */
+  const addGuard = useRef(false);
 
   const monday = useMemo(() => {
     const d = fromISO(selected);
@@ -155,7 +157,13 @@ function PlannerPage() {
                   })
             }
             action={
-              <button onClick={() => setOpen(true)} className="inline-flex items-center gap-1">
+              <button
+                onClick={() => {
+                  addGuard.current = false;
+                  setOpen(true);
+                }}
+                className="inline-flex items-center gap-1"
+              >
                 <Plus className="h-3 w-3" /> Add
               </button>
             }
@@ -279,7 +287,8 @@ function PlannerPage() {
           <ActionButton
             className="w-full"
             onClick={() => {
-              if (!title.trim()) return;
+              if (!title.trim() || addGuard.current) return;
+              addGuard.current = true;
               addTask({ title: title.trim(), date: selected, time });
               haptics.success();
               setTitle("");

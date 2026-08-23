@@ -1,5 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Plus, FolderKanban, Trash2, ExternalLink } from "lucide-react";
 import { AppShell, PageHeader } from "@/components/layout/AppShell";
 import { PrimaryAction } from "@/components/layout/PrimaryAction";
@@ -44,6 +44,21 @@ function ProjectsPage() {
   const [confirmDelete, setConfirmDelete] = useState<string | null>(null);
   const [newTask, setNewTask] = useState("");
   const [newTech, setNewTech] = useState("");
+  /** Re-entrancy guard: a double tap must never create two projects. */
+  const createGuard = useRef(false);
+
+  const createProject = () => {
+    if (createGuard.current) return;
+    createGuard.current = true;
+    const p = addProject({ title: "Untitled project" });
+    setEditing(p);
+  };
+
+  // The guard spans until the editor sheet opens; while it is open the create
+  // buttons sit behind its backdrop and cannot be tapped again anyway.
+  useEffect(() => {
+    createGuard.current = false;
+  }, [editing]);
 
   const filtered = useMemo(
     () => (filter === "all" ? projects : projects.filter((p) => p.status === filter)),
@@ -62,15 +77,7 @@ function ProjectsPage() {
             ? "Everything you're building, in one place."
             : `${projects.filter((p) => p.status === "active").length} active · ${projects.filter((p) => p.status === "done").length} shipped`
         }
-        right={
-          <PrimaryAction
-            label="Add Project"
-            onClick={() => {
-              const p = addProject({ title: "Untitled project" });
-              setEditing(p);
-            }}
-          />
-        }
+        right={<PrimaryAction label="Add Project" onClick={createProject} />}
       />
 
       <div className="mb-5 flex gap-2 px-5 lg:px-2">
@@ -100,12 +107,7 @@ function ProjectsPage() {
             title="No projects yet"
             hint="Every skill compounds when you ship."
             action={
-              <ActionButton
-                onClick={() => {
-                  const p = addProject({ title: "Untitled project" });
-                  setEditing(p);
-                }}
-              >
+              <ActionButton onClick={createProject}>
                 <Plus className="h-4 w-4" /> New project
               </ActionButton>
             }

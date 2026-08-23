@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { SkillSyncLogo } from "@/components/brand/SkillSyncLogo";
 
 import { Link, useRouterState } from "@tanstack/react-router";
@@ -45,18 +45,22 @@ const items: Item[] = [
 
 const STORAGE_KEY = "skillsync.sidebar.collapsed";
 
+function readCollapsed(): boolean {
+  if (typeof window === "undefined") return false;
+  try {
+    return window.localStorage.getItem(STORAGE_KEY) === "1";
+  } catch {
+    return false;
+  }
+}
+
 /** Permanent, collapsible sidebar. Rendered from `lg` up only. */
 export function SideNav() {
   const pathname = useRouterState({ select: (s) => s.location.pathname });
-  const [collapsed, setCollapsed] = useState(false);
-
-  useEffect(() => {
-    try {
-      setCollapsed(localStorage.getItem(STORAGE_KEY) === "1");
-    } catch {
-      /* ignore */
-    }
-  }, []);
+  // Lazy initial state: AppShell remounts on every navigation, so reading the
+  // persisted value in an effect made the sidebar flash expanded for a frame
+  // on every route change. Initializing synchronously keeps it stable.
+  const [collapsed, setCollapsed] = useState(readCollapsed);
 
   function toggle() {
     setCollapsed((c) => {
