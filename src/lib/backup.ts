@@ -2,37 +2,49 @@ import { AppDataSchema, type AppData } from "./schema";
 import { migrate } from "./migrations";
 import { errorMessage } from "./utils";
 import { APP_VERSION } from "./version";
+import { newId } from "./id";
 
-export const BACKUP_VERSION = 1;
+/** Increment only when the envelope (not application data) changes incompatibly. */
+export const BACKUP_VERSION = 2;
 const LAST_META_KEY = "skillsync:backup:lastMeta";
+const AUTO_SETTINGS_KEY = "skillsync:backup:autoSettings";
+const AUTO_SNAPSHOTS_KEY = "skillsync:backup:autoSnapshots";
+const MAX_AUTO_SNAPSHOTS = 3;
 
 export type BackupMeta = {
   backupVersion: number;
   appVersion: string;
-  createdAt: number; // ms epoch
+  backupId: string;
+  createdAt: number;
   sizeBytes: number;
 };
-
 export type BackupEnvelope = {
   kind: "skillsync-backup";
   backupVersion: number;
   appVersion: string;
-  createdAt: string; // ISO
+  backupId: string;
+  createdAt: string;
   data: AppData;
 };
+export type ValidBackup = BackupEnvelope & { sizeBytes: number };
 
+/** Produces a portable envelope. Call from an event handler or idle task, never while rendering. */
 export function serializeBackup(data: AppData): {
   text: string;
   meta: BackupMeta;
   createdAtISO: string;
 } {
+  // Parse first so no invalid/in-memory UI state can be exported.
+  const safeData = AppDataSchema.parse(data);
   const createdAtISO = new Date().toISOString();
+  const backupId = newId();
   const env: BackupEnvelope = {
     kind: "skillsync-backup",
     backupVersion: BACKUP_VERSION,
     appVersion: APP_VERSION,
+    backupId,
     createdAt: createdAtISO,
-    data,
+    data: safeData,
   };
   const text = JSON.stringify(env, null, 2);
   return {
@@ -41,19 +53,12 @@ export function serializeBackup(data: AppData): {
     meta: {
       backupVersion: BACKUP_VERSION,
       appVersion: APP_VERSION,
+      backupId,
       createdAt: Date.now(),
       sizeBytes: new Blob([text]).size,
     },
   };
 }
-
-export type ValidBackup = {
-  backupVersion: number;
-  appVersion: string;
-  createdAt: string;
-  data: AppData;
-  sizeBytes: number;
-};
 
 export function validateBackup(
   input: string,
@@ -64,34 +69,37 @@ export function validateBackup(
   } catch {
     return { ok: false, error: "File is not valid JSON." };
   }
-  if (!parsed || typeof parsed !== "object") {
+  if (!parsed || typeof parsed !== "object" || Array.isArray(parsed))
     return { ok: false, error: "Backup file is empty or malformed." };
-  }
   const obj = parsed as Record<string, unknown>;
-  const isEnvelope =
-    obj.kind === "skillsync-backup" || (typeof obj.backupVersion === "number" && Boolean(obj.data));
-  if (obj.kind !== undefined && obj.kind !== "skillsync-backup") {
-    return { ok: false, error: "Not a SkillSync backup file." };
-  }
-  const raw = isEnvelope ? obj.data : obj;
-  const backupVersion = typeof obj.backupVersion === "number" ? obj.backupVersion : undefined;
-  const appVersion = typeof obj.appVersion === "string" ? obj.appVersion : undefined;
-  const createdAt = typeof obj.createdAt === "string" ? obj.createdAt : undefined;
-  if (isEnvelope && backupVersion !== undefined && backupVersion > BACKUP_VERSION) {
+  if (obj.kind !== "skillsync-backup") return { ok: false, error: "Not a SkillSync backup file." };
+  if (
+    !Number.isInteger(obj.backupVersion) ||
+    typeof obj.appVersion !== "string" ||
+    typeof obj.createdAt !== "string" ||
+    !obj.data
+  )
+    return { ok: false, error: "Backup is missing required metadata or data." };
+  if (obj.backupVersion >= 2 && (typeof obj.backupId !== "string" || !obj.backupId))
+    return { ok: false, error: "Backup is missing its backup ID." };
+  if (Number.isNaN(Date.parse(obj.createdAt)))
+    return { ok: false, error: "Backup creation date is invalid." };
+  if (obj.backupVersion > BACKUP_VERSION)
     return {
       ok: false,
-      error: `Backup was made with a newer app${appVersion ? ` (v${appVersion})` : ""}. Please update SkillSync.`,
+      error: `Backup was made with newer SkillSync (v${obj.appVersion}). Please update SkillSync.`,
     };
-  }
+  if (obj.backupVersion < 1) return { ok: false, error: "Unsupported backup version." };
   try {
-    const migrated = migrate(raw);
-    const data = AppDataSchema.parse(migrated);
+    const data = AppDataSchema.parse(migrate(obj.data));
     return {
       ok: true,
       backup: {
-        backupVersion: isEnvelope ? (backupVersion ?? BACKUP_VERSION) : BACKUP_VERSION,
-        appVersion: isEnvelope ? (appVersion ?? "?") : "legacy",
-        createdAt: isEnvelope ? (createdAt ?? new Date().toISOString()) : new Date().toISOString(),
+        kind: "skillsync-backup",
+        backupVersion: obj.backupVersion,
+        appVersion: obj.appVersion,
+        backupId: typeof obj.backupId === "string" ? obj.backupId : `legacy-${obj.createdAt}`,
+        createdAt: obj.createdAt,
         data,
         sizeBytes: new Blob([input]).size,
       },
@@ -114,8 +122,8 @@ export type BackupSummary = {
   habitLogs: number;
   subjects: number;
   transactions: number;
+  notifications: number;
 };
-
 export function backupSummary(data: AppData): BackupSummary {
   let phases = 0,
     topics = 0,
@@ -144,93 +152,130 @@ export function backupSummary(data: AppData): BackupSummary {
     habitLogs: data.habitLogs.length,
     subjects: data.attendance?.subjects?.length ?? 0,
     transactions: data.expenses?.transactions?.length ?? 0,
+    notifications: data.notifications?.items?.length ?? 0,
   };
 }
-
-export function totalRecords(s: BackupSummary): number {
-  return (
-    s.roadmaps +
-    s.phases +
-    s.topics +
-    s.subtopics +
-    s.checklists +
-    s.notes +
-    s.projects +
-    s.plannerTasks +
-    s.habits +
-    s.habitLogs +
-    s.subjects +
-    s.transactions
-  );
+export function totalRecords(s: BackupSummary) {
+  return Object.values(s).reduce((n, v) => n + v, 0);
 }
-
-export function moduleList(data: AppData): { key: string; label: string; count: number }[] {
+export function moduleList(data: AppData) {
   const s = backupSummary(data);
   return [
-    { key: "roadmaps", label: "Roadmaps", count: s.roadmaps },
+    { key: "roadmaps", label: "Roadmaps & learning progress", count: s.roadmaps },
     { key: "notes", label: "Notes", count: s.notes },
     { key: "projects", label: "Projects", count: s.projects },
     { key: "planner", label: "Planner tasks", count: s.plannerTasks },
-    { key: "habits", label: "Habits", count: s.habits },
-    { key: "habitLogs", label: "Habit logs", count: s.habitLogs },
+    { key: "habits", label: "Habits & completion logs", count: s.habits + s.habitLogs },
     { key: "attendance", label: "Attendance subjects", count: s.subjects },
     { key: "expenses", label: "Expense entries", count: s.transactions },
-    { key: "preferences", label: "Preferences & settings", count: 1 },
-    { key: "profile", label: "Profile", count: 1 },
+    { key: "notifications", label: "Notification history & schedules", count: s.notifications },
+    { key: "preferences", label: "Preferences, profile & progress", count: 1 },
   ];
 }
-
 export function getLastBackupMeta(): BackupMeta | null {
-  if (typeof window === "undefined") return null;
   try {
     const raw = window.localStorage.getItem(LAST_META_KEY);
-    if (!raw) return null;
-    return JSON.parse(raw) as BackupMeta;
+    return raw ? JSON.parse(raw) : null;
   } catch {
     return null;
   }
 }
-
 export function setLastBackupMeta(meta: BackupMeta | null) {
-  if (typeof window === "undefined") return;
   try {
-    if (meta) window.localStorage.setItem(LAST_META_KEY, JSON.stringify(meta));
-    else window.localStorage.removeItem(LAST_META_KEY);
+    if (meta) localStorage.setItem(LAST_META_KEY, JSON.stringify(meta));
+    else localStorage.removeItem(LAST_META_KEY);
   } catch {
-    /* ignore */
+    /* quota/storage unavailable */
   }
 }
-
-export type BackupStatus = {
-  tone: "none" | "green" | "yellow" | "red";
-  label: string;
-};
-
+export type BackupStatus = { tone: "none" | "green" | "yellow" | "red"; label: string };
 export function backupStatus(meta: BackupMeta | null): BackupStatus {
   if (!meta) return { tone: "none", label: "No backup available" };
-  const ageDays = (Date.now() - meta.createdAt) / (1000 * 60 * 60 * 24);
-  if (ageDays < 7) return { tone: "green", label: "Backup is up to date" };
-  if (ageDays < 30) return { tone: "yellow", label: "Backup is getting old" };
-  return { tone: "red", label: "Backup is very old" };
+  const age = (Date.now() - meta.createdAt) / 86400000;
+  return age < 7
+    ? { tone: "green", label: "Backup is up to date" }
+    : age < 30
+      ? { tone: "yellow", label: "Backup is getting old" }
+      : { tone: "red", label: "Backup is very old" };
 }
-
-export function formatBytes(n: number): string {
-  if (n < 1024) return `${n} B`;
-  if (n < 1024 * 1024) return `${(n / 1024).toFixed(1)} KB`;
-  return `${(n / 1024 / 1024).toFixed(2)} MB`;
+export function formatBytes(n: number) {
+  return n < 1024
+    ? `${n} B`
+    : n < 1048576
+      ? `${(n / 1024).toFixed(1)} KB`
+      : `${(n / 1048576).toFixed(2)} MB`;
 }
-
-export function fmtDate(ms: number): string {
+export function fmtDate(ms: number) {
   return new Date(ms).toLocaleDateString(undefined, {
     year: "numeric",
     month: "short",
     day: "numeric",
   });
 }
+export function fmtTime(ms: number) {
+  return new Date(ms).toLocaleTimeString(undefined, { hour: "2-digit", minute: "2-digit" });
+}
 
-export function fmtTime(ms: number): string {
-  return new Date(ms).toLocaleTimeString(undefined, {
-    hour: "2-digit",
-    minute: "2-digit",
-  });
+export type AutoBackupSettings = { enabled: boolean; intervalHours: 24; lastCreatedAt?: number };
+export function getAutoBackupSettings(): AutoBackupSettings {
+  try {
+    const raw = JSON.parse(
+      localStorage.getItem(AUTO_SETTINGS_KEY) ?? "{}",
+    ) as Partial<AutoBackupSettings>;
+    return {
+      enabled: raw.enabled === true,
+      intervalHours: 24,
+      lastCreatedAt: typeof raw.lastCreatedAt === "number" ? raw.lastCreatedAt : undefined,
+    };
+  } catch {
+    return { enabled: false, intervalHours: 24 };
+  }
+}
+export function setAutoBackupSettings(settings: AutoBackupSettings) {
+  localStorage.setItem(AUTO_SETTINGS_KEY, JSON.stringify(settings));
+}
+/** Small, capped local recovery snapshots. Browsers cannot silently write user files. */
+export function createAutomaticSnapshot(data: AppData): BackupMeta | null {
+  const settings = getAutoBackupSettings();
+  if (!settings.enabled) return null;
+  if (
+    settings.lastCreatedAt &&
+    Date.now() - settings.lastCreatedAt < settings.intervalHours * 3600000
+  )
+    return null;
+  try {
+    const made = serializeBackup(data);
+    const snapshots: string[] = JSON.parse(localStorage.getItem(AUTO_SNAPSHOTS_KEY) ?? "[]");
+    snapshots.unshift(made.text);
+    localStorage.setItem(
+      AUTO_SNAPSHOTS_KEY,
+      JSON.stringify(snapshots.slice(0, MAX_AUTO_SNAPSHOTS)),
+    );
+    setAutoBackupSettings({ ...settings, lastCreatedAt: made.meta.createdAt });
+    return made.meta;
+  } catch {
+    return null;
+  }
+}
+export function getAutomaticSnapshotCount() {
+  try {
+    return (JSON.parse(localStorage.getItem(AUTO_SNAPSHOTS_KEY) ?? "[]") as unknown[]).length;
+  } catch {
+    return 0;
+  }
+}
+/** Recovery snapshot used immediately before a destructive restore. Kept locally and capped. */
+export function createSafetySnapshot(data: AppData): BackupMeta | null {
+  try {
+    const made = serializeBackup(data);
+    const snapshots: string[] = JSON.parse(localStorage.getItem(AUTO_SNAPSHOTS_KEY) ?? "[]");
+    snapshots.unshift(made.text);
+    localStorage.setItem(
+      AUTO_SNAPSHOTS_KEY,
+      JSON.stringify(snapshots.slice(0, MAX_AUTO_SNAPSHOTS)),
+    );
+    return made.meta;
+  } catch {
+    return null;
+  }
 }
