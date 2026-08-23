@@ -4,8 +4,10 @@ import { NOISE, BASE_LAYER_CLASS } from "./shared";
  * Light theme signature background — "Calm Atmosphere".
  *
  * Not an inverted aurora: a warm off-white paper base with two extremely soft
- * indigo/violet light fields that drift very slowly, a faint horizon wash and a
- * whisper of grain. Three transformed layers only, so it stays GPU-cheap.
+ * botanical/straw light fields that drift very slowly, a faint horizon wash
+ * and a whisper of grain. Three transformed layers only, so it stays GPU-cheap.
+ * The hues deliberately echo the theme's palette tokens: sage light above,
+ * warm straw below, never loud enough to touch readability.
  */
 export function LightAtmosphereBackground() {
   return (
@@ -18,28 +20,28 @@ export function LightAtmosphereBackground() {
       <div
         className="absolute inset-0"
         style={{
-          background: "linear-gradient(180deg, #ffffff 0%, var(--bg-base) 46%, #f6f4f1 100%)",
+          background: "linear-gradient(180deg, #ffffff 0%, var(--bg-base) 46%, #f1eee8 100%)",
         }}
       />
 
-      {/* soft indigo light field, top-left */}
+      {/* soft botanical light field, top-left */}
       <div
         className="absolute -left-[20%] -top-[28%] h-[85vh] w-[95vw] rounded-full"
         style={{
           background:
-            "radial-gradient(closest-side, rgba(99,102,241,0.16), rgba(99,102,241,0.05) 55%, transparent 78%)",
+            "radial-gradient(closest-side, rgba(74,117,90,0.13), rgba(74,117,90,0.045) 55%, transparent 78%)",
           filter: "blur(60px)",
           animation: "ss-light-drift-a 34s ease-in-out infinite alternate",
           willChange: "transform",
         }}
       />
 
-      {/* violet counterweight, bottom-right */}
+      {/* warm straw counterweight, bottom-right */}
       <div
         className="absolute -bottom-[30%] -right-[18%] h-[80vh] w-[90vw] rounded-full"
         style={{
           background:
-            "radial-gradient(closest-side, rgba(167,139,250,0.14), rgba(148,163,184,0.05) 58%, transparent 80%)",
+            "radial-gradient(closest-side, rgba(183,165,116,0.13), rgba(150,143,120,0.05) 58%, transparent 80%)",
           filter: "blur(66px)",
           animation: "ss-light-drift-b 42s ease-in-out infinite alternate",
           willChange: "transform",
@@ -70,7 +72,7 @@ export function LightAtmosphereBackground() {
         className="absolute inset-0"
         style={{
           background:
-            "radial-gradient(120% 95% at 50% 45%, transparent 52%, rgba(100,116,139,0.10) 100%)",
+            "radial-gradient(120% 95% at 50% 45%, transparent 52%, rgba(110,104,86,0.09) 100%)",
         }}
       />
 

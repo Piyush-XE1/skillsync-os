@@ -203,7 +203,7 @@ function ProfilePage() {
               {hydrated && profile.avatar ? (
                 <img src={profile.avatar} alt="Avatar" className="h-full w-full object-cover" />
               ) : (
-                <span className="flex h-full w-full items-center justify-center bg-gradient-to-br from-[var(--primary)] to-[var(--secondary)]">
+                <span className="flex h-full w-full items-center justify-center bg-gradient-to-br from-[var(--primary)] to-[var(--secondary)] text-primary-foreground">
                   {initials}
                 </span>
               )}

@@ -65,6 +65,20 @@ const migrators: Record<number, (data: LegacyData) => LegacyData> = {
     delete prefs.theme;
     return { ...data, preferences: prefs };
   },
+  /**
+   * v5 -> v6: the "Minimal Gradient" and "Atmospheric" backgrounds were
+   * retired. Users on either one are moved to "aurora" — the closest safe
+   * fallback that preserves their dark appearance (both removed options were
+   * dark). At the same time the new premium "Atelier" background becomes
+   * available to everyone.
+   */
+  5: (data) => {
+    const prefs = { ...(data.preferences ?? {}) };
+    if (prefs.background === "gradient" || prefs.background === "atmospheric") {
+      prefs.background = "aurora";
+    }
+    return { ...data, preferences: prefs };
+  },
 };
 
 export function migrate(input: unknown): AppData {
@@ -93,12 +107,14 @@ export function migrate(input: unknown): AppData {
     },
   };
   // Appearance has exactly one source of truth: preferences.background.
-  // A legacy light theme becomes the Minimalist Light background.
+  // A legacy light theme becomes the Minimalist Light background; any
+  // retired or unknown background value (e.g. "gradient", "atmospheric")
+  // safely falls back to "aurora", the app's default dark appearance.
   {
     const prefs = data.preferences as LegacyData;
     if (prefs.theme === "light") prefs.background = "light";
     delete prefs.theme;
-    if (!["aurora", "gradient", "atmospheric", "light"].includes(prefs.background)) {
+    if (!["aurora", "light", "atelier"].includes(prefs.background)) {
       prefs.background = "aurora";
     }
   }

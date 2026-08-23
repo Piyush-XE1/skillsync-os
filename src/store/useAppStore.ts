@@ -858,7 +858,7 @@ export const useAppStore = create<State>()(
     }),
     {
       name: STORAGE_KEY,
-      version: 5,
+      version: 6,
       storage: createJSONStorage(() =>
         // No storage during SSR — persist skips hydration when this is undefined.
         typeof window !== "undefined"

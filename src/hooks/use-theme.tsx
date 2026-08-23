@@ -11,33 +11,52 @@ import { nativeSetTheme } from "@/lib/native/bridge";
 export type ThemeMode = "light" | "dark";
 export type ResolvedTheme = ThemeMode;
 
-const THEME_COLOR: Record<ResolvedTheme, string> = {
-  dark: "#070b19",
-  light: "#fbfaf8",
+/**
+ * The appearance applied to <html> for each Background preference. Classes are
+ * mutually exclusive — exactly one is present at a time — and each carries its
+ * full design-token set in styles.css (never layered on top of another theme).
+ * Unknown or retired values fall back to the flagship "aurora" appearance.
+ */
+const APPEARANCE: Record<string, { cls: string; scheme: ResolvedTheme; themeColor: string }> = {
+  aurora: { cls: "dark", scheme: "dark", themeColor: "#070b19" },
+  light: { cls: "light", scheme: "light", themeColor: "#f7f6f2" },
+  atelier: { cls: "atelier", scheme: "dark", themeColor: "#12100c" },
 };
+const FALLBACK_APPEARANCE = APPEARANCE.aurora;
+const MANAGED_CLASSES = Object.values(APPEARANCE).map((a) => a.cls);
 
 /** Maps a background preference onto the resolved light/dark visual system. */
 export function resolveTheme(background: string | undefined): ResolvedTheme {
   return background === "light" ? "light" : "dark";
 }
 
+function appearanceFor(background: string | undefined) {
+  return (background && APPEARANCE[background]) || FALLBACK_APPEARANCE;
+}
+
 let transitionTimer: number | undefined;
 
-function applyTheme(resolved: ResolvedTheme, animate: boolean) {
+function applyTheme(background: string | undefined, animate: boolean) {
   const root = document.documentElement;
-  if (root.classList.contains(resolved)) return;
+  const next = appearanceFor(background);
+
+  // Class sets are exclusive; two backgrounds may share the same light/dark
+  // mode (aurora and atelier are both dark), so compare the actual appearance
+  // class — not just the resolved mode — or a same-mode switch would no-op.
+  const current = MANAGED_CLASSES.find((c) => root.classList.contains(c));
+  if (current === next.cls) return;
 
   if (animate) {
     root.classList.add("theme-transition");
     window.clearTimeout(transitionTimer);
     transitionTimer = window.setTimeout(() => root.classList.remove("theme-transition"), 320);
   }
-  root.classList.remove("light", "dark");
-  root.classList.add(resolved);
-  root.style.colorScheme = resolved;
+  root.classList.remove(...MANAGED_CLASSES);
+  root.classList.add(next.cls);
+  root.style.colorScheme = next.scheme;
 
   const meta = document.querySelector('meta[name="theme-color"]');
-  if (meta) meta.setAttribute("content", THEME_COLOR[resolved]);
+  if (meta) meta.setAttribute("content", next.themeColor);
 }
 
 /**
@@ -50,9 +69,10 @@ export function useTheme(): ResolvedTheme {
   const resolved = resolveTheme(background);
 
   useEffect(() => {
-    applyTheme(resolved, true);
-    void nativeSetTheme(resolved, THEME_COLOR[resolved]);
-  }, [resolved]);
+    const next = appearanceFor(background);
+    applyTheme(background, true);
+    void nativeSetTheme(next.scheme, next.themeColor);
+  }, [background]);
 
   return resolved;
 }

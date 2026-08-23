@@ -138,7 +138,7 @@ function HabitsPage() {
                     className={cn(
                       "flex h-11 w-11 items-center justify-center rounded-2xl text-[18px] transition-all active:scale-95",
                       doneToday
-                        ? "gradient-primary shadow-[0_10px_30px_-10px_rgba(124,58,237,0.6)]"
+                        ? "gradient-primary shadow-[var(--shadow-glow)]"
                         : "bg-white/[0.04]",
                     )}
                   >

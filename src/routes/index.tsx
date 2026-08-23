@@ -436,7 +436,7 @@ function Dashboard() {
         <Link
           to="/planner"
           aria-label="Add task"
-          className="fixed bottom-28 right-6 z-30 flex h-12 w-12 items-center justify-center gap-2 rounded-full gradient-primary shadow-[0_10px_40px_-10px_rgba(124,58,237,0.6)] transition-transform hover:brightness-110 active:scale-95 lg:bottom-10 lg:right-10 lg:h-12 lg:w-auto lg:rounded-[16px] lg:px-5"
+          className="fixed bottom-28 right-6 z-30 flex h-12 w-12 items-center justify-center gap-2 rounded-full gradient-primary shadow-[var(--shadow-glow)] transition-transform hover:brightness-110 active:scale-95 lg:bottom-10 lg:right-10 lg:h-12 lg:w-auto lg:rounded-[16px] lg:px-5"
         >
           <Plus className="h-5 w-5 text-white" strokeWidth={2.25} />
           <span className="hidden text-[14px] font-medium text-white lg:inline">Add Task</span>
