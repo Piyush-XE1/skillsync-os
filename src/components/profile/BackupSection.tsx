@@ -19,7 +19,7 @@ import {
   CheckCircle2,
 } from "lucide-react";
 import { Card, Chip, SectionHeader } from "@/components/ui/primitives";
-import { errorMessage, isAbortError } from "@/lib/utils";
+import { errorMessage } from "@/lib/utils";
 import { BottomSheet } from "@/components/edit/Sheet";
 
 import { useAppStore } from "@/store/useAppStore";
@@ -34,6 +34,11 @@ import {
   moduleList,
   serializeBackup,
   setLastBackupMeta,
+  createSafetySnapshot,
+  createAutomaticSnapshot,
+  getAutoBackupSettings,
+  getAutomaticSnapshotCount,
+  setAutoBackupSettings,
   totalRecords,
   validateBackup,
   type BackupMeta,
@@ -41,7 +46,7 @@ import {
 } from "@/lib/backup";
 import { APP_VERSION } from "@/lib/version";
 import { AppDataSchema, type AppData } from "@/lib/schema";
-import { nativeSaveFile, nativeShareFile } from "@/lib/native/bridge";
+import { saveBackupFile, shareBackupFile } from "@/lib/platform-files";
 
 export function BackupSection({ onRequestReset }: { onRequestReset: () => void }) {
   const exportJSON = useAppStore((s) => s.exportJSON);
@@ -70,6 +75,8 @@ export function BackupSection({ onRequestReset }: { onRequestReset: () => void }
   const [infoOpen, setInfoOpen] = useState(false);
   const [includedOpen, setIncludedOpen] = useState(false);
   const [busy, setBusy] = useState<"save" | "share" | null>(null);
+  const [autoSettings, setAutoSettings] = useState(() => getAutoBackupSettings());
+  const [autoSnapshotCount, setAutoSnapshotCount] = useState(() => getAutomaticSnapshotCount());
 
   const snapshotData = (): AppData => {
     const raw = exportJSON();
@@ -90,8 +97,8 @@ export function BackupSection({ onRequestReset }: { onRequestReset: () => void }
       await new Promise((r) => setTimeout(r, 200));
       const data = snapshotData();
       const { text, meta: m, createdAtISO } = serializeBackup(data);
-      const stamp = createdAtISO.slice(0, 10);
-      const filename = `skillsync-backup-${stamp}.json`;
+      const stamp = createdAtISO.replace(/[-:]/g, "").slice(0, 13).replace("T", "-");
+      const filename = `SkillSync-Backup-${stamp}.json`;
       setCreated({ text, meta: m, filename });
       setLastBackupMeta(m);
       setMeta(m);
@@ -105,83 +112,23 @@ export function BackupSection({ onRequestReset }: { onRequestReset: () => void }
     }
   };
 
-  /** Last-resort browser download. */
-  const anchorDownload = () => {
-    if (!created) return;
-    const blob = new Blob([created.text], { type: "application/json" });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = created.filename;
-    document.body.appendChild(a);
-    a.click();
-    a.remove();
-    URL.revokeObjectURL(url);
-  };
-
   const saveCreated = async () => {
     if (!created || busy) return;
     setBusy("save");
     try {
-      const native = await nativeSaveFile({
-        filename: created.filename,
-        mimeType: "application/json",
-        text: created.text,
-      });
-      if (native.status === "saved") {
+      const result = await saveBackupFile(created);
+      if (result.status === "saved" || result.status === "fallback-download") {
         haptics.success();
         toast.success(
-          native.location ? `Saved to ${native.location}` : `Saved ${created.filename}`,
+          result.status === "saved"
+            ? `Saved ${created.filename}`
+            : `Downloaded ${created.filename}`,
         );
-        return;
-      }
-      if (native.status === "error") {
+      } else if (result.status === "cancelled") toast("Save cancelled");
+      else {
         haptics.error();
-        toast.error(`Could not save backup: ${native.message}`);
-        return;
+        toast.error(`Could not save backup${result.message ? `: ${result.message}` : ""}`);
       }
-
-      // Chromium desktop: real file picker.
-      const picker = (
-        window as unknown as {
-          showSaveFilePicker?: (o: unknown) => Promise<{
-            createWritable: () => Promise<{
-              write: (d: string) => Promise<void>;
-              close: () => Promise<void>;
-            }>;
-          }>;
-        }
-      ).showSaveFilePicker;
-      if (picker) {
-        try {
-          const handle = await picker({
-            suggestedName: created.filename,
-            types: [
-              {
-                description: "SkillSync backup",
-                accept: { "application/json": [".json"] },
-              },
-            ],
-          });
-          const writable = await handle.createWritable();
-          await writable.write(created.text);
-          await writable.close();
-          haptics.success();
-          toast.success(`Saved ${created.filename}`);
-          return;
-        } catch (e) {
-          if (isAbortError(e)) {
-            toast("Save cancelled");
-            return;
-          }
-          haptics.error();
-          toast.error(errorMessage(e, "Could not save backup"));
-          return;
-        }
-      }
-
-      anchorDownload();
-      toast.success(`Downloaded ${created.filename}`);
     } finally {
       setBusy(null);
     }
@@ -191,44 +138,17 @@ export function BackupSection({ onRequestReset }: { onRequestReset: () => void }
     if (!created || busy) return;
     setBusy("share");
     try {
-      const native = await nativeShareFile({
-        filename: created.filename,
-        mimeType: "application/json",
-        text: created.text,
-      });
-      if (native.status === "shared") return;
-      if (native.status === "error") {
+      const result = await shareBackupFile(created);
+      if (result.status === "shared") {
+        haptics.success();
+        toast.success("Backup shared");
+      } else if (result.status === "fallback-download")
+        toast("File sharing is unavailable here — the backup was downloaded.");
+      else if (result.status === "cancelled") toast("Share cancelled");
+      else {
         haptics.error();
-        toast.error(`Could not share backup: ${native.message}`);
-        return;
+        toast.error(`Could not share backup${result.message ? `: ${result.message}` : ""}`);
       }
-
-      const file = new File([created.text], created.filename, {
-        type: "application/json",
-      });
-      const nav = navigator as Navigator & {
-        canShare?: (d: { files?: File[] }) => boolean;
-        share?: (d: { files?: File[]; title?: string; text?: string }) => Promise<void>;
-      };
-      if (nav.share && nav.canShare?.({ files: [file] })) {
-        try {
-          await nav.share({
-            files: [file],
-            title: "SkillSync backup",
-            text: `SkillSync backup · ${fmtDate(created.meta.createdAt)}`,
-          });
-        } catch (e) {
-          if (isAbortError(e)) toast("Share cancelled");
-          else {
-            haptics.error();
-            toast.error(errorMessage(e, "Could not share backup"));
-          }
-        }
-        return;
-      }
-
-      anchorDownload();
-      toast("Sharing isn't available here — the backup was downloaded instead.");
     } finally {
       setBusy(null);
     }
@@ -255,7 +175,15 @@ export function BackupSection({ onRequestReset }: { onRequestReset: () => void }
     if (!pendingRestore || restoring) return;
     setRestoring(true);
     try {
-      await new Promise((r) => setTimeout(r, 200));
+      await new Promise((r) => setTimeout(r, 0)); // let the confirmation state paint first
+      // Never replace data without first persisting a local recovery snapshot.
+      const safety = createSafetySnapshot(snapshotData());
+      if (!safety) {
+        haptics.error();
+        toast.error("Restore stopped: SkillSync could not create a safety snapshot.");
+        return;
+      }
+      setAutoSnapshotCount(getAutomaticSnapshotCount());
       const result = importJSON(JSON.stringify(pendingRestore.data));
       if (!result.ok) {
         haptics.error();
@@ -340,6 +268,41 @@ export function BackupSection({ onRequestReset }: { onRequestReset: () => void }
           onClick={() => setIncludedOpen(true)}
         />
       </div>
+
+      <Card className="p-4">
+        <div className="flex items-start justify-between gap-3">
+          <div>
+            <div className="text-[13.5px] font-semibold">Automatic local snapshots</div>
+            <p className="mt-1 text-[12px] leading-relaxed text-muted-foreground">
+              {autoSettings.enabled
+                ? `Daily recovery snapshots are kept on this device (up to 3). ${autoSettings.lastCreatedAt ? `Last: ${fmtDate(autoSettings.lastCreatedAt)}.` : "The next change creates one."}`
+                : "Keep up to 3 daily recovery snapshots on this device. Browser apps cannot silently save files to Downloads."}
+            </p>
+          </div>
+          <button
+            role="switch"
+            aria-checked={autoSettings.enabled}
+            onClick={() => {
+              const next = { ...autoSettings, enabled: !autoSettings.enabled };
+              setAutoBackupSettings(next);
+              if (next.enabled) createAutomaticSnapshot(snapshotData());
+              setAutoSettings(getAutoBackupSettings());
+              setAutoSnapshotCount(getAutomaticSnapshotCount());
+            }}
+            className={`relative h-7 w-12 shrink-0 rounded-full transition-colors ${autoSettings.enabled ? "bg-violet-500" : "bg-white/10"}`}
+          >
+            <span
+              className={`absolute top-1 h-5 w-5 rounded-full bg-white transition-transform ${autoSettings.enabled ? "translate-x-6" : "translate-x-1"}`}
+            />
+          </button>
+        </div>
+        {autoSettings.enabled ? (
+          <div className="mt-3 text-[11.5px] text-muted-foreground">
+            {autoSnapshotCount} local recovery {autoSnapshotCount === 1 ? "snapshot" : "snapshots"}{" "}
+            retained · Offline-only
+          </div>
+        ) : null}
+      </Card>
 
       {/* Reset (separated) */}
       <div className="pt-2">

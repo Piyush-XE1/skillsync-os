@@ -36,14 +36,7 @@ import { nativeBridge } from "@/lib/native/bridge";
 export type HapticIntensity = "light" | "standard" | "strong";
 
 type Level =
-  | "light"
-  | "medium"
-  | "heavy"
-  | "selection"
-  | "success"
-  | "warning"
-  | "error"
-  | "milestone";
+  "light" | "medium" | "heavy" | "selection" | "success" | "warning" | "error" | "milestone";
 
 /* ------------------------------- settings ------------------------------- */
 
