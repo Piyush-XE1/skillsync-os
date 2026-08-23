@@ -15,9 +15,10 @@ export const BACKGROUND_OPTIONS: {
   {
     id: "aurora",
     label: "Animated Aurora",
-    description: "A flowing northern-lights curtain with light glares over a starlit sky.",
+    description:
+      "Flowing boreal ribbons, starlit skies & ethereal emerald-violet atmospheric waves.",
     swatch:
-      "repeating-linear-gradient(96deg, transparent 0 10px, rgba(167,110,255,0.35) 13px, transparent 17px 26px), repeating-linear-gradient(88deg, transparent 0 7px, rgba(130,240,255,0.28) 9px, transparent 12px 19px), linear-gradient(100deg, transparent 8%, rgba(147,89,255,0.5) 28%, rgba(96,165,250,0.55) 52%, rgba(103,232,249,0.4) 72%, transparent 92%), radial-gradient(90% 100% at 50% 100%, rgba(59,74,180,0.35), transparent 75%), linear-gradient(to bottom, #070c1a, #060a18)",
+      "radial-gradient(ellipse 90% 70% at 30% 20%, rgba(16,230,160,0.45) 0%, transparent 60%), radial-gradient(ellipse 80% 60% at 75% 35%, rgba(168,85,247,0.55) 0%, transparent 65%), linear-gradient(110deg, transparent 10%, rgba(6,214,210,0.5) 35%, rgba(59,130,246,0.6) 60%, rgba(147,51,234,0.5) 85%, transparent 100%), radial-gradient(100% 90% at 50% 100%, rgba(45,62,170,0.4), transparent 75%), linear-gradient(to bottom, #040714, #060c22)",
   },
   {
     id: "light",

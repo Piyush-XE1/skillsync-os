@@ -63,33 +63,69 @@ export function serializeBackup(data: AppData): {
 export function validateBackup(
   input: string,
 ): { ok: true; backup: ValidBackup } | { ok: false; error: string } {
+  const sanitized = typeof input === "string" ? input.trim().replace(/^\uFEFF/, "") : "";
   let parsed: unknown;
   try {
-    parsed = JSON.parse(input);
+    parsed = JSON.parse(sanitized);
   } catch {
     return { ok: false, error: "File is not valid JSON." };
   }
   if (!parsed || typeof parsed !== "object" || Array.isArray(parsed))
     return { ok: false, error: "Backup file is empty or malformed." };
   const obj = parsed as Record<string, unknown>;
+
+  // Support direct AppData exports (from dev tools or store exportJSON)
+  if (typeof obj.schemaVersion === "number" && obj.kind !== "skillsync-backup") {
+    try {
+      const data = AppDataSchema.parse(migrate(obj));
+      const nowISO = new Date().toISOString();
+      return {
+        ok: true,
+        backup: {
+          kind: "skillsync-backup",
+          backupVersion: 1,
+          appVersion: APP_VERSION,
+          backupId: `export-${Date.now()}`,
+          createdAt: nowISO,
+          data,
+          sizeBytes: new Blob([sanitized]).size,
+        },
+      };
+    } catch (e) {
+      return { ok: false, error: errorMessage(e, "Export structure is invalid.") };
+    }
+  }
+
   if (obj.kind !== "skillsync-backup") return { ok: false, error: "Not a SkillSync backup file." };
   const backupVersion = obj.backupVersion;
   if (
     typeof backupVersion !== "number" ||
     !Number.isInteger(backupVersion) ||
-    typeof obj.appVersion !== "string" ||
-    typeof obj.createdAt !== "string" ||
+    (typeof obj.appVersion !== "string" && typeof obj.appVersion !== "number") ||
+    (typeof obj.createdAt !== "string" && typeof obj.createdAt !== "number") ||
     !obj.data
   )
     return { ok: false, error: "Backup is missing required metadata or data." };
+
+  const appVersionStr = String(obj.appVersion);
+  let createdAtISO: string;
+  if (typeof obj.createdAt === "number") {
+    if (Number.isNaN(obj.createdAt))
+      return { ok: false, error: "Backup creation date is invalid." };
+    createdAtISO = new Date(obj.createdAt).toISOString();
+  } else {
+    if (Number.isNaN(Date.parse(obj.createdAt)))
+      return { ok: false, error: "Backup creation date is invalid." };
+    createdAtISO = obj.createdAt;
+  }
+
   if (backupVersion >= 2 && (typeof obj.backupId !== "string" || !obj.backupId))
     return { ok: false, error: "Backup is missing its backup ID." };
-  if (Number.isNaN(Date.parse(obj.createdAt)))
-    return { ok: false, error: "Backup creation date is invalid." };
+
   if (backupVersion > BACKUP_VERSION)
     return {
       ok: false,
-      error: `Backup was made with newer SkillSync (v${obj.appVersion}). Please update SkillSync.`,
+      error: `Backup was made with newer SkillSync (v${appVersionStr}). Please update SkillSync.`,
     };
   if (backupVersion < 1) return { ok: false, error: "Unsupported backup version." };
   try {
@@ -99,11 +135,14 @@ export function validateBackup(
       backup: {
         kind: "skillsync-backup",
         backupVersion,
-        appVersion: obj.appVersion,
-        backupId: typeof obj.backupId === "string" ? obj.backupId : `legacy-${obj.createdAt}`,
-        createdAt: obj.createdAt,
+        appVersion: appVersionStr,
+        backupId:
+          typeof obj.backupId === "string"
+            ? obj.backupId
+            : `legacy-${Date.parse(createdAtISO) || Date.now()}`,
+        createdAt: createdAtISO,
         data,
-        sizeBytes: new Blob([input]).size,
+        sizeBytes: new Blob([sanitized]).size,
       },
     };
   } catch (e) {
@@ -251,10 +290,11 @@ export function setAutoBackupSettings(settings: AutoBackupSettings) {
   localStorage.setItem(AUTO_SETTINGS_KEY, JSON.stringify(settings));
 }
 /** Small, capped local recovery snapshots. Browsers cannot silently write user files. */
-export function createAutomaticSnapshot(data: AppData): BackupMeta | null {
+export function createAutomaticSnapshot(data: AppData, force = false): BackupMeta | null {
   const settings = getAutoBackupSettings();
-  if (!settings.enabled) return null;
+  if (!settings.enabled && !force) return null;
   if (
+    !force &&
     settings.lastCreatedAt &&
     Date.now() - settings.lastCreatedAt < settings.intervalHours * 3600000
   )
@@ -263,10 +303,17 @@ export function createAutomaticSnapshot(data: AppData): BackupMeta | null {
     const made = serializeBackup(data);
     const snapshots: string[] = JSON.parse(localStorage.getItem(AUTO_SNAPSHOTS_KEY) ?? "[]");
     snapshots.unshift(made.text);
-    localStorage.setItem(
-      AUTO_SNAPSHOTS_KEY,
-      JSON.stringify(snapshots.slice(0, MAX_AUTO_SNAPSHOTS)),
-    );
+    const trimmed = snapshots.slice(0, MAX_AUTO_SNAPSHOTS);
+    try {
+      localStorage.setItem(AUTO_SNAPSHOTS_KEY, JSON.stringify(trimmed));
+    } catch {
+      // Storage full: attempt storing only the single newest snapshot
+      try {
+        localStorage.setItem(AUTO_SNAPSHOTS_KEY, JSON.stringify([made.text]));
+      } catch {
+        /* storage totally unavailable */
+      }
+    }
     setAutoBackupSettings({ ...settings, lastCreatedAt: made.meta.createdAt });
     return made.meta;
   } catch {
@@ -286,10 +333,17 @@ export function createSafetySnapshot(data: AppData): BackupMeta | null {
     const made = serializeBackup(data);
     const snapshots: string[] = JSON.parse(localStorage.getItem(AUTO_SNAPSHOTS_KEY) ?? "[]");
     snapshots.unshift(made.text);
-    localStorage.setItem(
-      AUTO_SNAPSHOTS_KEY,
-      JSON.stringify(snapshots.slice(0, MAX_AUTO_SNAPSHOTS)),
-    );
+    const trimmed = snapshots.slice(0, MAX_AUTO_SNAPSHOTS);
+    try {
+      localStorage.setItem(AUTO_SNAPSHOTS_KEY, JSON.stringify(trimmed));
+    } catch {
+      // Storage full: attempt storing only the single newest snapshot
+      try {
+        localStorage.setItem(AUTO_SNAPSHOTS_KEY, JSON.stringify([made.text]));
+      } catch {
+        /* storage totally unavailable */
+      }
+    }
     return made.meta;
   } catch {
     return null;
