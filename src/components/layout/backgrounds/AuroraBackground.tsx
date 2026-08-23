@@ -1,483 +1,273 @@
 import { NOISE, BASE_LAYER_CLASS } from "./shared";
 
 /**
- * SkillSync OS — Ultra-Premium Animated Aurora ("Dynamic Boreal Odyssey")
+ * SkillSync OS — Animated Aurora ("Boreal Drift").
  *
- * Visual architecture:
- *  1. Deep cosmic foundation + midnight horizon radiance
- *  2. Multi-tier living starfield (twinkling stellar nodes + ambient cosmic streak)
- *  3. Atmospheric nebula veil (soft expansive indigo & violet haze)
- *  4. PRIMARY BOREAL CURTAINS:
- *     - Grand sweeping emerald & cyan lower ribbon
- *     - Vibrant violet & amethyst main ionized curtain with vertical striation folds
- *     - High-energy radiant core river of light
- *     - Coronal magenta highlight tips
- *  5. Ionized atmospheric light pillars & vertical ray cascades
- *  6. Pulsing coronal flare hotspots
- *  7. Filmic micro-grain overlay + focus vignette
+ * The aurora look rebuilt on the same bulletproof architecture as the Light
+ * and Atelier backgrounds, so it stays animated but can no longer glitch:
  *
- * Performance:
- *  - 100% GPU compositor driven (transform3d & opacity only)
- *  - strict contain, zero layout shift, low power draw
- *  - responsive fallback for smaller mobile screens
- *  - prefers-reduced-motion freezes all animations cleanly
+ *  - ZERO `filter: blur()` — every soft edge is baked into multi-stop
+ *    radial/linear gradients, so layers rasterize once, instantly.
+ *  - ZERO `mix-blend-mode` on aurora light — `screen`-blended near-white
+ *    bands were washing out header text and flickering on Android WebViews.
+ *  - ZERO `mask-image` on animated layers — masks force per-frame offscreen
+ *    buffers on mobile GPUs.
+ *  - ZERO `repeating-linear-gradient` stripes — high-frequency stripes under
+ *    rotate/skew animation aliased into crawling moiré. Curtain "folds" are
+ *    individual soft ellipses instead: they resample cleanly at any angle.
+ *  - Compositor-only motion: three oversized curtain layers drift on slow
+ *    translate/rotate/scale cycles (transform only) plus one opacity-only
+ *    star twinkle. Nothing else ever repaints.
+ *  - Legibility-first staging: the luminous curtain band lives below the
+ *    page-header zone, and static scrims (top, bottom, vignette) keep every
+ *    region where text renders on bare background at deep-navy contrast.
+ *  - `--aurora-sky`, `--aurora-stars`, `--aurora-stars-2`, `--aurora-noise`
+ *    and `--aurora-vignette` keep working — star opacity vars now sit on
+ *    wrapper layers, so the twinkle animation can no longer override them.
+ *
+ * `prefers-reduced-motion` freezes every animation; each animated layer
+ * carries its base transform inline, so the frozen frame is still the
+ * composed, tilted aurora (never a flat unrotated slab).
  */
 
-const AURORA_STYLES = `
-@keyframes ss-aurora-sway-1 {
-  0%   { transform: translate3d(-3%, -2%, 0) rotate(-8deg) skewX(-4deg) scale(1); }
-  50%  { transform: translate3d(4%, 2%, 0) rotate(-4deg) skewX(5deg) scale(1.08, 1.04); }
-  100% { transform: translate3d(-4%, 1%, 0) rotate(-9deg) skewX(-6deg) scale(0.96, 1.02); }
-}
-@keyframes ss-aurora-sway-2 {
-  0%   { transform: translate3d(4%, 1%, 0) rotate(-14deg) skewX(6deg) scale(1.04); }
-  50%  { transform: translate3d(-5%, -2%, 0) rotate(-7deg) skewX(-5deg) scale(0.94, 1.06); }
-  100% { transform: translate3d(3%, 3%, 0) rotate(-12deg) skewX(4deg) scale(1.02); }
-}
-@keyframes ss-aurora-sway-3 {
-  0%   { transform: translate3d(-2%, 0, 0) rotate(-18deg) skewX(-8deg) scale(0.98); }
-  50%  { transform: translate3d(5%, -1.5%, 0) rotate(-11deg) skewX(7deg) scale(1.12, 0.95); }
-  100% { transform: translate3d(-3%, 2%, 0) rotate(-16deg) skewX(-5deg) scale(1.01); }
-}
-@keyframes ss-core-stream {
-  0%   { transform: translate3d(-4%, 0, 0) rotate(-7deg) scaleY(1); opacity: 0.75; }
-  50%  { transform: translate3d(5%, 1.2%, 0) rotate(-3deg) scaleY(1.22); opacity: 1; }
-  100% { transform: translate3d(-3%, -0.8%, 0) rotate(-8deg) scaleY(0.92); opacity: 0.8; }
-}
-@keyframes ss-boreal-green-sway {
-  0%   { transform: translate3d(-5%, 2%, 0) rotate(-12deg) skewX(7deg) scale(1); opacity: 0.55; }
-  50%  { transform: translate3d(4%, -1%, 0) rotate(-6deg) skewX(-4deg) scale(1.15, 1.05); opacity: 0.85; }
-  100% { transform: translate3d(-3%, 3%, 0) rotate(-10deg) skewX(5deg) scale(0.96); opacity: 0.6; }
-}
-@keyframes ss-pillars-drift {
-  0%   { transform: translate3d(-4%, 0, 0) skewX(-6deg) scaleY(1); opacity: 0.45; }
-  50%  { transform: translate3d(5%, 0, 0) skewX(4deg) scaleY(1.18); opacity: 0.8; }
-  100% { transform: translate3d(-3%, 0, 0) skewX(-5deg) scaleY(0.95); opacity: 0.5; }
-}
-@keyframes ss-flare-pulse-1 {
-  0%, 100% { transform: scale(0.92) translate3d(0, 0, 0); opacity: 0.45; }
-  50%      { transform: scale(1.18) translate3d(4%, -2%, 0); opacity: 0.9; }
-}
-@keyframes ss-flare-pulse-2 {
-  0%, 100% { transform: scale(1.1) translate3d(0, 0, 0); opacity: 0.7; }
-  50%      { transform: scale(0.88) translate3d(-5%, 3%, 0); opacity: 0.35; }
-}
-@keyframes ss-twinkle-fast {
-  0%, 100% { opacity: 0.4; transform: scale(0.95); }
-  50%      { opacity: 0.95; transform: scale(1.1); }
-}
-@keyframes ss-twinkle-slow {
-  0%, 100% { opacity: 0.25; }
-  50%      { opacity: 0.85; }
-}
-@keyframes ss-nebula-breathe {
-  0%, 100% { opacity: 0.5; transform: scale(1) translate3d(0,0,0); }
-  50%      { opacity: 0.85; transform: scale(1.08) translate3d(2%, -1%, 0); }
-}
-@keyframes ss-shooting-star {
-  0%   { transform: translate3d(-40px, -40px, 0) rotate(-35deg) scaleX(0); opacity: 0; }
-  2%   { opacity: 1; }
-  5%   { transform: translate3d(320px, 220px, 0) rotate(-35deg) scaleX(1.4); opacity: 0.9; }
-  7%   { transform: translate3d(440px, 300px, 0) rotate(-35deg) scaleX(0.2); opacity: 0; }
-  100% { transform: translate3d(440px, 300px, 0) rotate(-35deg) scaleX(0); opacity: 0; }
-}
+/** Deep cosmic sky: navy base, violet/teal nebula corners, horizon radiance. */
+const SKY = [
+  // horizon radiance rising from below
+  "radial-gradient(120% 55% at 50% 108%, rgba(56, 79, 180, 0.20) 0%, rgba(29, 44, 120, 0.12) 40%, transparent 72%)",
+  // faint violet nebula, upper left
+  "radial-gradient(60% 42% at 16% 10%, rgba(94, 58, 214, 0.11) 0%, transparent 70%)",
+  // faint teal nebula, upper right
+  "radial-gradient(55% 40% at 86% 18%, rgba(14, 116, 144, 0.09) 0%, transparent 70%)",
+  // deep cosmic base
+  "linear-gradient(180deg, #030510 0%, #050a1c 38%, #071128 70%, #060d20 100%)",
+].join(", ");
 
-@media (max-width: 767px) {
-  .ss-aur-desktop { display: none !important; }
+/**
+ * Star fields. Dots are fixed-radius radial-gradients anchored at percentage
+ * positions with `no-repeat`, so they never tile into a visible grid and stay
+ * perfectly round at any viewport size.
+ */
+const STARS_STATIC = [
+  // (stars deliberately avoid the 8–16% header-text band)
+  "8% 27%",
+  "15% 34%",
+  "22% 9%",
+  "29% 47%",
+  "36% 18%",
+  "43% 61%",
+  "50% 8%",
+  "57% 39%",
+  "64% 71%",
+  "71% 15%",
+  "78% 52%",
+  "85% 24%",
+  "92% 57%",
+  "97% 11%",
+  "12% 70%",
+  "25% 83%",
+  "46% 79%",
+  "67% 89%",
+  "88% 78%",
+  "4% 41%",
+  "52% 27%",
+  "77% 36%",
+  "18% 55%",
+  "60% 5%",
+  "34% 90%",
+  "95% 42%",
+]
+  .map(
+    (p) =>
+      `radial-gradient(1.5px 1.5px at ${p}, rgba(232, 240, 255, 0.9) 0%, rgba(186, 220, 255, 0.4) 45%, transparent 100%)`,
+  )
+  .join(",");
+
+const STARS_TWINKLE = [
+  "11% 22%",
+  "19% 44%",
+  "27% 15%",
+  "38% 33%",
+  "47% 52%",
+  "55% 27%",
+  "62% 44%",
+  "69% 26%",
+  "75% 62%",
+  "83% 39%",
+  "90% 19%",
+  "96% 66%",
+  "33% 68%",
+  "58% 82%",
+  "80% 88%",
+]
+  .map(
+    (p) =>
+      `radial-gradient(1.8px 1.8px at ${p}, rgba(255, 255, 255, 0.95) 0%, rgba(165, 243, 252, 0.45) 40%, transparent 100%)`,
+  )
+  .join(",");
+
+/**
+ * Curtain layers. Each is one element whose background stacks soft ellipses
+ * of different widths — wide ones are the curtain body, narrow tall ones are
+ * luminous vertical folds. Everything fades to transparent at its own edges,
+ * so the oversized boxes can rotate and drift without ever showing a seam.
+ */
+
+// 1) Emerald / teal foundation — the broad lower boreal band.
+const CURTAIN_EMERALD = [
+  "radial-gradient(38% 60% at 30% 52%, rgba(16, 225, 170, 0.30) 0%, rgba(16, 190, 150, 0.12) 48%, transparent 74%)",
+  "radial-gradient(46% 56% at 60% 50%, rgba(13, 200, 190, 0.26) 0%, rgba(12, 160, 170, 0.10) 50%, transparent 76%)",
+  "radial-gradient(30% 46% at 84% 46%, rgba(14, 140, 190, 0.18) 0%, transparent 72%)",
+  "radial-gradient(26% 42% at 12% 58%, rgba(10, 170, 140, 0.17) 0%, transparent 72%)",
+].join(", ");
+
+// 2) Violet / indigo main curtain — the hero band with brighter fold cores.
+const CURTAIN_VIOLET = [
+  "radial-gradient(44% 55% at 34% 50%, rgba(139, 92, 246, 0.30) 0%, rgba(109, 80, 220, 0.12) 50%, transparent 75%)",
+  "radial-gradient(40% 52% at 66% 48%, rgba(99, 102, 241, 0.26) 0%, rgba(80, 90, 210, 0.10) 50%, transparent 76%)",
+  "radial-gradient(26% 44% at 50% 42%, rgba(59, 130, 246, 0.22) 0%, transparent 72%)",
+  "radial-gradient(16% 40% at 44% 46%, rgba(167, 139, 250, 0.28) 0%, transparent 70%)",
+  "radial-gradient(12% 34% at 58% 44%, rgba(196, 181, 253, 0.24) 0%, transparent 70%)",
+  "radial-gradient(14% 38% at 24% 52%, rgba(167, 139, 250, 0.22) 0%, transparent 70%)",
+].join(", ");
+
+// 3) Cyan crown — narrow vertical fold streaks riding the curtain's top edge.
+const CURTAIN_CYAN = [
+  "radial-gradient(9% 72% at 22% 50%, rgba(103, 232, 249, 0.19) 0%, transparent 70%)",
+  "radial-gradient(11% 78% at 38% 48%, rgba(103, 232, 249, 0.23) 0%, transparent 70%)",
+  "radial-gradient(8% 66% at 52% 52%, rgba(125, 211, 252, 0.17) 0%, transparent 70%)",
+  "radial-gradient(12% 82% at 68% 46%, rgba(103, 232, 249, 0.22) 0%, transparent 70%)",
+  "radial-gradient(9% 70% at 82% 50%, rgba(165, 243, 252, 0.16) 0%, transparent 70%)",
+  "radial-gradient(7% 58% at 10% 54%, rgba(125, 211, 252, 0.14) 0%, transparent 70%)",
+].join(", ");
+
+/**
+ * Legibility scrims — static overlays that keep text-bearing regions on deep
+ * navy. The header zone (top ~20%) and the bottom-nav zone never see the
+ * curtain's full brightness; the radial vignette calms the edges.
+ */
+const SCRIMS = [
+  // header / status-bar zone
+  "linear-gradient(180deg, rgba(3, 5, 16, 0.62) 0%, rgba(3, 5, 16, 0.30) 9%, rgba(3, 5, 16, 0) 24%)",
+  // bottom-nav zone
+  "linear-gradient(0deg, rgba(3, 5, 16, 0.55) 0%, rgba(3, 5, 16, 0) 16%)",
+  // edge vignette (token-driven, same contract as the other backgrounds)
+  "radial-gradient(125% 100% at 50% 42%, transparent 45%, var(--aurora-vignette) 100%)",
+].join(", ");
+
+const AURORA_STYLES = `
+/* Compositor-only drift. Rotations are baked into every keyframe AND the
+   matching inline transform, so animation:none (reduced motion) still shows
+   the composed tilted curtain. */
+@keyframes ss-aurora-drift-a {
+  from { transform: translate3d(-1.6%, 1%, 0) rotate(-10.5deg) scale(1.02); }
+  to   { transform: translate3d(1.8%, -1.2%, 0) rotate(-7.5deg) scale(1.07); }
+}
+@keyframes ss-aurora-drift-b {
+  from { transform: translate3d(1.4%, -0.8%, 0) rotate(-13.5deg) scale(1.06) skewX(-1.5deg); }
+  to   { transform: translate3d(-1.6%, 1.2%, 0) rotate(-10.5deg) scale(1.01) skewX(1.5deg); }
+}
+@keyframes ss-aurora-drift-c {
+  from { transform: translate3d(-1.2%, 1.4%, 0) rotate(-12deg) scale(1.03) skewX(1deg); }
+  to   { transform: translate3d(1.6%, -1%, 0) rotate(-9deg) scale(1.08) skewX(-2deg); }
+}
+/* Opacity-only twinkle on the bright star subset (nested inside a wrapper
+   whose opacity carries the --aurora-stars-2 token, so the token wins). */
+@keyframes ss-aurora-twinkle {
+  from { opacity: 0.45; }
+  to   { opacity: 1; }
 }
 @media (prefers-reduced-motion: reduce) {
-  .ss-aur-container * { animation: none !important; }
+  .ss-aurora * { animation: none !important; }
 }
 `;
-
-const CURTAIN_FADE_MASK =
-  "linear-gradient(to top, transparent 0%, rgba(0,0,0,0.6) 12%, rgba(0,0,0,0.95) 38%, #000 55%, rgba(0,0,0,0.7) 82%, transparent 100%)";
-
-const PILLARS_MASK =
-  "linear-gradient(to bottom, transparent 0%, rgba(0,0,0,0.85) 15%, #000 45%, rgba(0,0,0,0.5) 75%, transparent 98%)";
-
-const STARS_TIER_1 = [
-  "6% 9%",
-  "14% 28%",
-  "21% 7%",
-  "29% 48%",
-  "36% 16%",
-  "42% 62%",
-  "49% 11%",
-  "56% 37%",
-  "64% 72%",
-  "71% 14%",
-  "78% 54%",
-  "84% 26%",
-  "91% 59%",
-  "95% 12%",
-  "98% 41%",
-  "11% 68%",
-  "25% 82%",
-  "45% 78%",
-  "68% 88%",
-  "86% 77%",
-  "3% 39%",
-  "52% 24%",
-  "77% 38%",
-  "18% 52%",
-  "61% 4%",
-]
-  .map(
-    (p) =>
-      `radial-gradient(1.8px 1.8px at ${p}, rgba(240, 246, 255, 0.95) 0%, rgba(186, 220, 255, 0.45) 45%, transparent 100%)`,
-  )
-  .join(",");
-
-const STARS_TIER_2 = [
-  "9% 19%",
-  "23% 38%",
-  "31% 12%",
-  "38% 58%",
-  "45% 22%",
-  "53% 68%",
-  "60% 17%",
-  "67% 43%",
-  "75% 81%",
-  "82% 19%",
-  "89% 62%",
-  "93% 31%",
-  "97% 69%",
-  "16% 76%",
-  "33% 91%",
-  "54% 84%",
-  "73% 94%",
-  "88% 86%",
-  "8% 51%",
-  "41% 33%",
-  "85% 48%",
-]
-  .map(
-    (p) =>
-      `radial-gradient(2.2px 2.2px at ${p}, rgba(216, 235, 255, 0.9) 0%, rgba(165, 243, 252, 0.4) 40%, transparent 100%)`,
-  )
-  .join(",");
-
-/** Luminous Striated Aurora Curtain with atmospheric vertical fold definition. */
-function StriatedCurtain({
-  className,
-  colorStops,
-  opacity,
-  animation,
-  blur,
-  stripeSize,
-}: {
-  className?: string;
-  colorStops: string;
-  opacity: number;
-  animation: string;
-  blur: number;
-  stripeSize: number;
-}) {
-  return (
-    <div
-      className={"absolute pointer-events-none " + (className ?? "")}
-      style={{
-        opacity,
-        filter: `blur(${blur}px)`,
-        animation,
-        willChange: "transform",
-        transformOrigin: "50% 100%",
-        backgroundImage: `repeating-linear-gradient(90deg,
-          transparent 0px,
-          transparent ${stripeSize * 0.28}px,
-          ${colorStops} ${stripeSize * 0.5}px,
-          transparent ${stripeSize * 0.72}px,
-          transparent ${stripeSize}px)`,
-        maskImage: CURTAIN_FADE_MASK,
-        WebkitMaskImage: CURTAIN_FADE_MASK,
-      }}
-    />
-  );
-}
-
-/** Fluid Luminous Ribbon with radiant core and prismatic chromatic falloff. */
-function AuroraRibbon({
-  className,
-  gradient,
-  blur,
-  opacity,
-  animation,
-  blendMode,
-}: {
-  className?: string;
-  gradient: string;
-  blur: number;
-  opacity: number;
-  animation: string;
-  blendMode?: React.CSSProperties["mixBlendMode"];
-}) {
-  return (
-    <div
-      className={"absolute pointer-events-none rounded-[50%] " + (className ?? "")}
-      style={{
-        opacity,
-        filter: `blur(${blur}px)`,
-        animation,
-        mixBlendMode: blendMode,
-        willChange: "transform, opacity",
-        background: gradient,
-        maskImage:
-          "radial-gradient(65% 100% at 50% 48%, #000 0%, rgba(0,0,0,0.85) 55%, transparent 100%)",
-        WebkitMaskImage:
-          "radial-gradient(65% 100% at 50% 48%, #000 0%, rgba(0,0,0,0.85) 55%, transparent 100%)",
-      }}
-    />
-  );
-}
-
-/** Ionized Light Pillars (Vertical Solar Ray Streamers). */
-function LightPillars({
-  className,
-  hue,
-  opacity,
-  animation,
-  blur,
-  spacing,
-}: {
-  className?: string;
-  hue: string;
-  opacity: number;
-  animation: string;
-  blur: number;
-  spacing: number;
-}) {
-  return (
-    <div
-      className={"absolute pointer-events-none " + (className ?? "")}
-      style={{
-        opacity,
-        filter: `blur(${blur}px)`,
-        animation,
-        willChange: "transform, opacity",
-        transformOrigin: "50% 0%",
-        backgroundImage: `repeating-linear-gradient(90deg,
-          transparent 0px,
-          transparent ${spacing * 0.38}px,
-          rgba(${hue}, 0.35) ${spacing * 0.46}px,
-          rgba(${hue}, 0.85) ${spacing * 0.5}px,
-          rgba(${hue}, 0.35) ${spacing * 0.54}px,
-          transparent ${spacing * 0.62}px,
-          transparent ${spacing}px)`,
-        maskImage: PILLARS_MASK,
-        WebkitMaskImage: PILLARS_MASK,
-      }}
-    />
-  );
-}
-
-/** Radiant Coronal Flare Hotspot. */
-function CoronaFlare({
-  className,
-  color,
-  blur,
-  animation,
-}: {
-  className?: string;
-  color: string;
-  blur: number;
-  animation: string;
-}) {
-  return (
-    <div
-      className={"absolute pointer-events-none rounded-full " + (className ?? "")}
-      style={{
-        background: `radial-gradient(50% 50% at 50% 50%, ${color} 0%, transparent 72%)`,
-        filter: `blur(${blur}px)`,
-        animation,
-        willChange: "transform, opacity",
-      }}
-    />
-  );
-}
 
 export function AuroraBackground() {
   return (
     <div
       aria-hidden="true"
-      className={BASE_LAYER_CLASS + " ss-aur-container"}
+      className={BASE_LAYER_CLASS + " ss-aurora"}
       style={{ backgroundColor: "var(--bg-base)", contain: "strict" }}
     >
       <style>{AURORA_STYLES}</style>
 
-      {/* 1. Deep Midnight Cosmic Canvas + Horizon Radiance */}
+      {/* 1. Deep cosmic sky (static — sky, nebulae and horizon in one layer) */}
+      <div
+        className="absolute inset-0"
+        style={{ background: SKY, opacity: "var(--aurora-sky, 1)" }}
+      />
+
+      {/* 2. Star field — static tier + twinkling bright subset */}
       <div
         className="absolute inset-0"
         style={{
-          background:
-            "radial-gradient(130% 70% at 50% 102%, rgba(45, 62, 170, 0.28) 0%, rgba(20, 30, 95, 0.16) 42%, transparent 75%), linear-gradient(180deg, #040714 0%, #05091a 35%, #060c22 68%, #070b19 100%)",
-          opacity: "var(--aurora-sky, 1)",
-        }}
-      />
-
-      {/* 2. Ethereal Cosmic Nebulae (Deep indigo/purple ambient space dust) */}
-      <div
-        className="absolute -left-[20%] -top-[10%] h-[75vh] w-[140%]"
-        style={{
-          background:
-            "radial-gradient(50% 60% at 35% 30%, rgba(124, 58, 237, 0.22) 0%, rgba(67, 56, 202, 0.12) 45%, transparent 70%), radial-gradient(45% 55% at 70% 35%, rgba(6, 182, 212, 0.18) 0%, rgba(16, 185, 129, 0.10) 40%, transparent 68%)",
-          filter: "blur(64px)",
-          animation: "ss-nebula-breathe 18s ease-in-out infinite alternate",
-          willChange: "transform, opacity",
-        }}
-      />
-
-      {/* 3. Twinkling Living Starfield */}
-      <div
-        className="absolute inset-0"
-        style={{
-          backgroundImage: STARS_TIER_1,
+          backgroundImage: STARS_STATIC,
           backgroundSize: "100% 100%",
-          opacity: "var(--aurora-stars, 0.65)",
-          animation: "ss-twinkle-fast 5.5s ease-in-out infinite alternate",
-          willChange: "opacity, transform",
+          backgroundRepeat: "no-repeat",
+          opacity: "var(--aurora-stars, 0.6)",
         }}
       />
-      <div
-        className="ss-aur-desktop absolute inset-0"
-        style={{
-          backgroundImage: STARS_TIER_2,
-          backgroundSize: "75% 70%",
-          opacity: "var(--aurora-stars-2, 0.4)",
-          animation: "ss-twinkle-slow 8s ease-in-out 1.5s infinite alternate",
-          willChange: "opacity",
-        }}
-      />
+      <div className="absolute inset-0" style={{ opacity: "var(--aurora-stars-2, 0.4)" }}>
+        <div
+          className="absolute inset-0"
+          style={{
+            backgroundImage: STARS_TWINKLE,
+            backgroundSize: "100% 100%",
+            backgroundRepeat: "no-repeat",
+            animation: "ss-aurora-twinkle 6.5s ease-in-out infinite alternate",
+            willChange: "opacity",
+          }}
+        />
+      </div>
 
-      {/* 4. Ambient Shooting Star Cosmic Streak */}
+      {/* 3. Emerald / teal foundation band (lower) */}
       <div
-        className="ss-aur-desktop absolute left-[15%] top-[8%] h-[2px] w-[90px]"
+        className="absolute"
         style={{
-          background:
-            "linear-gradient(90deg, rgba(255,255,255,0) 0%, rgba(200,235,255,0.95) 75%, #ffffff 100%)",
-          boxShadow: "0 0 10px rgba(124, 211, 252, 0.8)",
-          transformOrigin: "left center",
-          animation: "ss-shooting-star 20s cubic-bezier(0.25, 1, 0.5, 1) 4s infinite",
-          willChange: "transform, opacity",
-        }}
-      />
-
-      {/* ================= 5. PRIMARY BOREAL CURTAINS ================= */}
-
-      {/* Ambient Aurora Body Back-Glow (Broad color base behind curtains) */}
-      <div
-        className="absolute -left-[20%] -top-[12%] h-[68vh] w-[140%]"
-        style={{
-          background:
-            "linear-gradient(105deg, transparent 5%, rgba(139, 92, 246, 0.32) 22%, rgba(59, 130, 246, 0.38) 46%, rgba(34, 211, 238, 0.35) 68%, rgba(52, 211, 153, 0.28) 85%, transparent 96%)",
-          filter: "blur(60px)",
-          animation: "ss-aurora-sway-1 16s ease-in-out infinite alternate",
+          left: "-25%",
+          top: "33%",
+          width: "150%",
+          height: "58%",
+          background: CURTAIN_EMERALD,
+          transform: "translate3d(-1.6%, 1%, 0) rotate(-10.5deg) scale(1.02)",
+          animation: "ss-aurora-drift-a 26s ease-in-out infinite alternate",
           willChange: "transform",
         }}
       />
 
-      {/* Primary Emerald/Jade Boreal Wave (True Northern-Lights Foundation) */}
-      <AuroraRibbon
-        className="-left-[18%] top-[2%] h-[32vh] w-[136%]"
-        gradient="linear-gradient(95deg, transparent 4%, rgba(5, 150, 105, 0.35) 18%, rgba(16, 230, 160, 0.72) 44%, rgba(6, 214, 210, 0.78) 68%, rgba(56, 189, 248, 0.4) 86%, transparent 98%)"
-        blur={18}
-        opacity={0.65}
-        animation="ss-boreal-green-sway 14s ease-in-out infinite alternate"
-        blendMode="screen"
+      {/* 4. Violet / indigo main curtain (the hero band, below the header zone) */}
+      <div
+        className="absolute"
+        style={{
+          left: "-25%",
+          top: "17%",
+          width: "150%",
+          height: "50%",
+          background: CURTAIN_VIOLET,
+          transform: "translate3d(1.4%, -0.8%, 0) rotate(-13.5deg) scale(1.06) skewX(-1.5deg)",
+          animation: "ss-aurora-drift-b 21s ease-in-out infinite alternate",
+          willChange: "transform",
+        }}
       />
 
-      {/* Striated Violet & Amethyst Curtain Folds (Deep Folds) */}
-      <StriatedCurtain
-        className="-left-[22%] -top-[6%] h-[52vh] w-[144%]"
-        colorStops="rgba(168, 85, 247, 0.95)"
-        opacity={0.52}
-        blur={11}
-        stripeSize={110}
-        animation="ss-aurora-sway-1 12s ease-in-out infinite alternate"
+      {/* 5. Cyan fold streaks riding the curtain's crown */}
+      <div
+        className="absolute"
+        style={{
+          left: "-20%",
+          top: "21%",
+          width: "140%",
+          height: "26%",
+          background: CURTAIN_CYAN,
+          transform: "translate3d(-1.2%, 1.4%, 0) rotate(-12deg) scale(1.03) skewX(1deg)",
+          animation: "ss-aurora-drift-c 17s ease-in-out infinite alternate",
+          willChange: "transform",
+        }}
       />
 
-      {/* Striated Electric Azure & Cyan Curtain Folds (Mid Folds) */}
-      <StriatedCurtain
-        className="-left-[16%] top-[0%] h-[46vh] w-[134%]"
-        colorStops="rgba(56, 189, 248, 0.92)"
-        opacity={0.48}
-        blur={8}
-        stripeSize={76}
-        animation="ss-aurora-sway-2 10s ease-in-out infinite alternate"
-      />
+      {/* 6. Legibility scrims — header band, bottom band, edge vignette */}
+      <div className="absolute inset-0" style={{ background: SCRIMS }} />
 
-      {/* Striated Luminous Cyan Tips (Fine High-Frequency Folds) */}
-      <StriatedCurtain
-        className="ss-aur-desktop -left-[12%] top-[4%] h-[40vh] w-[126%]"
-        colorStops="rgba(103, 232, 249, 0.98)"
-        opacity={0.42}
-        blur={5}
-        stripeSize={46}
-        animation="ss-aurora-sway-3 9s ease-in-out 0.8s infinite alternate"
-      />
-
-      {/* High-Energy Radiant Core Stream (The Bright Hot River of Light) */}
-      <AuroraRibbon
-        className="-left-[15%] top-[22%] h-[14vh] w-[130%]"
-        gradient="linear-gradient(90deg, transparent 5%, rgba(167, 139, 250, 0.5) 18%, rgba(224, 242, 254, 0.96) 48%, rgba(125, 211, 252, 0.92) 58%, rgba(165, 243, 252, 0.55) 82%, transparent 95%)"
-        blur={10}
-        opacity={0.68}
-        animation="ss-core-stream 11s ease-in-out infinite alternate"
-        blendMode="screen"
-      />
-
-      {/* Hot Magenta & Violet Corona Highlights */}
-      <AuroraRibbon
-        className="ss-aur-desktop -left-[10%] top-[18%] h-[7vh] w-[118%]"
-        gradient="linear-gradient(90deg, transparent 8%, rgba(244, 114, 182, 0.4) 25%, rgba(232, 121, 249, 0.95) 50%, rgba(192, 132, 252, 0.9) 70%, transparent 94%)"
-        blur={6}
-        opacity={0.55}
-        animation="ss-core-stream 9s ease-in-out 0.5s infinite alternate"
-        blendMode="screen"
-      />
-
-      {/* Secondary Cyan Ribbon (Lower Complementary Flow) */}
-      <AuroraRibbon
-        className="-left-[20%] top-[12%] h-[26vh] w-[118%]"
-        gradient="linear-gradient(90deg, transparent 6%, rgba(124, 58, 237, 0.75) 24%, rgba(6, 182, 212, 0.82) 55%, rgba(16, 185, 129, 0.6) 80%, transparent 96%)"
-        blur={18}
-        opacity={0.55}
-        animation="ss-aurora-sway-3 20s ease-in-out infinite alternate"
-        blendMode="screen"
-      />
-
-      {/* ================= 6. IONIZED LIGHT PILLARS / RAYS ================= */}
-      <LightPillars
-        className="-left-[10%] top-[20%] h-[76vh] w-[122%]"
-        hue="130, 210, 255"
-        opacity={0.28}
-        blur={6}
-        spacing={140}
-        animation="ss-pillars-drift 18s ease-in-out infinite alternate"
-      />
-
-      {/* ================= 7. RADIANT CORONAL FLARE HOTSPOTS ================= */}
-      <CoronaFlare
-        className="left-[10%] top-[15%] h-[36vh] w-[36vh]"
-        color="rgba(34, 211, 238, 0.22)"
-        blur={52}
-        animation="ss-flare-pulse-1 9s ease-in-out infinite alternate"
-      />
-      <CoronaFlare
-        className="ss-aur-desktop right-[8%] top-[26%] h-[44vh] w-[44vh]"
-        color="rgba(192, 132, 252, 0.20)"
-        blur={64}
-        animation="ss-flare-pulse-2 12s ease-in-out 1.2s infinite alternate"
-      />
-      <CoronaFlare
-        className="left-[42%] top-[10%] h-[30vh] w-[30vh]"
-        color="rgba(52, 211, 153, 0.18)"
-        blur={48}
-        animation="ss-flare-pulse-1 11s ease-in-out 2s infinite alternate"
-      />
-
-      {/* ================= 8. CINEMATIC GRAIN & VIGNETTE ================= */}
-      {/* Micro-grain eliminates color banding across rich OLED / Retina gradients */}
+      {/* 7. Filmic grain — same pattern as the other two backgrounds */}
       <div
         className="absolute inset-0"
         style={{
@@ -487,14 +277,8 @@ export function AuroraBackground() {
           mixBlendMode: "overlay",
         }}
       />
-      {/* Edge vignette preserving 100% foreground legibility and card contrast */}
-      <div
-        className="absolute inset-0"
-        style={{
-          background:
-            "radial-gradient(130% 100% at 50% 45%, transparent 40%, var(--aurora-vignette) 92%, var(--aurora-vignette) 100%)",
-        }}
-      />
     </div>
   );
 }
+
+export default AuroraBackground;
