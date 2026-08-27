@@ -2,7 +2,12 @@ import { nativeSaveFile, nativeShareFile } from "./native/bridge";
 import { isAbortError } from "./utils";
 
 export type FileOperation =
-  "saved" | "shared" | "cancelled" | "fallback-download" | "unsupported" | "error";
+  | "saved"
+  | "shared"
+  | "cancelled"
+  | "fallback-download"
+  | "unsupported"
+  | "error";
 type Payload = { filename: string; text: string; mimeType?: string };
 const mime = "application/json";
 const browserFile = (p: Payload) => new File([p.text], p.filename, { type: p.mimeType ?? mime });

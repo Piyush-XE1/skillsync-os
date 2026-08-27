@@ -12,6 +12,13 @@ dist
 dist-ssr
 .output
 .vinxi
+coverage
+coverage/
+
+# Lockfiles: the project uses Bun. Ignore other package-manager lockfiles.
+package-lock.json
+pnpm-lock.yaml
+yarn.lock
 .tanstack/**
 .nitro
 *.local

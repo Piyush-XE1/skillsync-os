@@ -234,11 +234,16 @@ export function setLastBackupMeta(meta: BackupMeta | null) {
  * Wipes backup-related local artifacts. Called on "Reset SkillSync": without
  * this, a fresh workspace would still show the previous install's backup
  * status, and retained recovery snapshots could resurrect wiped data.
+ *
+ * AUTO_SETTINGS_KEY is part of that state too: leaving it behind would keep
+ * automatic backups enabled (and re-create snapshots) for a workspace the user
+ * just wiped.
  */
 export function clearBackupArtifacts() {
   try {
     localStorage.removeItem(LAST_META_KEY);
     localStorage.removeItem(AUTO_SNAPSHOTS_KEY);
+    localStorage.removeItem(AUTO_SETTINGS_KEY);
   } catch {
     /* storage unavailable */
   }
@@ -287,7 +292,11 @@ export function getAutoBackupSettings(): AutoBackupSettings {
   }
 }
 export function setAutoBackupSettings(settings: AutoBackupSettings) {
-  localStorage.setItem(AUTO_SETTINGS_KEY, JSON.stringify(settings));
+  try {
+    localStorage.setItem(AUTO_SETTINGS_KEY, JSON.stringify(settings));
+  } catch {
+    /* quota/storage unavailable — an automatic backup simply won't be created */
+  }
 }
 /** Small, capped local recovery snapshots. Browsers cannot silently write user files. */
 export function createAutomaticSnapshot(data: AppData, force = false): BackupMeta | null {

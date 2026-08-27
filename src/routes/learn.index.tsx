@@ -18,9 +18,10 @@ import {
 } from "lucide-react";
 import { AppShell, PageHeader } from "@/components/layout/AppShell";
 import { PrimaryAction } from "@/components/layout/PrimaryAction";
-import { Card, Chip, ProgressBar } from "@/components/ui/primitives";
+import { Card, Chip } from "@/components/ui/primitives";
 import { useAppStore, useHydrated } from "@/store/useAppStore";
-import { roadmapCounts, roadmapPct } from "@/lib/progress";
+import { roadmapCounts, roadmapPct, phasePct } from "@/lib/progress";
+import { RoutePathPreview } from "@/components/roadmap/RouteRail";
 import { BottomSheet } from "@/components/edit/Sheet";
 import { TextField } from "@/components/edit/Fields";
 import { ActionButton, IconButton } from "@/components/edit/Buttons";
@@ -173,6 +174,7 @@ function LearnPage() {
           roadmaps.map((r) => {
             const pct = hydrated ? roadmapPct(r) : 0;
             const counts = roadmapCounts(r);
+            const phases = r.phases.map((p) => ({ id: p.id, pct: phasePct(p) }));
             return (
               <button
                 type="button"
@@ -215,12 +217,14 @@ function LearnPage() {
                       <ChevronRight className="h-4 w-4 text-muted-foreground/60" />
                     </div>
 
-                    <div className="mt-5 space-y-2.5">
+                    <div className="mt-4 rounded-xl border border-white/[0.05] bg-white/[0.015] p-3">
                       <div className="flex items-center justify-between text-[12px] text-muted-foreground">
-                        <span>Progress</span>
+                        <span>Course</span>
                         <span className="text-foreground/80">{hydrated ? `${pct}%` : "— %"}</span>
                       </div>
-                      <ProgressBar value={pct} tone="gradient" />
+                      <div className="mt-2.5">
+                        <RoutePathPreview phases={hydrated ? phases : []} color={r.color} max={6} />
+                      </div>
                     </div>
 
                     <div className="mt-4 flex items-center gap-2">
