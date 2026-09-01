@@ -4,12 +4,33 @@ apply plugin: 'com.android.application'
  * Version source of truth.
  *
  * Local builds use the defaults below. CI overrides them per release:
- *   ORG_GRADLE_PROJECT_skillsyncVersionName=1.2.0
- *   ORG_GRADLE_PROJECT_skillsyncVersionCode=7
- * versionCode must strictly increase for every update you install/publish.
+ *   ORG_GRADLE_PROJECT_skillsyncVersionName=1.2.0  -> versionName (string)
+ *   ORG_GRADLE_PROJECT_skillsyncVersionCode=7      -> versionCode (integer)
+ *
+ * versionName is a semantic version string; versionCode is an integer that
+ * must strictly increase for every update you install/publish. If a semantic
+ * version (e.g. "2.0.0") is supplied for versionCode, its major number (2)
+ * is used as versionCode so the build never mistakes "2.0.0" for a code.
  */
-def skillsyncVersionName = project.findProperty('skillsyncVersionName') ?: '1.0.0'
-def skillsyncVersionCode = (project.findProperty('skillsyncVersionCode') ?: '1') as Integer
+def skillsyncVersionName = (project.findProperty('skillsyncVersionName') ?: '1.0.0').toString()
+def skillsyncVersionCode = project.findProperty('skillsyncVersionCode')?.toString()?.trim()
+if (skillsyncVersionCode == null || skillsyncVersionCode.isEmpty()) {
+    skillsyncVersionCode = 1
+} else if (skillsyncVersionCode ==~ /\d+/) {
+    // Plain integer: use it directly.
+    skillsyncVersionCode = skillsyncVersionCode.toInteger()
+} else if (skillsyncVersionCode ==~ /\d+(\.\d+)*/) {
+    // Semantic version (e.g. "2.0.0"): use the major version as versionCode.
+    def majorVersion = skillsyncVersionCode.tokenize('.')[0].toInteger()
+    println "SkillSync: skillsyncVersionCode '${skillsyncVersionCode}' is a version name; using major version '${majorVersion}' as versionCode."
+    skillsyncVersionCode = majorVersion
+} else {
+    throw new GradleException(
+        "skillsyncVersionCode must be a non-negative integer or a semantic version like '2.0.0', " +
+        "but was '${skillsyncVersionCode}'. Set ORG_GRADLE_PROJECT_skillsyncVersionCode " +
+        "(or -PskillsyncVersionCode) accordingly."
+    )
+}
 
 /**
  * Release signing.
@@ -44,7 +65,11 @@ def releaseSigningReady = storeFilePath != null &&
 
 android {
     namespace = "com.skillsync.os"
-    compileSdk = rootProject.ext.compileSdkVersion
+    // compileSdk comes from the project's existing config (android/variables.gradle).
+    // API 36 is the level supported by the pinned AGP 8.13 / Capacitor 8 setup; the
+    // fallback keeps configuration from ever failing with "project ':app' does not
+    // specify compileSdk" if variables.gradle is unavailable.
+    compileSdk = rootProject.ext.has('compileSdkVersion') ? rootProject.ext.compileSdkVersion : 36
     defaultConfig {
         applicationId "com.skillsync.os"
         minSdkVersion rootProject.ext.minSdkVersion
