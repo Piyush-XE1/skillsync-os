@@ -641,3 +641,62 @@ html.atelier .gradient-mesh {
     ),
     linear-gradient(180deg, #1b1712, #131009);
 }
+
+/* ------------------------------------------------------------------ *
+ * Activity heatmap (GitHub-style contribution cells)
+ * ------------------------------------------------------------------ */
+.heat-cell {
+  display: block;
+  width: 11px;
+  height: 11px;
+  border-radius: 3px;
+  background: var(--heat-0, color-mix(in oklab, var(--foreground) 7%, transparent));
+  transition: background-color 150ms var(--ease-out-soft), transform 150ms var(--ease-out-soft);
+}
+.heat-cell:hover {
+  transform: scale(1.2);
+}
+.heat-cell[data-level="1"] {
+  background: color-mix(in oklab, var(--primary) 28%, transparent);
+}
+.heat-cell[data-level="2"] {
+  background: color-mix(in oklab, var(--primary) 52%, transparent);
+}
+.heat-cell[data-level="3"] {
+  background: color-mix(in oklab, var(--primary) 76%, transparent);
+}
+.heat-cell[data-level="4"] {
+  background: var(--primary);
+  box-shadow: 0 0 10px -2px var(--primary-glow);
+}
+html.light .heat-cell[data-level="4"] {
+  box-shadow: 0 1px 6px -2px color-mix(in oklab, var(--primary) 60%, transparent);
+}
+
+/* ------------------------------------------------------------------ *
+ * Resume print view: only the resume document survives printing.
+ * ------------------------------------------------------------------ */
+@media print {
+  body * {
+    visibility: hidden !important;
+  }
+  .resume-print,
+  .resume-print * {
+    visibility: visible !important;
+  }
+  .resume-print {
+    position: absolute !important;
+    inset: 0 !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    background: #fff !important;
+    color: #111 !important;
+    box-shadow: none !important;
+    border: none !important;
+  }
+  @page {
+    margin: 14mm 12mm;
+  }
+}

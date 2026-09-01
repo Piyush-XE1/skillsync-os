@@ -104,12 +104,16 @@ export const Route = createRootRoute({
         content: "Your personal growth dashboard: streaks, XP, focus and progress.",
       },
       { property: "og:type", content: "website" },
+      { property: "og:image", content: "/og.png" },
+      { property: "og:image:width", content: "1200" },
+      { property: "og:image:height", content: "630" },
       { name: "twitter:card", content: "summary_large_image" },
       { name: "twitter:title", content: "SkillSync" },
       {
         name: "twitter:description",
         content: "Your personal growth dashboard: streaks, XP, focus and progress.",
       },
+      { name: "twitter:image", content: "/og.png" },
     ],
     links: [
       { rel: "stylesheet", href: appCss },

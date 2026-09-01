@@ -2,62 +2,81 @@
 
 > **Your personal operating system for learning, building, planning, and becoming better.**
 
-SkillSync OS brings **learning, projects, planning, habits, notes, reminders, and personal progress** into one unified productivity system.
+SkillSync OS brings **learning, projects, planning, habits, notes, reminders, focus, academics and career** into one unified productivity system.
 
-Built with a **premium futuristic UI**, animated Aurora backgrounds, offline-first architecture, and a dedicated Android experience.
+Built with a **premium futuristic UI**, animated Aurora backgrounds, an offline-first architecture, gamification, and a dedicated Android experience.
 
 ## ✨ Features
 
-- 📊 **Dashboard** — Your central productivity overview
-- 🎓 **Learn** — Structured learning roadmaps & progress
-- 🚀 **Projects** — Manage and track things you're building
-- 📅 **Planner** — Turn goals into actionable plans
-- 🔥 **Habits** — Build consistency and track routines
-- 📝 **Notes** — Local-first notes with autosave
-- 🔔 **Notifications** — Reminders, alerts & weekly digest
-- 📱 **Android App** — Native Android experience with haptics & system navigation
-- 🌌 **Aurora UI** — Animated futuristic visual environment
-- ☀️ **Light Theme** — Minimalist alternative to the Aurora dark theme
-- ⚡ **Offline-First** — Core functionality designed to work without internet
+| Module | What it does |
+| --- | --- |
+| 📊 **Dashboard** | Streaks, XP, smart "Today" queue, continue-learning, habits, badges, daily insight |
+| 🎓 **Learn** | Structured roadmaps with phases, topics, checklists, resources & progress |
+| ⏱️ **Focus** | Pomodoro deep-work timer — sessions, sounds, XP and a focus streak |
+| 🎯 **CGPA Tracker** | Semester-wise SGPA, cumulative CGPA, grade breakdown & target simulator |
+| 📄 **Resume Builder** | Structured editor → print-ready ATS-friendly resume, JSON import/export |
+| 🔍 **Command Palette** | `/` or `⌘K` anywhere — search every roadmap, topic, note, project & task |
+| 🏆 **Achievements** | 18 badges with one-time XP awards, notifications & level-ups |
+| 🚀 **Projects** | Status, progress, deadlines, tasks and tech stack tracking |
+| 📅 **Planner** | Tasks with priorities, done timestamps and a smart Today queue |
+| 🔥 **Habits** | Check-ins, per-habit streaks (current & best) and consistency heatmaps |
+| 📝 **Notes** | Local-first notes with autosave |
+| 🔔 **Notifications** | Reminders, alerts, achievement pings & weekly digest |
+| 📈 **Analytics** | GitHub-style activity heatmap, learning velocity, focus & habit trends |
+| 🧾 **System** | Workspace diagnostics — schema version, storage, record counts |
+| 📱 **Android App** | Native Android experience with haptics & system navigation |
+| 🌌 **Aurora UI** | Animated futuristic visual environment (plus Light & Atelier themes) |
+| ⚡ **Offline-First** | Everything works without internet; data never leaves the device |
 
-## 🎨 Design
+## ⌨️ Keyboard shortcuts
 
-SkillSync OS uses a futuristic yet minimal visual language built around:
-
-**Deep dark surfaces · Aurora lighting · Purple/Blue/Cyan gradients · Glassmorphism · Smooth motion**
-
-The app also includes a dedicated minimalist Light theme rather than simply reversing the Dark theme.
+| Keys | Action |
+| --- | --- |
+| `/` or `⌘/Ctrl + K` | Open command palette (workspace-wide search) |
+| `F` | Jump to the Focus timer |
+| `↑↓` / `Enter` / `Esc` | Navigate results inside the palette |
 
 ## 🛠️ Tech Stack
 
 - **React 19** + **TypeScript** — UI and type safety
-- **TanStack Router + TanStack Start** — file-based routing, SSR-safe shell, server entry
+- **TanStack Router + TanStack Start** — file-based routing, SSR-safe shell
 - **Tailwind CSS v4** — design tokens and utilities
-- **Zustand** — local-first state, persisted to `localStorage`
-- **Zod** — runtime validation of every persisted record and backup/import payload
-- **Vitest** — unit tests for the domain/rule engine
+- **Zustand** — local-first store, persisted to `localStorage`
+- **Zod** — runtime validation of every persisted record, schema-versioned migrations (v1 → v7)
+- **Vitest** — 150+ unit & render tests for the domain/rule engines
 - **Capacitor** — native Android shell, haptics, notifications, file save/share
+- **GitHub Actions** — CI (typecheck · lint · tests · build) + signed APK releases
+
+## 🏗️ Architecture
+
+The app is a **local-first, schema-versioned data system** with a strict layering:
+
+```
+Routes (React, file-based)
+   │  read/write via typed actions
+Store (zustand + persist middleware)
+   │  partialize → only plain data is persisted
+Migrations (v1→v7, field-by-field salvage on corruption)
+   │  validate
+Schema (zod — single source of truth for every record)
+   │  derive
+Domain libs (progress, streaks, CGPA, focus, achievements, search…)
+```
+
+Every record that touches disk is validated by Zod on read and write. Backups are
+versioned envelopes; imports run the full migration chain. Full details in
+[docs/ARCHITECTURE.md](docs/ARCHITECTURE.md).
 
 ## 🚀 Getting started
 
 ```bash
-# Install dependencies (bun is the project's package manager)
 npm install         # or: bun install
 
-# Start the dev server (hot reload)
-npm run dev         # or: bun run dev
-
-# Typecheck
-npm run typecheck   # or: bun run typecheck
-
-# Lint
-npm run lint        # or: bun run lint
-
-# Run the test suite
-npm run test        # or: bun run test
-
-# Production build
-npm run build       # or: bun run build
+npm run dev         # start the dev server (hot reload)
+npm run typecheck   # strict TS check
+npm run lint        # eslint
+npm run test        # vitest suite (150+ tests)
+npm run build       # production build (TanStack Start + Nitro)
 ```
 
 > The app is **offline-first** and renders client-side (`ssr: false`), so all of
@@ -66,12 +85,12 @@ npm run build       # or: bun run build
 
 ## ✅ Testing
 
-The core domain logic — migrations, backup/restore, the notification rule
-engine, progress calculation, roadmap import, URL safety, and the app store —
-is unit-tested with [Vitest](https://vitest.dev/). Tests live beside the code
-(`src/**/*.test.ts`) and run in Node by default; browser-only tests (the store,
-`localStorage` state) opt into jsdom with a `// @vitest-environment jsdom`
-comment.
+Core domain logic — migrations, backup/restore, the notification rule engine,
+progress calculation, roadmap import, URL safety, streaks, CGPA math, focus
+stats, achievements, quotes, search and the app store — is unit-tested with
+Vitest. Tests live beside the code (`src/**/*.test.ts`) and run in Node by
+default; browser-only tests (the store, `localStorage` state, route rendering)
+opt into jsdom with a `// @vitest-environment jsdom` comment.
 
 ```bash
 npm run test            # run once
@@ -99,11 +118,7 @@ The SkillSync opening experience introduces the app through a cinematic logo seq
 
 **Energy → Orbit → Logo Formation → Brand Reveal → Dashboard**
 
-### Brand
-
-**SKILLSYNC OS**
-
-**ALIGN • CONNECT • ELEVATE**
+**SKILLSYNC OS** — **ALIGN • CONNECT • ELEVATE**
 
 The primary logo is a standalone S-shaped symbol representing synchronization, connection, alignment, and continuous growth.
 
@@ -117,23 +132,16 @@ Instead of using separate tools for every part of personal development, SkillSyn
 
 ## 🗺️ Roadmap
 
-- [x] Core productivity system
-- [x] Dashboard
-- [x] Learn
-- [x] Projects
-- [x] Planner
-- [x] Habits
-- [x] Notes
-- [x] Local notifications
-- [x] Android APK
-- [x] Android back navigation
-- [x] Native haptics
-- [x] Aurora UI
-- [x] Light theme
-- [x] Custom app opening experience
-- [x] Automated APK builds
-- [x] Unit test suite (Vitest)
-- [x] Automated CI (typecheck · lint · tests · build)
+- [x] Core productivity system · Dashboard · Learn · Projects · Planner · Habits · Notes
+- [x] Focus timer with XP & streaks
+- [x] CGPA tracker with target simulator
+- [x] Resume builder with print/PDF export
+- [x] Command palette with global keyboard shortcuts
+- [x] Achievements & gamification engine
+- [x] Activity heatmaps & learning velocity analytics
+- [x] Local notifications · Android APK · native haptics
+- [x] Schema-versioned migrations (v1 → v7) with corruption salvage
+- [x] Unit + render test suite (Vitest) · CI (typecheck · lint · tests · build)
 - [ ] Cloud backup & sync
 - [ ] Multi-device synchronization
 - [ ] Further Android integrations

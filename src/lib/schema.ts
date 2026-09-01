@@ -1,7 +1,7 @@
 import { z } from "zod";
 import { NotificationsStateSchema, createDefaultNotifications } from "./notifications/types";
 
-export const CURRENT_SCHEMA_VERSION = 6;
+export const CURRENT_SCHEMA_VERSION = 7;
 
 export const ChecklistItemSchema = z.object({
   id: z.string(),
@@ -35,6 +35,8 @@ export const TopicSchema = z.object({
   subtopics: z.array(SubtopicSchema).default([]),
   checklist: z.array(ChecklistItemSchema).default([]),
   createdAt: z.number(),
+  /** When the topic first reached 100% — powers activity history. */
+  completedAt: z.number().nullable().default(null),
 });
 
 export const PhaseSchema = z.object({
@@ -87,12 +89,18 @@ export const ProjectSchema = z.object({
   createdAt: z.number(),
 });
 
+export const PlannerPriority = z.enum(["low", "medium", "high"]);
+
 export const PlannerTaskSchema = z.object({
   id: z.string(),
   title: z.string(),
   date: z.string(),
   time: z.string().default(""),
   done: z.boolean().default(false),
+  /** Task priority drives the smart "Today" queue on the dashboard. */
+  priority: PlannerPriority.default("medium"),
+  /** When the task was checked off — powers activity history. */
+  doneAt: z.number().nullable().default(null),
   createdAt: z.number(),
 });
 
@@ -117,12 +125,21 @@ export const ProfileSchema = z.object({
 export const ModuleFlagsSchema = z.object({
   attendance: z.boolean().default(false),
   expenses: z.boolean().default(false),
+  focus: z.boolean().default(true),
+  cgpa: z.boolean().default(true),
+  resume: z.boolean().default(true),
 });
 
 export const PreferencesSchema = z.object({
   notifications: z.boolean().default(true),
   developerMode: z.boolean().default(false),
-  modules: ModuleFlagsSchema.default({ attendance: false, expenses: false }),
+  modules: ModuleFlagsSchema.default({
+    attendance: false,
+    expenses: false,
+    focus: true,
+    cgpa: true,
+    resume: true,
+  }),
   /**
    * The single source of truth for the app's appearance. "light" activates the
    * Minimalist Light visual system; every other value is a dark variant.
@@ -139,6 +156,12 @@ export const StatsSchema = z.object({
   level: z.number().default(1),
   streak: z.number().default(0),
   lastActive: z.string().default(""),
+  /** Lifetime XP earned (never decreases; xp never drops below 0). */
+  totalXp: z.number().default(0),
+  /** Timestamp of the first workspace creation (or schema adoption). */
+  joinedAt: z.number().default(0),
+  /** Achievement ids that have been unlocked (and awarded XP) already. */
+  achievements: z.array(z.string()).default([]),
 });
 
 export const SubjectSchema = z.object({
@@ -174,6 +197,151 @@ export const ExpensesSchema = z.object({
   transactions: z.array(TransactionSchema).default([]),
 });
 
+/* ------------------------------------------------------------------ *
+ * Focus (Pomodoro) module
+ * ------------------------------------------------------------------ */
+
+export const FocusMode = z.enum(["focus", "break"]);
+
+export const FocusSessionSchema = z.object({
+  id: z.string(),
+  /** Epoch ms when the timer started. */
+  startedAt: z.number(),
+  /** Planned minutes of the session (not wall-clock time). */
+  minutes: z.number().min(1),
+  mode: FocusMode.default("focus"),
+  /** Optional label of what the session was about. */
+  task: z.string().default(""),
+});
+
+export function createDefaultFocusSettings() {
+  return {
+    workMin: 25,
+    breakMin: 5,
+    longBreakMin: 15,
+    /** After how many focus sessions a long break is due. */
+    longBreakEvery: 4,
+    autoStartBreaks: false,
+    autoStartFocus: false,
+    sound: true,
+  };
+}
+
+export const FocusSettingsSchema = z.object({
+  workMin: z.number().min(1).max(180).default(25),
+  breakMin: z.number().min(1).max(60).default(5),
+  longBreakMin: z.number().min(1).max(60).default(15),
+  longBreakEvery: z.number().min(2).max(8).default(4),
+  autoStartBreaks: z.boolean().default(false),
+  autoStartFocus: z.boolean().default(false),
+  sound: z.boolean().default(true),
+});
+
+export const FocusSchema = z.object({
+  sessions: z.array(FocusSessionSchema).default([]),
+  settings: FocusSettingsSchema.default(() => createDefaultFocusSettings()),
+});
+
+/* ------------------------------------------------------------------ *
+ * CGPA module
+ * ------------------------------------------------------------------ */
+
+export const GRADE_KEYS = ["O", "A+", "A", "B+", "B", "C", "P", "F"] as const;
+
+export const CgpaSubjectSchema = z.object({
+  id: z.string(),
+  name: z.string(),
+  /** Course code, e.g. "CS-301". */
+  code: z.string().default(""),
+  credits: z.number().min(1).max(10).default(3),
+  grade: z.enum(GRADE_KEYS).default("O"),
+});
+
+export const CgpaSemesterSchema = z.object({
+  id: z.string(),
+  number: z.number().int().min(1).max(8),
+  subjects: z.array(CgpaSubjectSchema).default([]),
+});
+
+export const CgpaSchema = z.object({
+  semesters: z.array(CgpaSemesterSchema).default([]),
+});
+
+/* ------------------------------------------------------------------ *
+ * Resume module
+ * ------------------------------------------------------------------ */
+
+export const ResumeEducationSchema = z.object({
+  id: z.string(),
+  institution: z.string(),
+  degree: z.string(),
+  field: z.string().default(""),
+  start: z.string().default(""),
+  end: z.string().default(""),
+  score: z.string().default(""),
+});
+
+export const ResumeExperienceSchema = z.object({
+  id: z.string(),
+  role: z.string(),
+  company: z.string(),
+  start: z.string().default(""),
+  end: z.string().default(""),
+  current: z.boolean().default(false),
+  bullets: z.array(z.string()).default([]),
+});
+
+export const ResumeProjectSchema = z.object({
+  id: z.string(),
+  name: z.string(),
+  tech: z.string().default(""),
+  link: z.string().default(""),
+  bullets: z.array(z.string()).default([]),
+});
+
+export const ResumeCertificationSchema = z.object({
+  id: z.string(),
+  name: z.string(),
+  issuer: z.string().default(""),
+  year: z.string().default(""),
+});
+
+export function createDefaultResume(): ResumeData {
+  return {
+    name: "",
+    title: "",
+    email: "",
+    phone: "",
+    location: "",
+    website: "",
+    github: "",
+    linkedin: "",
+    summary: "",
+    skills: [],
+    education: [],
+    experience: [],
+    projects: [],
+    certifications: [],
+  };
+}
+
+export const ResumeSchema = z.object({
+  name: z.string().default(""),
+  title: z.string().default(""),
+  email: z.string().default(""),
+  phone: z.string().default(""),
+  location: z.string().default(""),
+  website: z.string().default(""),
+  github: z.string().default(""),
+  linkedin: z.string().default(""),
+  summary: z.string().default(""),
+  skills: z.array(z.string()).default([]),
+  education: z.array(ResumeEducationSchema).default([]),
+  experience: z.array(ResumeExperienceSchema).default([]),
+  projects: z.array(ResumeProjectSchema).default([]),
+  certifications: z.array(ResumeCertificationSchema).default([]),
+});
+
 export const AppDataSchema = z.object({
   schemaVersion: z.number(),
   roadmaps: z.array(RoadmapSchema).default([]),
@@ -186,14 +354,25 @@ export const AppDataSchema = z.object({
   preferences: PreferencesSchema.default({
     notifications: true,
     developerMode: false,
-    modules: { attendance: false, expenses: false },
+    modules: { attendance: false, expenses: false, focus: true, cgpa: true, resume: true },
     background: "aurora",
     haptics: true,
     hapticIntensity: "standard",
   }),
-  stats: StatsSchema.default({ xp: 0, level: 1, streak: 0, lastActive: "" }),
+  stats: StatsSchema.default({
+    xp: 0,
+    level: 1,
+    streak: 0,
+    lastActive: "",
+    totalXp: 0,
+    joinedAt: 0,
+    achievements: [],
+  }),
   attendance: AttendanceSchema.default({ subjects: [] }),
   expenses: ExpensesSchema.default({ transactions: [] }),
+  focus: FocusSchema.default({ sessions: [], settings: createDefaultFocusSettings() }),
+  cgpa: CgpaSchema.default({ semesters: [] }),
+  resume: ResumeSchema.default(() => createDefaultResume()),
   notifications: NotificationsStateSchema.default(() => createDefaultNotifications()),
 });
 
@@ -207,6 +386,7 @@ export type Note = z.infer<typeof NoteSchema>;
 export type Project = z.infer<typeof ProjectSchema>;
 export type ProjectTask = z.infer<typeof ProjectTaskSchema>;
 export type PlannerTask = z.infer<typeof PlannerTaskSchema>;
+export type PlannerPriority = z.infer<typeof PlannerPriority>;
 export type Habit = z.infer<typeof HabitSchema>;
 export type HabitLog = z.infer<typeof HabitLogSchema>;
 export type Profile = z.infer<typeof ProfileSchema>;
@@ -216,4 +396,13 @@ export type Subject = z.infer<typeof SubjectSchema>;
 export type Attendance = z.infer<typeof AttendanceSchema>;
 export type Transaction = z.infer<typeof TransactionSchema>;
 export type Expenses = z.infer<typeof ExpensesSchema>;
+export type FocusSession = z.infer<typeof FocusSessionSchema>;
+export type FocusSettings = z.infer<typeof FocusSettingsSchema>;
+export type CgpaSubject = z.infer<typeof CgpaSubjectSchema>;
+export type CgpaSemester = z.infer<typeof CgpaSemesterSchema>;
+export type ResumeData = z.infer<typeof ResumeSchema>;
+export type ResumeEducation = z.infer<typeof ResumeEducationSchema>;
+export type ResumeExperience = z.infer<typeof ResumeExperienceSchema>;
+export type ResumeProject = z.infer<typeof ResumeProjectSchema>;
+export type ResumeCertification = z.infer<typeof ResumeCertificationSchema>;
 export type AppData = z.infer<typeof AppDataSchema>;

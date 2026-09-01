@@ -22,6 +22,10 @@ import {
   GraduationCap,
   Wallet,
   Vibrate,
+  Timer,
+  Award,
+  FileText,
+  Trophy,
 } from "lucide-react";
 import { AppShell, AppFooter, PageHeader } from "@/components/layout/AppShell";
 import { Card, Chip, ProgressBar, SectionHeader } from "@/components/ui/primitives";
@@ -35,6 +39,8 @@ import { BACKGROUND_OPTIONS, type BackgroundStyle } from "@/components/layout/ba
 import { formatBytes } from "@/lib/backup";
 import { APP_VERSION } from "@/lib/version";
 import { haptics, hapticsSupported, type HapticIntensity } from "@/lib/haptics";
+import { allAchievements } from "@/lib/achievements";
+import { focusTotals } from "@/lib/focus";
 
 export const Route = createFileRoute("/profile/")({
   head: () => ({
@@ -82,6 +88,11 @@ function ProfilePage() {
   const updatePreferences = useAppStore((s) => s.updatePreferences);
   const exportJSON = useAppStore((s) => s.exportJSON);
   const resetAll = useAppStore((s) => s.resetAll);
+  const focusSessions = useAppStore((s) => s.focus.sessions);
+  // Computed per render (cheap: ~20 condition checks) so badges always reflect
+  // the latest state without unstable-selector subscription loops.
+  const achievements = allAchievements(useAppStore.getState() as never);
+  const focusTotal = focusTotals(focusSessions).totalMinutes;
 
   const [openProfile, setOpenProfile] = useState(false);
   const [nameDraft, setNameDraft] = useState("");
@@ -290,6 +301,43 @@ function ProfilePage() {
           </div>
         </Card>
 
+        {/* Achievements */}
+        <section className="space-y-3">
+          <SectionHeader title={`Badges · ${stats.achievements.length}/${achievements.length}`} />
+          <Card className="p-4">
+            <div className="grid grid-cols-4 gap-3 sm:grid-cols-6">
+              {achievements.map((a) => {
+                const unlocked = stats.achievements.includes(a.id);
+                return (
+                  <div
+                    key={a.id}
+                    title={unlocked ? a.description : `Locked — ${a.description}`}
+                    className={
+                      "flex flex-col items-center gap-1.5 rounded-2xl border p-2.5 text-center transition-all " +
+                      (unlocked
+                        ? "border-[var(--primary)]/25 bg-[color-mix(in_oklab,var(--primary)_8%,transparent)]"
+                        : "border-white/[0.05] bg-white/[0.01] opacity-45 grayscale")
+                    }
+                  >
+                    <span className="text-[22px] leading-none">{a.icon}</span>
+                    <span className="text-[10px] font-medium leading-tight">{a.title}</span>
+                  </div>
+                );
+              })}
+            </div>
+            <p className="mt-3 text-center text-[11.5px] text-muted-foreground">
+              {stats.achievements.length > 0 ? (
+                <span className="flex items-center justify-center gap-1.5">
+                  <Trophy className="h-3.5 w-3.5 text-[var(--warning)]" strokeWidth={2} />
+                  {stats.achievements.length} earned · keep shipping to unlock the rest
+                </span>
+              ) : (
+                "Complete topics, build habits and ship projects to earn your first badge."
+              )}
+            </p>
+          </Card>
+        </section>
+
         {/* Insights */}
         <section className="space-y-3">
           <SectionHeader title="Insights" />
@@ -350,6 +398,64 @@ function ProfilePage() {
                 <div className="text-[14px] font-semibold tracking-tight">Expense Manager</div>
                 <div className="text-[12px] text-muted-foreground">
                   Track monthly credits and debits
+                </div>
+              </div>
+              <ChevronRight className="h-4 w-4 text-muted-foreground/60" />
+            </Link>
+          ) : null}
+        </section>
+
+        {/* Career & Academics */}
+        <section className="space-y-3">
+          <SectionHeader title="Career & Academics" />
+          {preferences.modules.focus ? (
+            <Link
+              to="/focus"
+              className="card-surface flex items-center gap-3 p-4 transition-all active:scale-[0.98]"
+            >
+              <div className="flex h-11 w-11 items-center justify-center rounded-2xl gradient-primary">
+                <Timer className="h-5 w-5 text-white" strokeWidth={1.75} />
+              </div>
+              <div className="min-w-0 flex-1">
+                <div className="text-[14px] font-semibold tracking-tight">Focus timer</div>
+                <div className="text-[12px] text-muted-foreground">
+                  {focusTotal > 0
+                    ? `${focusTotal} minutes of deep work logged`
+                    : "Pomodoro sessions with XP rewards"}
+                </div>
+              </div>
+              <ChevronRight className="h-4 w-4 text-muted-foreground/60" />
+            </Link>
+          ) : null}
+          {preferences.modules.cgpa ? (
+            <Link
+              to="/cgpa"
+              className="card-surface flex items-center gap-3 p-4 transition-all active:scale-[0.98]"
+            >
+              <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-white/[0.04]">
+                <Award className="h-5 w-5 text-muted-foreground" strokeWidth={1.75} />
+              </div>
+              <div className="min-w-0 flex-1">
+                <div className="text-[14px] font-semibold tracking-tight">CGPA tracker</div>
+                <div className="text-[12px] text-muted-foreground">
+                  Semester-wise grades & target simulator
+                </div>
+              </div>
+              <ChevronRight className="h-4 w-4 text-muted-foreground/60" />
+            </Link>
+          ) : null}
+          {preferences.modules.resume ? (
+            <Link
+              to="/resume"
+              className="card-surface flex items-center gap-3 p-4 transition-all active:scale-[0.98]"
+            >
+              <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-white/[0.04]">
+                <FileText className="h-5 w-5 text-muted-foreground" strokeWidth={1.75} />
+              </div>
+              <div className="min-w-0 flex-1">
+                <div className="text-[14px] font-semibold tracking-tight">Resume builder</div>
+                <div className="text-[12px] text-muted-foreground">
+                  Print-ready resume with autosave
                 </div>
               </div>
               <ChevronRight className="h-4 w-4 text-muted-foreground/60" />

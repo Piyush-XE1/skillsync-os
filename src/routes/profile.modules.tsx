@@ -1,5 +1,5 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { ArrowLeft, GraduationCap, Wallet } from "lucide-react";
+import { ArrowLeft, GraduationCap, Wallet, Timer, Award, FileText } from "lucide-react";
 import { AppShell } from "@/components/layout/AppShell";
 import { Card } from "@/components/ui/primitives";
 import { Toggle } from "@/components/common/Toggle";
@@ -89,6 +89,27 @@ function ModulesPage() {
           desc="Log daily credits and debits with a monthly summary."
           on={modules.expenses}
           onChange={(v) => setModuleEnabled("expenses", v)}
+        />
+        <ModuleRow
+          icon={Timer}
+          title="Focus"
+          desc="Pomodoro deep-work timer with XP, streaks and session history."
+          on={modules.focus}
+          onChange={(v) => setModuleEnabled("focus", v)}
+        />
+        <ModuleRow
+          icon={Award}
+          title="CGPA Tracker"
+          desc="Semester-wise SGPA, cumulative CGPA and a target simulator."
+          on={modules.cgpa}
+          onChange={(v) => setModuleEnabled("cgpa", v)}
+        />
+        <ModuleRow
+          icon={FileText}
+          title="Resume Builder"
+          desc="Structured resume editor with a print-ready preview and PDF export."
+          on={modules.resume}
+          onChange={(v) => setModuleEnabled("resume", v)}
         />
       </div>
     </AppShell>

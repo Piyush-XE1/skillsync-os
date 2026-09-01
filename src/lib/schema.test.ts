@@ -22,10 +22,27 @@ describe("schema", () => {
     });
     expect(parsed.profile).toEqual({ name: "Learner", avatar: "" });
     expect(parsed.preferences.background).toBe("aurora");
-    expect(parsed.preferences.modules).toEqual({ attendance: false, expenses: false });
-    expect(parsed.stats).toEqual({ xp: 0, level: 1, streak: 0, lastActive: "" });
+    expect(parsed.preferences.modules).toEqual({
+      attendance: false,
+      expenses: false,
+      focus: true,
+      cgpa: true,
+      resume: true,
+    });
+    expect(parsed.stats).toEqual({
+      xp: 0,
+      level: 1,
+      streak: 0,
+      lastActive: "",
+      totalXp: 0,
+      joinedAt: 0,
+      achievements: [],
+    });
     expect(parsed.attendance).toEqual({ subjects: [] });
     expect(parsed.expenses).toEqual({ transactions: [] });
+    expect(parsed.focus.sessions).toEqual([]);
+    expect(parsed.cgpa.semesters).toEqual([]);
+    expect(parsed.resume.skills).toEqual([]);
     expect(parsed.notifications.items).toEqual([]);
   });
 

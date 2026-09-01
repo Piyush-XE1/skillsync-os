@@ -4,12 +4,17 @@ import { CURRENT_SCHEMA_VERSION, type AppData } from "@/lib/schema";
 import { createInitialData } from "@/lib/seed";
 
 describe("migrate", () => {
+  /** Seed timestamps are non-deterministic; normalize them for equality checks. */
+  function normalize(data: AppData): AppData {
+    return { ...data, stats: { ...data.stats, joinedAt: 0 } };
+  }
+
   it("returns the seed for null / undefined / non-object input", () => {
     const seed = createInitialData();
-    expect(migrate(null)).toEqual(seed);
-    expect(migrate(undefined)).toEqual(seed);
-    expect(migrate("hi")).toEqual(seed);
-    expect(migrate(42)).toEqual(seed);
+    expect(normalize(migrate(null))).toEqual(normalize(seed));
+    expect(normalize(migrate(undefined))).toEqual(normalize(seed));
+    expect(normalize(migrate("hi"))).toEqual(normalize(seed));
+    expect(normalize(migrate(42))).toEqual(normalize(seed));
   });
 
   it("returns a valid AppData with the current schema version", () => {
@@ -33,7 +38,34 @@ describe("migrate", () => {
     expect(result.habits[0].startDate).toBeTruthy();
     expect(result.attendance).toEqual({ subjects: [] });
     expect(result.expenses).toEqual({ transactions: [] });
-    expect(result.preferences.modules).toEqual({ attendance: false, expenses: false });
+    expect(result.preferences.modules).toEqual({
+      attendance: false,
+      expenses: false,
+      focus: true,
+      cgpa: true,
+      resume: true,
+    });
+  });
+
+  it("migrates v6 data to v7: stats gains totalXp / joinedAt / achievements", () => {
+    const v6 = {
+      schemaVersion: 6,
+      stats: { xp: 130, level: 2, streak: 3, lastActive: "2026-08-30" },
+      planner: [{ id: "p1", title: "Old task", date: "2026-09-01", createdAt: 1 }],
+    };
+    const result = migrate(v6);
+    expect(result.schemaVersion).toBe(CURRENT_SCHEMA_VERSION);
+    expect(result.stats.totalXp).toBe(0);
+    expect(result.stats.joinedAt).toBeGreaterThan(0);
+    expect(result.stats.achievements).toEqual([]);
+    expect(result.planner[0].priority).toBe("medium");
+    expect(result.planner[0].doneAt).toBeNull();
+    expect(result.focus.sessions).toEqual([]);
+    expect(result.cgpa.semesters).toEqual([]);
+    expect(result.resume.experience).toEqual([]);
+    // Existing stats survive untouched.
+    expect(result.stats.xp).toBe(130);
+    expect(result.stats.streak).toBe(3);
   });
 
   it("migrates legacy theme light → background light", () => {
