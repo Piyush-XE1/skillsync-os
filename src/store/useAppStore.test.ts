@@ -2,6 +2,7 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
 import { useAppStore, STORAGE_KEY } from "@/store/useAppStore";
 import { createInitialData } from "@/lib/seed";
+import { CURRENT_SCHEMA_VERSION } from "@/lib/schema";
 import { HISTORY_LIMIT } from "@/lib/notifications/types";
 
 function resetStore() {
@@ -141,7 +142,7 @@ describe("useAppStore", () => {
   it("exportJSON produces a schema-valid payload that importJSON accepts", () => {
     const json = useAppStore.getState().exportJSON();
     const parsed = JSON.parse(json);
-    expect(parsed.schemaVersion).toBe(6);
+    expect(parsed.schemaVersion).toBe(CURRENT_SCHEMA_VERSION);
     const res = useAppStore.getState().importJSON(json);
     expect(res).toEqual({ ok: true });
   });
@@ -160,5 +161,116 @@ describe("useAppStore", () => {
     const s = useAppStore.getState();
     expect(s.notes.length).toBe(0);
     expect(localStorage.getItem(STORAGE_KEY)).not.toBeNull();
+  });
+});
+
+describe("useAppStore — v7 gamification & modules", () => {
+  beforeEach(() => {
+    localStorage.clear();
+    const data = createInitialData();
+    useAppStore.setState({ ...data, _hydrated: true });
+  });
+
+  it("awards XP and stamps completedAt when a topic crosses 100%", () => {
+    const roadmap = useAppStore.getState().roadmaps[0];
+    const phase = roadmap.phases[0];
+    const topic = phase.topics[0];
+    // Give the topic a single checklist item
+    useAppStore
+      .getState()
+      .addChecklistItem(
+        { roadmapId: roadmap.id, phaseId: phase.id, topicId: topic.id },
+        "Read the docs",
+      );
+    const before = useAppStore.getState().stats.xp;
+    useAppStore
+      .getState()
+      .updateChecklistItem(
+        { roadmapId: roadmap.id, phaseId: phase.id, topicId: topic.id },
+        useAppStore.getState().roadmaps[0].phases[0].topics[0].checklist[0].id,
+        { done: true },
+      );
+    const s = useAppStore.getState();
+    expect(s.stats.xp).toBe(before + 15);
+    expect(s.stats.totalXp).toBe(s.stats.xp);
+    const updated = s.roadmaps[0].phases[0].topics[0];
+    expect(updated.completedAt).not.toBeNull();
+  });
+
+  it("does not double-award XP when re-completing an already-done topic", () => {
+    const { roadmaps, stats } = useAppStore.getState();
+    const topic = roadmaps[0].phases[0].topics[0];
+    useAppStore
+      .getState()
+      .setTopicComplete(roadmaps[0].id, roadmaps[0].phases[0].id, topic.id, true);
+    const afterFirst = useAppStore.getState().stats.xp;
+    expect(afterFirst).toBe(stats.xp + 15);
+    useAppStore
+      .getState()
+      .setTopicComplete(roadmaps[0].id, roadmaps[0].phases[0].id, topic.id, true);
+    expect(useAppStore.getState().stats.xp).toBe(afterFirst);
+  });
+
+  it("awards XP when a planner task is checked off", () => {
+    const before = useAppStore.getState().stats.xp;
+    useAppStore.getState().addPlannerTask({ title: "Ship it", date: "2026-09-01" });
+    const id = useAppStore.getState().planner[0].id;
+    useAppStore.getState().updatePlannerTask(id, { done: true });
+    const s = useAppStore.getState();
+    expect(s.stats.xp).toBe(before + 5);
+    expect(s.planner[0].doneAt).not.toBeNull();
+  });
+
+  it("awards XP when a project ships", () => {
+    const before = useAppStore.getState().stats.xp;
+    const project = useAppStore.getState().addProject({ title: "SkillSync" });
+    useAppStore.getState().updateProject(project.id, { status: "done" });
+    expect(useAppStore.getState().stats.xp).toBe(before + 40);
+    // Re-saving the same state must not re-award.
+    useAppStore.getState().updateProject(project.id, { status: "done" });
+    expect(useAppStore.getState().stats.xp).toBe(before + 40);
+  });
+
+  it("records focus sessions, awards XP and tracks totals", () => {
+    const before = useAppStore.getState().stats.xp;
+    useAppStore.getState().addFocusSession({ minutes: 25, mode: "focus", task: "DSA" });
+    useAppStore.getState().addFocusSession({ minutes: 5, mode: "break" });
+    const s = useAppStore.getState();
+    expect(s.focus.sessions.length).toBe(2);
+    expect(s.stats.xp).toBe(before + 25);
+    expect(s.stats.streak).toBe(1);
+  });
+
+  it("unlocks achievements exactly once and awards XP per unlock", () => {
+    const before = useAppStore.getState().stats.xp;
+    const unlocked = useAppStore.getState().unlockAchievements(["first-topic", "first-habit"]);
+    expect(unlocked).toEqual(["first-topic", "first-habit"]);
+    expect(useAppStore.getState().stats.xp).toBe(before + 50);
+    expect(useAppStore.getState().unlockAchievements(["first-topic", "first-habit"])).toEqual([]);
+    expect(useAppStore.getState().stats.xp).toBe(before + 50);
+  });
+
+  it("manages CGPA semesters and subjects", () => {
+    useAppStore.getState().addCgpaSemester(5);
+    const semId = useAppStore.getState().cgpa.semesters[0].id;
+    useAppStore.getState().addCgpaSubject(semId, { name: "DBMS", credits: 4, grade: "A+" });
+    useAppStore.getState().addCgpaSubject(semId, { name: "OS", credits: 3, grade: "O" });
+    expect(useAppStore.getState().cgpa.semesters[0].subjects.length).toBe(2);
+    useAppStore
+      .getState()
+      .deleteCgpaSubject(semId, useAppStore.getState().cgpa.semesters[0].subjects[0].id);
+    expect(useAppStore.getState().cgpa.semesters[0].subjects.length).toBe(1);
+    useAppStore.getState().deleteCgpaSemester(semId);
+    expect(useAppStore.getState().cgpa.semesters.length).toBe(0);
+  });
+
+  it("persists resume edits", () => {
+    useAppStore.getState().updateResume({
+      name: "Ada Lovelace",
+      title: "Software Engineer",
+      skills: ["TypeScript", "React"],
+    });
+    expect(useAppStore.getState().resume.name).toBe("Ada Lovelace");
+    expect(useAppStore.getState().resume.skills).toEqual(["TypeScript", "React"]);
   });
 });

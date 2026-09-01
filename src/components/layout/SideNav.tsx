@@ -13,9 +13,14 @@ import {
   User,
   PanelLeftClose,
   PanelLeftOpen,
+  Timer,
+  Award,
+  FileText,
+  Search,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { haptics } from "@/lib/haptics";
+import { useAppStore } from "@/store/useAppStore";
 
 type Item = {
   to:
@@ -26,20 +31,31 @@ type Item = {
     | "/attendance"
     | "/habits"
     | "/expenses"
+    | "/focus"
+    | "/cgpa"
+    | "/resume"
+    | "/search"
     | "/profile";
   label: string;
   icon: typeof LayoutDashboard;
   exact?: boolean;
+  /** Module flag that gates this entry. */
+  module?: "attendance" | "expenses" | "focus" | "cgpa" | "resume";
+  kbd?: string;
 };
 
 const items: Item[] = [
   { to: "/", label: "Dashboard", icon: LayoutDashboard, exact: true },
   { to: "/learn", label: "Learn", icon: GraduationCap },
+  { to: "/focus", label: "Focus", icon: Timer, module: "focus", kbd: "F" },
   { to: "/projects", label: "Projects", icon: FolderKanban },
   { to: "/planner", label: "Planner", icon: CalendarRange },
-  { to: "/attendance", label: "Attendance", icon: CalendarCheck },
+  { to: "/cgpa", label: "CGPA", icon: Award, module: "cgpa" },
+  { to: "/attendance", label: "Attendance", icon: CalendarCheck, module: "attendance" },
   { to: "/habits", label: "Habits", icon: Flame },
-  { to: "/expenses", label: "Expenses", icon: Wallet },
+  { to: "/expenses", label: "Expenses", icon: Wallet, module: "expenses" },
+  { to: "/resume", label: "Resume", icon: FileText, module: "resume" },
+  { to: "/search", label: "Search", icon: Search, kbd: "⌘K" },
   { to: "/profile", label: "Profile", icon: User },
 ];
 
@@ -57,10 +73,13 @@ function readCollapsed(): boolean {
 /** Permanent, collapsible sidebar. Rendered from `lg` up only. */
 export function SideNav() {
   const pathname = useRouterState({ select: (s) => s.location.pathname });
+  const modules = useAppStore((s) => s.preferences.modules);
   // Lazy initial state: AppShell remounts on every navigation, so reading the
   // persisted value in an effect made the sidebar flash expanded for a frame
   // on every route change. Initializing synchronously keeps it stable.
   const [collapsed, setCollapsed] = useState(readCollapsed);
+
+  const visible = items.filter((item) => !item.module || modules[item.module]);
 
   function toggle() {
     setCollapsed((c) => {
@@ -117,7 +136,7 @@ export function SideNav() {
       </div>
 
       <nav className="flex min-h-0 flex-1 flex-col gap-1 overflow-y-auto no-scrollbar">
-        {items.map((item) => {
+        {visible.map((item) => {
           const active = item.exact
             ? pathname === item.to
             : pathname === item.to || pathname.startsWith(item.to + "/");
@@ -143,9 +162,16 @@ export function SideNav() {
                 strokeWidth={active ? 2.25 : 1.75}
               />
               {collapsed ? null : (
-                <span className="truncate text-[13.5px] font-medium tracking-tight">
-                  {item.label}
-                </span>
+                <>
+                  <span className="truncate text-[13.5px] font-medium tracking-tight">
+                    {item.label}
+                  </span>
+                  {item.kbd ? (
+                    <kbd className="ml-auto rounded border border-white/[0.08] bg-white/[0.03] px-1.5 py-0.5 text-[9.5px] font-medium text-muted-foreground/70">
+                      {item.kbd}
+                    </kbd>
+                  ) : null}
+                </>
               )}
               {active ? (
                 <span className="absolute inset-y-2 left-0 w-[2px] rounded-full bg-[var(--primary)]" />

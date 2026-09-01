@@ -1,17 +1,20 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useMemo } from "react";
-import { ArrowLeft, Flame } from "lucide-react";
+import { ArrowLeft, Flame, Timer, TrendingDown, TrendingUp, Zap } from "lucide-react";
 import { AppShell } from "@/components/layout/AppShell";
-import { Card, ProgressBar, SectionHeader } from "@/components/ui/primitives";
+import { Card, CircularProgress, ProgressBar, SectionHeader } from "@/components/ui/primitives";
+import { Heatmap, type HeatCell } from "@/components/common/Heatmap";
 import { useAppStore, useHydrated } from "@/store/useAppStore";
 import { roadmapPct } from "@/lib/progress";
 import { todayISO, addDaysISO } from "@/lib/date";
+import { minutesByDay, focusTotals, focusStreak } from "@/lib/focus";
+import { habitStreak } from "@/lib/habit-streaks";
 
 export const Route = createFileRoute("/analytics")({
   head: () => ({
     meta: [
       { title: "Analytics — SkillSync" },
-      { name: "description", content: "Learning, projects and habit trends." },
+      { name: "description", content: "Learning, projects, focus and habit trends." },
       { property: "og:title", content: "Analytics — SkillSync" },
       { property: "og:description", content: "Growth, measured." },
       { property: "og:type", content: "website" },
@@ -21,13 +24,16 @@ export const Route = createFileRoute("/analytics")({
   component: AnalyticsPage,
 });
 
+const ACTIVITY_DAYS = 90;
+
 function AnalyticsPage() {
   const hydrated = useHydrated();
-  const roadmaps = useAppStore((s) => s.roadmaps);
-  const projects = useAppStore((s) => s.projects);
-  const habits = useAppStore((s) => s.habits);
-  const habitLogs = useAppStore((s) => s.habitLogs);
-  const stats = useAppStore((s) => s.stats);
+  const data = useAppStore((s) => s);
+  const roadmaps = data.roadmaps;
+  const projects = data.projects;
+  const habits = data.habits;
+  const habitLogs = data.habitLogs;
+  const stats = data.stats;
 
   const overallLearning = useMemo(
     () =>
@@ -45,15 +51,69 @@ function AnalyticsPage() {
     [projects],
   );
 
-  const last7 = useMemo(
-    () => Array.from({ length: 7 }).map((_, i) => addDaysISO(todayISO(), -6 + i)),
-    [],
-  );
-  const habitBars = last7.map((d) => {
-    const done = habitLogs.filter((l) => l.date === d).length;
-    const pct = habits.length > 0 ? (done / habits.length) * 100 : 0;
-    return { d, pct };
-  });
+  /* ---------------------------------------------------------- activity -- */
+  const activity = useMemo(() => {
+    const perDay = new Map<string, number>();
+    const bump = (dateISO: string, weight: number) =>
+      perDay.set(dateISO, (perDay.get(dateISO) ?? 0) + weight);
+    for (const l of habitLogs) bump(l.date, 2);
+    for (const s of data.focus.sessions) bump(todayISO(new Date(s.startedAt)), 2);
+    for (const t of data.planner) if (t.doneAt) bump(todayISO(new Date(t.doneAt)), 2);
+    for (const r of roadmaps)
+      for (const p of r.phases)
+        for (const t of p.topics) if (t.completedAt) bump(todayISO(new Date(t.completedAt)), 4);
+
+    const today = todayISO();
+    const cells: HeatCell[] = Array.from({ length: ACTIVITY_DAYS }).map((_, i) => {
+      const date = addDaysISO(today, -(ACTIVITY_DAYS - 1 - i));
+      const count = perDay.get(date) ?? 0;
+      const level = count === 0 ? 0 : count <= 2 ? 1 : count <= 5 ? 2 : count <= 8 ? 3 : 4;
+      return { date, level };
+    });
+    return { cells, total: [...perDay.values()].reduce((a, b) => a + b, 0) };
+  }, [data.focus.sessions, data.planner, habitLogs, roadmaps]);
+
+  /* -------------------------------------------------------- velocity ---- */
+  const topicsDoneDates = useMemo(() => {
+    const dates: string[] = [];
+    for (const r of roadmaps)
+      for (const p of r.phases)
+        for (const t of p.topics) if (t.completedAt) dates.push(todayISO(new Date(t.completedAt)));
+    return dates;
+  }, [roadmaps]);
+
+  const velocity = useMemo(() => {
+    const today = todayISO();
+    const since = (from: number) =>
+      topicsDoneDates.filter((d) => d >= addDaysISO(today, from) && d <= today).length;
+    const last7 = since(-6);
+    const prev7 = since(-13) - last7;
+    const delta = last7 - prev7;
+    return { last7, prev7, delta };
+  }, [topicsDoneDates]);
+
+  /* ------------------------------------------------------------ focus --- */
+  const focusWeek = useMemo(() => minutesByDay(data.focus.sessions, 14), [data.focus.sessions]);
+  const focus = useMemo(() => focusTotals(data.focus.sessions), [data.focus.sessions]);
+  const deepStreak = useMemo(() => focusStreak(data.focus.sessions), [data.focus.sessions]);
+
+  const habitCells = useMemo(() => {
+    const today = todayISO();
+    const days = 70; // 10 weeks
+    const dates = Array.from({ length: days }).map((_, i) => addDaysISO(today, -(days - 1 - i)));
+    const dateSet = new Set(habitLogs.map((l) => l.date));
+    return habits.slice(0, 6).map((h) => {
+      const mine = new Set(habitLogs.filter((l) => l.habitId === h.id).map((l) => l.date));
+      return {
+        habit: h,
+        streak: habitStreak(h.id, habitLogs),
+        cells: dates.map((date) => ({ date, level: mine.has(date) ? 3 : 0 })) as HeatCell[],
+        days: dates.length,
+      };
+    });
+  }, [habitLogs, habits]);
+
+  const xpToNext = stats.xp % 100;
 
   return (
     <AppShell>
@@ -106,17 +166,145 @@ function AnalyticsPage() {
               <Flame className="h-4 w-4 text-[var(--warning)]" />
             </div>
           </Card>
-          <Card className="p-4">
-            <div className="text-[12px] text-muted-foreground">XP</div>
-            <div className="mt-2 text-[28px] font-semibold tracking-tight">
-              {hydrated ? stats.xp : 0}
-            </div>
-            <div className="mt-1 text-[11px] text-muted-foreground">
-              Level {hydrated ? stats.level : 0}
+          <Card className="flex items-center gap-4 p-4">
+            <CircularProgress
+              value={xpToNext}
+              size={64}
+              stroke={6}
+              label={<span className="text-[13px]">{hydrated ? stats.level : "—"}</span>}
+            />
+            <div>
+              <div className="text-[12px] text-muted-foreground">Level progress</div>
+              <div className="mt-1 flex items-center gap-1.5 text-[16px] font-semibold tracking-tight">
+                <Zap className="h-3.5 w-3.5 text-[var(--primary)]" strokeWidth={2} />
+                {hydrated ? stats.xp : 0} XP
+              </div>
             </div>
           </Card>
         </div>
 
+        {/* Activity heatmap */}
+        <section className="space-y-3 lg:col-span-full">
+          <SectionHeader title={`Activity (${ACTIVITY_DAYS} days)`} />
+          <Card className="p-4">
+            <div className="mb-3 flex items-center justify-between">
+              <span className="text-[12.5px] text-muted-foreground">
+                {hydrated ? `${activity.total} actions logged` : "—"} · habits, focus, topics &
+                tasks
+              </span>
+              <div className="flex items-center gap-1">
+                <span className="text-[10px] text-muted-foreground">Less</span>
+                {[0, 1, 2, 3, 4].map((l) => (
+                  <span key={l} data-level={l} className="heat-cell" />
+                ))}
+                <span className="text-[10px] text-muted-foreground">More</span>
+              </div>
+            </div>
+            <Heatmap cells={activity.cells} weeks={Math.ceil(ACTIVITY_DAYS / 7)} />
+          </Card>
+        </section>
+
+        {/* Velocity */}
+        <section className="space-y-3">
+          <SectionHeader title="Learning velocity" />
+          <Card className="space-y-3 p-5">
+            <div className="flex items-baseline justify-between">
+              <span className="text-[32px] font-semibold tracking-tight">
+                {hydrated ? velocity.last7 : "—"}
+              </span>
+              <span className="text-[12px] text-muted-foreground">topics this week</span>
+            </div>
+            <div
+              className={
+                "flex items-center gap-1.5 text-[12.5px] font-medium " +
+                (velocity.delta >= 0 ? "text-success" : "text-danger")
+              }
+            >
+              {velocity.delta >= 0 ? (
+                <TrendingUp className="h-3.5 w-3.5" strokeWidth={2} />
+              ) : (
+                <TrendingDown className="h-3.5 w-3.5" strokeWidth={2} />
+              )}
+              {velocity.delta === 0
+                ? "Same pace as last week"
+                : `${Math.abs(velocity.delta)} ${velocity.delta >= 0 ? "more" : "fewer"} than last week`}
+            </div>
+            <ProgressBar
+              value={
+                velocity.prev7 > 0
+                  ? (velocity.last7 / Math.max(1, velocity.prev7)) * 100
+                  : velocity.last7 > 0
+                    ? 100
+                    : 0
+              }
+              tone="gradient"
+            />
+            <div className="flex justify-between text-[11px] text-muted-foreground">
+              <span>Last week: {velocity.prev7}</span>
+              <span>This week: {velocity.last7}</span>
+            </div>
+          </Card>
+        </section>
+
+        {/* Focus */}
+        <section className="space-y-3">
+          <SectionHeader title="Deep work (14 days)" />
+          <Card className="p-4">
+            <div className="flex h-24 items-end gap-1">
+              {focusWeek.map(({ date, minutes }) => (
+                <div key={date} className="group relative flex flex-1 flex-col items-center">
+                  <div
+                    className="w-full rounded-md bg-gradient-to-t from-[var(--primary)]/40 to-[var(--primary)]/90"
+                    style={{
+                      height: `${minutes > 0 ? Math.max(5, (minutes / 120) * 80) : 3}px`,
+                      opacity: minutes > 0 ? 1 : 0.25,
+                    }}
+                    title={`${minutes}m`}
+                  />
+                </div>
+              ))}
+            </div>
+            <div className="mt-3 flex items-center justify-between text-[11.5px] text-muted-foreground">
+              <span className="flex items-center gap-1.5">
+                <Timer className="h-3.5 w-3.5" strokeWidth={2} />
+                {focus.todayMinutes}m today · {focus.totalMinutes}m total
+              </span>
+              <span className="flex items-center gap-1.5">
+                <Flame className="h-3.5 w-3.5 text-[var(--warning)]" strokeWidth={2} />
+                {deepStreak} day streak
+              </span>
+            </div>
+          </Card>
+        </section>
+
+        {/* Habit consistency */}
+        <section className="space-y-3 lg:col-span-full">
+          <SectionHeader title="Habit consistency (10 weeks)" />
+          {habits.length === 0 ? (
+            <Card className="p-6 text-center text-[12.5px] text-muted-foreground">
+              No habits yet.
+            </Card>
+          ) : (
+            <Card className="divide-y divide-white/[0.05] p-4">
+              {habitCells.map(({ habit, streak, cells }) => (
+                <div key={habit.id} className="flex items-center gap-3 py-2.5 first:pt-1 last:pb-1">
+                  <div className="flex w-28 shrink-0 items-center gap-2">
+                    <span>{habit.emoji}</span>
+                    <div className="min-w-0">
+                      <div className="truncate text-[12.5px] font-medium">{habit.title}</div>
+                      <div className="text-[10.5px] text-muted-foreground">
+                        {streak.current} current · {streak.best} best
+                      </div>
+                    </div>
+                  </div>
+                  <Heatmap cells={cells} weeks={10} className="min-w-0 flex-1 justify-end" />
+                </div>
+              ))}
+            </Card>
+          )}
+        </section>
+
+        {/* Roadmaps */}
         <section className="space-y-3">
           <SectionHeader title="Roadmap completion" />
           <Card>
@@ -141,23 +329,6 @@ function AnalyticsPage() {
                   );
                 })
               )}
-            </div>
-          </Card>
-        </section>
-
-        <section className="space-y-3">
-          <SectionHeader title="Habit consistency (7 days)" />
-          <Card>
-            <div className="grid grid-cols-7 items-end gap-2 pt-2">
-              {habitBars.map(({ d, pct }) => (
-                <div key={d} className="flex flex-col items-center gap-2">
-                  <div
-                    className="w-full rounded-md bg-gradient-to-t from-[var(--primary)]/40 to-[var(--primary)]/80"
-                    style={{ height: `${8 + pct * 0.6}px` }}
-                  />
-                  <span className="text-[10px] text-muted-foreground">{new Date(d).getDate()}</span>
-                </div>
-              ))}
             </div>
           </Card>
         </section>

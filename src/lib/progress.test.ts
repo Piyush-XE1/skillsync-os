@@ -34,6 +34,7 @@ function topic(over: Partial<Topic>): Topic {
     subtopics: [],
     checklist: [],
     createdAt: 0,
+    completedAt: null,
     ...over,
   };
 }

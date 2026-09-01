@@ -34,6 +34,7 @@ function seed() {
                 { id: "c2", title: "Operators", done: false, createdAt: 1 },
               ],
               createdAt: 1,
+              completedAt: null,
             },
           ],
           createdAt: 1,
@@ -46,6 +47,7 @@ function seed() {
               id: "t2",
               title: "Functions",
               done: false,
+              completedAt: null,
               notes: "",
               resources: [],
               subtopics: [

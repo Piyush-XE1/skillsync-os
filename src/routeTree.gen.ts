@@ -12,7 +12,9 @@ import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as AnalyticsRouteImport } from './routes/analytics'
 import { Route as AttendanceRouteImport } from './routes/attendance'
+import { Route as CgpaRouteImport } from './routes/cgpa'
 import { Route as ExpensesRouteImport } from './routes/expenses'
+import { Route as FocusRouteImport } from './routes/focus'
 import { Route as HabitsRouteImport } from './routes/habits'
 import { Route as LearnRouteImport } from './routes/learn'
 import { Route as NotesRouteImport } from './routes/notes'
@@ -20,6 +22,8 @@ import { Route as NotificationsRouteImport } from './routes/notifications'
 import { Route as PlannerRouteImport } from './routes/planner'
 import { Route as ProfileRouteImport } from './routes/profile'
 import { Route as ProjectsRouteImport } from './routes/projects'
+import { Route as ResumeRouteImport } from './routes/resume'
+import { Route as SearchRouteImport } from './routes/search'
 import { Route as SitemapDotxmlRouteImport } from './routes/sitemap[.]xml'
 import { Route as AttendanceIndexRouteImport } from './routes/attendance.index'
 import { Route as AttendanceSemesterRouteImport } from './routes/attendance.$semester'
@@ -34,6 +38,7 @@ import { Route as ProfileIndexRouteImport } from './routes/profile.index'
 import { Route as ProfileBackupRouteImport } from './routes/profile.backup'
 import { Route as ProfileModulesRouteImport } from './routes/profile.modules'
 import { Route as ProfileNotificationsRouteImport } from './routes/profile.notifications'
+import { Route as ProfileSystemRouteImport } from './routes/profile.system'
 import { Route as LearnRoadmapIdTopicIdRouteImport } from './routes/learn.$roadmapId_.$topicId'
 import { Route as NotesNoteIdEditRouteImport } from './routes/notes.$noteId_.edit'
 
@@ -52,9 +57,19 @@ const AttendanceRoute = AttendanceRouteImport.update({
   path: '/attendance',
   getParentRoute: () => rootRouteImport,
 } as any)
+const CgpaRoute = CgpaRouteImport.update({
+  id: '/cgpa',
+  path: '/cgpa',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ExpensesRoute = ExpensesRouteImport.update({
   id: '/expenses',
   path: '/expenses',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const FocusRoute = FocusRouteImport.update({
+  id: '/focus',
+  path: '/focus',
   getParentRoute: () => rootRouteImport,
 } as any)
 const HabitsRoute = HabitsRouteImport.update({
@@ -90,6 +105,16 @@ const ProfileRoute = ProfileRouteImport.update({
 const ProjectsRoute = ProjectsRouteImport.update({
   id: '/projects',
   path: '/projects',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ResumeRoute = ResumeRouteImport.update({
+  id: '/resume',
+  path: '/resume',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const SearchRoute = SearchRouteImport.update({
+  id: '/search',
+  path: '/search',
   getParentRoute: () => rootRouteImport,
 } as any)
 const SitemapDotxmlRoute = SitemapDotxmlRouteImport.update({
@@ -162,6 +187,11 @@ const ProfileNotificationsRoute = ProfileNotificationsRouteImport.update({
   path: '/notifications',
   getParentRoute: () => ProfileRoute,
 } as any)
+const ProfileSystemRoute = ProfileSystemRouteImport.update({
+  id: '/system',
+  path: '/system',
+  getParentRoute: () => ProfileRoute,
+} as any)
 const LearnRoadmapIdTopicIdRoute = LearnRoadmapIdTopicIdRouteImport.update({
   id: '/$roadmapId_/$topicId',
   path: '/$roadmapId/$topicId',
@@ -177,7 +207,9 @@ export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/analytics': typeof AnalyticsRoute
   '/attendance': typeof AttendanceRouteWithChildren
+  '/cgpa': typeof CgpaRoute
   '/expenses': typeof ExpensesRouteWithChildren
+  '/focus': typeof FocusRoute
   '/habits': typeof HabitsRouteWithChildren
   '/learn': typeof LearnRouteWithChildren
   '/notes': typeof NotesRouteWithChildren
@@ -185,6 +217,8 @@ export interface FileRoutesByFullPath {
   '/planner': typeof PlannerRoute
   '/profile': typeof ProfileRouteWithChildren
   '/projects': typeof ProjectsRoute
+  '/resume': typeof ResumeRoute
+  '/search': typeof SearchRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
   '/attendance/$semester': typeof AttendanceSemesterRoute
   '/habits/$habitId': typeof HabitsHabitIdRoute
@@ -193,6 +227,7 @@ export interface FileRoutesByFullPath {
   '/profile/backup': typeof ProfileBackupRoute
   '/profile/modules': typeof ProfileModulesRoute
   '/profile/notifications': typeof ProfileNotificationsRoute
+  '/profile/system': typeof ProfileSystemRoute
   '/attendance/': typeof AttendanceIndexRoute
   '/expenses/': typeof ExpensesIndexRoute
   '/habits/': typeof HabitsIndexRoute
@@ -205,9 +240,13 @@ export interface FileRoutesByFullPath {
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/analytics': typeof AnalyticsRoute
+  '/cgpa': typeof CgpaRoute
+  '/focus': typeof FocusRoute
   '/notifications': typeof NotificationsRoute
   '/planner': typeof PlannerRoute
   '/projects': typeof ProjectsRoute
+  '/resume': typeof ResumeRoute
+  '/search': typeof SearchRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
   '/attendance/$semester': typeof AttendanceSemesterRoute
   '/habits/$habitId': typeof HabitsHabitIdRoute
@@ -216,6 +255,7 @@ export interface FileRoutesByTo {
   '/profile/backup': typeof ProfileBackupRoute
   '/profile/modules': typeof ProfileModulesRoute
   '/profile/notifications': typeof ProfileNotificationsRoute
+  '/profile/system': typeof ProfileSystemRoute
   '/attendance': typeof AttendanceIndexRoute
   '/expenses': typeof ExpensesIndexRoute
   '/habits': typeof HabitsIndexRoute
@@ -230,7 +270,9 @@ export interface FileRoutesById {
   '/': typeof IndexRoute
   '/analytics': typeof AnalyticsRoute
   '/attendance': typeof AttendanceRouteWithChildren
+  '/cgpa': typeof CgpaRoute
   '/expenses': typeof ExpensesRouteWithChildren
+  '/focus': typeof FocusRoute
   '/habits': typeof HabitsRouteWithChildren
   '/learn': typeof LearnRouteWithChildren
   '/notes': typeof NotesRouteWithChildren
@@ -238,6 +280,8 @@ export interface FileRoutesById {
   '/planner': typeof PlannerRoute
   '/profile': typeof ProfileRouteWithChildren
   '/projects': typeof ProjectsRoute
+  '/resume': typeof ResumeRoute
+  '/search': typeof SearchRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
   '/attendance/$semester': typeof AttendanceSemesterRoute
   '/habits/$habitId': typeof HabitsHabitIdRoute
@@ -246,6 +290,7 @@ export interface FileRoutesById {
   '/profile/backup': typeof ProfileBackupRoute
   '/profile/modules': typeof ProfileModulesRoute
   '/profile/notifications': typeof ProfileNotificationsRoute
+  '/profile/system': typeof ProfileSystemRoute
   '/attendance/': typeof AttendanceIndexRoute
   '/expenses/': typeof ExpensesIndexRoute
   '/habits/': typeof HabitsIndexRoute
@@ -261,7 +306,9 @@ export interface FileRouteTypes {
     | '/'
     | '/analytics'
     | '/attendance'
+    | '/cgpa'
     | '/expenses'
+    | '/focus'
     | '/habits'
     | '/learn'
     | '/notes'
@@ -269,6 +316,8 @@ export interface FileRouteTypes {
     | '/planner'
     | '/profile'
     | '/projects'
+    | '/resume'
+    | '/search'
     | '/sitemap.xml'
     | '/attendance/$semester'
     | '/habits/$habitId'
@@ -277,6 +326,7 @@ export interface FileRouteTypes {
     | '/profile/backup'
     | '/profile/modules'
     | '/profile/notifications'
+    | '/profile/system'
     | '/attendance/'
     | '/expenses/'
     | '/habits/'
@@ -289,9 +339,13 @@ export interface FileRouteTypes {
   to:
     | '/'
     | '/analytics'
+    | '/cgpa'
+    | '/focus'
     | '/notifications'
     | '/planner'
     | '/projects'
+    | '/resume'
+    | '/search'
     | '/sitemap.xml'
     | '/attendance/$semester'
     | '/habits/$habitId'
@@ -300,6 +354,7 @@ export interface FileRouteTypes {
     | '/profile/backup'
     | '/profile/modules'
     | '/profile/notifications'
+    | '/profile/system'
     | '/attendance'
     | '/expenses'
     | '/habits'
@@ -313,7 +368,9 @@ export interface FileRouteTypes {
     | '/'
     | '/analytics'
     | '/attendance'
+    | '/cgpa'
     | '/expenses'
+    | '/focus'
     | '/habits'
     | '/learn'
     | '/notes'
@@ -321,6 +378,8 @@ export interface FileRouteTypes {
     | '/planner'
     | '/profile'
     | '/projects'
+    | '/resume'
+    | '/search'
     | '/sitemap.xml'
     | '/attendance/$semester'
     | '/habits/$habitId'
@@ -329,6 +388,7 @@ export interface FileRouteTypes {
     | '/profile/backup'
     | '/profile/modules'
     | '/profile/notifications'
+    | '/profile/system'
     | '/attendance/'
     | '/expenses/'
     | '/habits/'
@@ -343,7 +403,9 @@ export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AnalyticsRoute: typeof AnalyticsRoute
   AttendanceRoute: typeof AttendanceRouteWithChildren
+  CgpaRoute: typeof CgpaRoute
   ExpensesRoute: typeof ExpensesRouteWithChildren
+  FocusRoute: typeof FocusRoute
   HabitsRoute: typeof HabitsRouteWithChildren
   LearnRoute: typeof LearnRouteWithChildren
   NotesRoute: typeof NotesRouteWithChildren
@@ -351,6 +413,8 @@ export interface RootRouteChildren {
   PlannerRoute: typeof PlannerRoute
   ProfileRoute: typeof ProfileRouteWithChildren
   ProjectsRoute: typeof ProjectsRoute
+  ResumeRoute: typeof ResumeRoute
+  SearchRoute: typeof SearchRoute
   SitemapDotxmlRoute: typeof SitemapDotxmlRoute
 }
 
@@ -377,11 +441,25 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AttendanceRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/cgpa': {
+      id: '/cgpa'
+      path: '/cgpa'
+      fullPath: '/cgpa'
+      preLoaderRoute: typeof CgpaRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/expenses': {
       id: '/expenses'
       path: '/expenses'
       fullPath: '/expenses'
       preLoaderRoute: typeof ExpensesRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/focus': {
+      id: '/focus'
+      path: '/focus'
+      fullPath: '/focus'
+      preLoaderRoute: typeof FocusRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/habits': {
@@ -431,6 +509,20 @@ declare module '@tanstack/react-router' {
       path: '/projects'
       fullPath: '/projects'
       preLoaderRoute: typeof ProjectsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/resume': {
+      id: '/resume'
+      path: '/resume'
+      fullPath: '/resume'
+      preLoaderRoute: typeof ResumeRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/search': {
+      id: '/search'
+      path: '/search'
+      fullPath: '/search'
+      preLoaderRoute: typeof SearchRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/sitemap.xml': {
@@ -531,6 +623,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ProfileNotificationsRouteImport
       parentRoute: typeof ProfileRoute
     }
+    '/profile/system': {
+      id: '/profile/system'
+      path: '/system'
+      fullPath: '/profile/system'
+      preLoaderRoute: typeof ProfileSystemRouteImport
+      parentRoute: typeof ProfileRoute
+    }
     '/learn/$roadmapId_/$topicId': {
       id: '/learn/$roadmapId_/$topicId'
       path: '/$roadmapId/$topicId'
@@ -619,6 +718,7 @@ interface ProfileRouteChildren {
   ProfileBackupRoute: typeof ProfileBackupRoute
   ProfileModulesRoute: typeof ProfileModulesRoute
   ProfileNotificationsRoute: typeof ProfileNotificationsRoute
+  ProfileSystemRoute: typeof ProfileSystemRoute
   ProfileIndexRoute: typeof ProfileIndexRoute
 }
 
@@ -626,6 +726,7 @@ const ProfileRouteChildren: ProfileRouteChildren = {
   ProfileBackupRoute: ProfileBackupRoute,
   ProfileModulesRoute: ProfileModulesRoute,
   ProfileNotificationsRoute: ProfileNotificationsRoute,
+  ProfileSystemRoute: ProfileSystemRoute,
   ProfileIndexRoute: ProfileIndexRoute,
 }
 
@@ -636,7 +737,9 @@ const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AnalyticsRoute: AnalyticsRoute,
   AttendanceRoute: AttendanceRouteWithChildren,
+  CgpaRoute: CgpaRoute,
   ExpensesRoute: ExpensesRouteWithChildren,
+  FocusRoute: FocusRoute,
   HabitsRoute: HabitsRouteWithChildren,
   LearnRoute: LearnRouteWithChildren,
   NotesRoute: NotesRouteWithChildren,
@@ -644,6 +747,8 @@ const rootRouteChildren: RootRouteChildren = {
   PlannerRoute: PlannerRoute,
   ProfileRoute: ProfileRouteWithChildren,
   ProjectsRoute: ProjectsRoute,
+  ResumeRoute: ResumeRoute,
+  SearchRoute: SearchRoute,
   SitemapDotxmlRoute: SitemapDotxmlRoute,
 }
 export const routeTree = rootRouteImport

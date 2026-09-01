@@ -16,14 +16,22 @@ import type {
   Profile,
   Subject,
   Transaction,
+  Stats,
+  FocusSession,
+  FocusSettings,
+  CgpaSemester,
+  CgpaSubject,
+  ResumeData,
 } from "@/lib/schema";
 import { AppDataSchema } from "@/lib/schema";
 import { createInitialData } from "@/lib/seed";
 import { migrate } from "@/lib/migrations";
 import { clearBackupArtifacts } from "@/lib/backup";
 import { newId } from "@/lib/id";
-import { todayISO } from "@/lib/date";
+import { todayISO, addDaysISO } from "@/lib/date";
 import { errorMessage } from "@/lib/utils";
+import { topicPct, subtopicPct } from "@/lib/progress";
+import { focusXp } from "@/lib/focus";
 import {
   HISTORY_LIMIT,
   type CategoryKey,
@@ -32,7 +40,7 @@ import {
   type ScheduledNotification,
 } from "@/lib/notifications/types";
 
-type ModuleKey = "attendance" | "expenses";
+type ModuleKey = "attendance" | "expenses" | "focus" | "cgpa" | "resume";
 
 type State = AppData & {
   _hydrated: boolean;
@@ -136,6 +144,31 @@ type State = AppData & {
   setModuleEnabled: (key: ModuleKey, enabled: boolean) => void;
   addXp: (amount: number) => void;
   touchStreak: () => void;
+  unlockAchievements: (ids: string[]) => string[];
+
+  // focus (Pomodoro)
+  addFocusSession: (input: {
+    minutes: number;
+    mode: "focus" | "break";
+    task?: string;
+    startedAt?: number;
+  }) => FocusSession;
+  updateFocusSettings: (patch: Partial<FocusSettings>) => void;
+
+  // cgpa
+  addCgpaSemester: (number: number) => CgpaSemester;
+  updateCgpaSemester: (id: string, patch: Partial<Pick<CgpaSemester, "number">>) => void;
+  deleteCgpaSemester: (id: string) => void;
+  addCgpaSubject: (
+    semesterId: string,
+    partial: Pick<CgpaSubject, "name"> & Partial<CgpaSubject>,
+  ) => CgpaSubject;
+  updateCgpaSubject: (semesterId: string, subjectId: string, patch: Partial<CgpaSubject>) => void;
+  deleteCgpaSubject: (semesterId: string, subjectId: string) => void;
+
+  // resume
+  updateResume: (patch: Partial<ResumeData>) => void;
+  setResume: (resume: ResumeData) => void;
 
   // attendance
   addSubject: (
@@ -180,6 +213,48 @@ type State = AppData & {
 };
 
 export const STORAGE_KEY = "skillsync:data:v1";
+
+/**
+ * XP awarded per meaningful action. One level = 100 XP; the curve is
+ * deliberately linear so progress stays legible on the dashboard.
+ */
+export const XP_AWARDS = {
+  topicCompletion: 15,
+  subtopicCompletion: 10,
+  checklistCompletion: 15,
+  plannerTask: 5,
+  habit: 5,
+  projectDone: 40,
+  achievement: 25,
+} as const;
+
+/** Pure XP helper: applies a gain (clamped ≥ 0) and recomputes the level. */
+export function addXpToStats(stats: Stats, amount: number): Stats {
+  const gain = Math.max(0, amount);
+  const xp = Math.max(0, stats.xp + amount);
+  const level = 1 + Math.floor(xp / 100);
+  return { ...stats, xp, level, totalXp: stats.totalXp + gain };
+}
+
+/** Pure streak helper: extends the streak on consecutive-day activity. */
+export function touchStreakStats(stats: Stats, today: string = todayISO()): Stats {
+  if (stats.lastActive === today) return stats;
+  const yesterday = addDaysISO(today, -1);
+  const streak = stats.lastActive === yesterday ? stats.streak + 1 : 1;
+  return { ...stats, streak, lastActive: today };
+}
+
+function findTopic(
+  state: AppData,
+  roadmapId: string,
+  phaseId: string,
+  topicId: string,
+): Topic | undefined {
+  return state.roadmaps
+    .find((r) => r.id === roadmapId)
+    ?.phases.find((p) => p.id === phaseId)
+    ?.topics.find((t) => t.id === topicId);
+}
 
 // ---------- helpers ----------
 function updateRoadmap(state: State, id: string, fn: (r: Roadmap) => Roadmap): Partial<State> {
@@ -275,6 +350,9 @@ export function toAppData(state: AppData): AppData {
     stats: state.stats,
     attendance: state.attendance,
     expenses: state.expenses,
+    focus: state.focus,
+    cgpa: state.cgpa,
+    resume: state.resume,
     notifications: state.notifications,
   };
 }
@@ -348,6 +426,7 @@ export const useAppStore = create<State>()(
                 subtopics: [],
                 checklist: [],
                 createdAt: Date.now(),
+                completedAt: null,
               },
             ],
           })),
@@ -440,29 +519,43 @@ export const useAppStore = create<State>()(
           }),
         ),
       updateChecklistItem: (path, itemId, patch) =>
-        set((s) =>
-          updateTopicIn(s, path.roadmapId, path.phaseId, path.topicId, (t) => {
-            if (path.subtopicId) {
-              return normalizeTopic({
-                ...t,
-                subtopics: t.subtopics.map((sub) =>
-                  sub.id === path.subtopicId
-                    ? {
-                        ...sub,
-                        checklist: sub.checklist.map((c) =>
-                          c.id === itemId ? { ...c, ...patch } : c,
-                        ),
-                      }
-                    : sub,
-                ),
-              });
-            }
-            return normalizeTopic({
-              ...t,
-              checklist: t.checklist.map((c) => (c.id === itemId ? { ...c, ...patch } : c)),
+        set((s) => {
+          const topic = findTopic(s, path.roadmapId, path.phaseId, path.topicId);
+          if (!topic) return {};
+          const prevPct = topicPct(topic);
+          let nextTopic: Topic;
+          if (path.subtopicId) {
+            nextTopic = normalizeTopic({
+              ...topic,
+              subtopics: topic.subtopics.map((sub) =>
+                sub.id === path.subtopicId
+                  ? {
+                      ...sub,
+                      checklist: sub.checklist.map((c) =>
+                        c.id === itemId ? { ...c, ...patch } : c,
+                      ),
+                    }
+                  : sub,
+              ),
             });
-          }),
-        ),
+          } else {
+            nextTopic = normalizeTopic({
+              ...topic,
+              checklist: topic.checklist.map((c) => (c.id === itemId ? { ...c, ...patch } : c)),
+            });
+          }
+          const nextPct = topicPct(nextTopic);
+          const crossed = prevPct < 100 && nextPct === 100;
+          const withStamp: Topic = crossed
+            ? { ...nextTopic, completedAt: Date.now() }
+            : nextPct < 100
+              ? { ...nextTopic, completedAt: null }
+              : nextTopic;
+          return {
+            ...updateTopicIn(s, path.roadmapId, path.phaseId, path.topicId, () => withStamp),
+            stats: crossed ? addXpToStats(s.stats, XP_AWARDS.checklistCompletion) : s.stats,
+          };
+        }),
       deleteChecklistItem: (path, itemId) =>
         set((s) =>
           updateTopicIn(s, path.roadmapId, path.phaseId, path.topicId, (t) => {
@@ -487,18 +580,38 @@ export const useAppStore = create<State>()(
         ),
 
       setSubtopicComplete: (roadmapId, phaseId, topicId, subtopicId, done) =>
-        set((s) =>
-          updateTopicIn(s, roadmapId, phaseId, topicId, (t) =>
-            normalizeTopic({
-              ...t,
-              subtopics: t.subtopics.map((sub) =>
-                sub.id === subtopicId ? propagateSubtopic(sub, done) : sub,
-              ),
-            }),
-          ),
-        ),
+        set((s) => {
+          const topic = findTopic(s, roadmapId, phaseId, topicId);
+          const sub = topic?.subtopics.find((x) => x.id === subtopicId);
+          if (!topic || !sub) return {};
+          const award = done && subtopicPct(sub) < 100;
+          const nextTopic = normalizeTopic({
+            ...topic,
+            subtopics: topic.subtopics.map((x) =>
+              x.id === subtopicId ? propagateSubtopic(x, done) : x,
+            ),
+          });
+          const crossed = topicPct(topic) < 100 && topicPct(nextTopic) === 100;
+          const withStamp = crossed ? { ...nextTopic, completedAt: Date.now() } : nextTopic;
+          return {
+            ...updateTopicIn(s, roadmapId, phaseId, topicId, () => withStamp),
+            stats: award ? addXpToStats(s.stats, XP_AWARDS.subtopicCompletion) : s.stats,
+          };
+        }),
       setTopicComplete: (roadmapId, phaseId, topicId, done) =>
-        set((s) => updateTopicIn(s, roadmapId, phaseId, topicId, (t) => propagateTopic(t, done))),
+        set((s) => {
+          const topic = findTopic(s, roadmapId, phaseId, topicId);
+          if (!topic) return {};
+          const award = done && topicPct(topic) < 100;
+          const next: Topic = {
+            ...propagateTopic(topic, done),
+            completedAt: done ? Date.now() : null,
+          };
+          return {
+            ...updateTopicIn(s, roadmapId, phaseId, topicId, () => next),
+            stats: award ? addXpToStats(s.stats, XP_AWARDS.topicCompletion) : s.stats,
+          };
+        }),
       setPhaseComplete: (roadmapId, phaseId, done) =>
         set((s) =>
           updatePhase(s, roadmapId, phaseId, (p) => ({
@@ -546,9 +659,16 @@ export const useAppStore = create<State>()(
         return project;
       },
       updateProject: (id, patch) =>
-        set((s) => ({
-          projects: s.projects.map((p) => (p.id === id ? { ...p, ...patch } : p)),
-        })),
+        set((s) => {
+          const project = s.projects.find((p) => p.id === id);
+          const shipped = patch.status === "done" && project && project.status !== "done";
+          return {
+            projects: s.projects.map((p) => (p.id === id ? { ...p, ...patch } : p)),
+            stats: shipped
+              ? touchStreakStats(addXpToStats(s.stats, XP_AWARDS.projectDone))
+              : s.stats,
+          };
+        }),
       deleteProject: (id) => set((s) => ({ projects: s.projects.filter((p) => p.id !== id) })),
       addProjectTask: (projectId, title) =>
         set((s) => ({
@@ -589,14 +709,26 @@ export const useAppStore = create<State>()(
               date: partial.date,
               time: partial.time ?? "",
               done: partial.done ?? false,
+              priority: partial.priority ?? "medium",
+              doneAt: partial.doneAt ?? null,
               createdAt: Date.now(),
             },
           ],
         })),
       updatePlannerTask: (id, patch) =>
-        set((s) => ({
-          planner: s.planner.map((t) => (t.id === id ? { ...t, ...patch } : t)),
-        })),
+        set((s) => {
+          const task = s.planner.find((t) => t.id === id);
+          const completing = patch.done === true && !task?.done;
+          let doneAt = task?.doneAt ?? null;
+          if (patch.done === true && !task?.done) doneAt = Date.now();
+          if (patch.done === false) doneAt = null;
+          return {
+            planner: s.planner.map((t) => (t.id === id ? { ...t, ...patch, doneAt } : t)),
+            stats: completing
+              ? touchStreakStats(addXpToStats(s.stats, XP_AWARDS.plannerTask))
+              : s.stats,
+          };
+        }),
       deletePlannerTask: (id) => set((s) => ({ planner: s.planner.filter((t) => t.id !== id) })),
 
       addHabit: (title, emoji = "✨") =>
@@ -635,9 +767,8 @@ export const useAppStore = create<State>()(
         } else {
           set((s) => ({
             habitLogs: [...s.habitLogs, { habitId: id, date }],
+            stats: touchStreakStats(addXpToStats(s.stats, XP_AWARDS.habit)),
           }));
-          get().touchStreak();
-          get().addXp(5);
         }
       },
 
@@ -650,22 +781,110 @@ export const useAppStore = create<State>()(
             modules: { ...s.preferences.modules, [key]: enabled },
           },
         })),
-      addXp: (amount) =>
-        set((s) => {
-          const xp = Math.max(0, s.stats.xp + amount);
-          const level = 1 + Math.floor(xp / 100);
-          return { stats: { ...s.stats, xp, level } };
-        }),
-      touchStreak: () =>
-        set((s) => {
-          const today = todayISO();
-          if (s.stats.lastActive === today) return {};
-          const yesterday = todayISO(new Date(Date.now() - 86400000));
-          const streak = s.stats.lastActive === yesterday ? s.stats.streak + 1 : 1;
-          return {
-            stats: { ...s.stats, streak, lastActive: today },
-          };
-        }),
+      addXp: (amount) => set((s) => ({ stats: addXpToStats(s.stats, amount) })),
+      touchStreak: () => set((s) => ({ stats: touchStreakStats(s.stats) })),
+      unlockAchievements: (ids) => {
+        const state = get();
+        const awarded = new Set(state.stats.achievements);
+        const fresh = ids.filter((id) => !awarded.has(id));
+        if (fresh.length === 0) return [];
+        set((s) => ({
+          stats: addXpToStats(
+            { ...s.stats, achievements: [...s.stats.achievements, ...fresh] },
+            XP_AWARDS.achievement * fresh.length,
+          ),
+        }));
+        return fresh;
+      },
+
+      addFocusSession: (input) => {
+        const session: FocusSession = {
+          id: newId(),
+          startedAt: input.startedAt ?? Date.now(),
+          minutes: input.minutes,
+          mode: input.mode,
+          task: input.task ?? "",
+        };
+        set((s) => ({
+          focus: { ...s.focus, sessions: [...s.focus.sessions, session] },
+          stats:
+            session.mode === "focus"
+              ? touchStreakStats(addXpToStats(s.stats, focusXp(session.minutes)))
+              : s.stats,
+        }));
+        return session;
+      },
+      updateFocusSettings: (patch) =>
+        set((s) => ({
+          focus: { ...s.focus, settings: { ...s.focus.settings, ...patch } },
+        })),
+
+      addCgpaSemester: (number) => {
+        const semester: CgpaSemester = { id: newId(), number, subjects: [] };
+        set((s) => ({
+          cgpa: { ...s.cgpa, semesters: [...s.cgpa.semesters, semester] },
+        }));
+        return semester;
+      },
+      updateCgpaSemester: (id, patch) =>
+        set((s) => ({
+          cgpa: {
+            ...s.cgpa,
+            semesters: s.cgpa.semesters.map((x) => (x.id === id ? { ...x, ...patch } : x)),
+          },
+        })),
+      deleteCgpaSemester: (id) =>
+        set((s) => ({
+          cgpa: { ...s.cgpa, semesters: s.cgpa.semesters.filter((x) => x.id !== id) },
+        })),
+      addCgpaSubject: (semesterId, partial) => {
+        const subject: CgpaSubject = {
+          id: newId(),
+          name: partial.name,
+          code: partial.code ?? "",
+          credits: partial.credits ?? 3,
+          grade: partial.grade ?? "O",
+        };
+        set((s) => ({
+          cgpa: {
+            ...s.cgpa,
+            semesters: s.cgpa.semesters.map((x) =>
+              x.id === semesterId ? { ...x, subjects: [...x.subjects, subject] } : x,
+            ),
+          },
+        }));
+        return subject;
+      },
+      updateCgpaSubject: (semesterId, subjectId, patch) =>
+        set((s) => ({
+          cgpa: {
+            ...s.cgpa,
+            semesters: s.cgpa.semesters.map((x) =>
+              x.id === semesterId
+                ? {
+                    ...x,
+                    subjects: x.subjects.map((sub) =>
+                      sub.id === subjectId ? { ...sub, ...patch } : sub,
+                    ),
+                  }
+                : x,
+            ),
+          },
+        })),
+      deleteCgpaSubject: (semesterId, subjectId) =>
+        set((s) => ({
+          cgpa: {
+            ...s.cgpa,
+            semesters: s.cgpa.semesters.map((x) =>
+              x.id === semesterId
+                ? { ...x, subjects: x.subjects.filter((sub) => sub.id !== subjectId) }
+                : x,
+            ),
+          },
+        })),
+
+      updateResume: (patch) => set((s) => ({ resume: { ...s.resume, ...patch } })),
+      setResume: (resume) => set({ resume }),
 
       addSubject: (partial) => {
         const subject: Subject = {
@@ -875,7 +1094,7 @@ export const useAppStore = create<State>()(
     }),
     {
       name: STORAGE_KEY,
-      version: 6,
+      version: 7,
       storage: createJSONStorage(() =>
         // No storage during SSR — persist skips hydration when this is undefined.
         typeof window !== "undefined"

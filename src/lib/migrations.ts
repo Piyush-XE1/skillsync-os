@@ -80,6 +80,37 @@ const migrators: Record<number, (data: LegacyData) => LegacyData> = {
     }
     return { ...data, preferences: prefs };
   },
+  /**
+   * v6 -> v7: the Focus, CGPA and Resume modules join the workspace, and the
+   * stats model gains lifetime XP, join date and achievement history. Old
+   * workspaces keep all of their data; the new domains start empty with
+   * sensible defaults.
+   */
+  6: (data) => {
+    const legacyStats = (data.stats ?? {}) as LegacyData;
+    const stats = {
+      xp: typeof legacyStats.xp === "number" ? legacyStats.xp : 0,
+      level: typeof legacyStats.level === "number" ? legacyStats.level : 1,
+      streak: typeof legacyStats.streak === "number" ? legacyStats.streak : 0,
+      lastActive: typeof legacyStats.lastActive === "string" ? legacyStats.lastActive : "",
+      totalXp: typeof legacyStats.totalXp === "number" ? legacyStats.totalXp : 0,
+      joinedAt: typeof legacyStats.joinedAt === "number" ? legacyStats.joinedAt : Date.now(),
+      achievements: Array.isArray(legacyStats.achievements) ? legacyStats.achievements : [],
+    };
+    const modules = {
+      attendance: false,
+      expenses: false,
+      focus: true,
+      cgpa: true,
+      resume: true,
+      ...(((data.preferences ?? {}) as LegacyData).modules ?? {}),
+    };
+    return {
+      ...data,
+      stats,
+      preferences: { ...(data.preferences ?? {}), modules },
+    };
+  },
 };
 
 export function migrate(input: unknown): AppData {
@@ -132,6 +163,14 @@ export function migrate(input: unknown): AppData {
       updatedAt: typeof t.updatedAt === "number" ? t.updatedAt : (t.at ?? 0),
     }),
   );
+  // Planner V2: every task gets an explicit priority.
+  data.planner = (data.planner ?? []).map((t: LegacyData) => ({
+    ...t,
+    priority: ["low", "medium", "high"].includes(t.priority) ? t.priority : "medium",
+    doneAt: typeof t.doneAt === "number" ? t.doneAt : null,
+  }));
+  // Focus / CGPA / Resume modules joined the schema in v7; absent keys get
+  // their defaults from the schema parse below.
   {
     const defaults = createDefaultNotifications();
     const n = data.notifications ?? {};

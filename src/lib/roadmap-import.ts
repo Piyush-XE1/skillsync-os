@@ -107,6 +107,7 @@ export function buildRoadmapFromImport(item: RoadmapImportItem): Roadmap {
         subtopics,
         checklist: buildChecklist(t.checklist ?? []),
         createdAt: now,
+        completedAt: null,
       };
     });
     return { id: newId(), title: p.title, topics, createdAt: now };

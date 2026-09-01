@@ -1,6 +1,7 @@
 import type { AppData, Roadmap, Habit, Phase, Topic } from "./schema";
 import { CURRENT_SCHEMA_VERSION } from "./schema";
 import { createDefaultNotifications } from "./notifications/types";
+import { createDefaultFocusSettings } from "./schema";
 const SEED_CREATED_AT = 1_704_067_200_000;
 const SEED_START_DATE = "2024-01-01";
 
@@ -22,6 +23,7 @@ function makeTopic(roadmapId: string, phaseId: string, title: string, index: num
     subtopics: [],
     checklist: [],
     createdAt: SEED_CREATED_AT,
+    completedAt: null,
   };
 }
 
@@ -196,14 +198,40 @@ export function createInitialData(): AppData {
     preferences: {
       notifications: true,
       developerMode: false,
-      modules: { attendance: false, expenses: false },
+      modules: { attendance: false, expenses: false, focus: true, cgpa: true, resume: true },
       background: "aurora",
       haptics: true,
       hapticIntensity: "standard",
     },
-    stats: { xp: 0, level: 1, streak: 0, lastActive: "" },
+    stats: {
+      xp: 0,
+      level: 1,
+      streak: 0,
+      lastActive: "",
+      totalXp: 0,
+      joinedAt: Date.now(),
+      achievements: [],
+    },
     attendance: { subjects: [] },
     expenses: { transactions: [] },
+    focus: { sessions: [], settings: createDefaultFocusSettings() },
+    cgpa: { semesters: [] },
+    resume: {
+      name: "",
+      title: "",
+      email: "",
+      phone: "",
+      location: "",
+      website: "",
+      github: "",
+      linkedin: "",
+      summary: "",
+      skills: [],
+      education: [],
+      experience: [],
+      projects: [],
+      certifications: [],
+    },
     notifications: createDefaultNotifications(),
   };
 }
