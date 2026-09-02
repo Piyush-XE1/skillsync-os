@@ -3,6 +3,7 @@ import { toast } from "sonner";
 import { useAppStore } from "@/store/useAppStore";
 import { newlyUnlocked, achievementById } from "@/lib/achievements";
 import { haptics } from "@/lib/haptics";
+import { fireConfetti } from "@/lib/confetti";
 import type { AppData } from "@/lib/schema";
 
 /**
@@ -37,6 +38,8 @@ export function useAchievementEngine() {
             const achievement = achievementById(id);
             if (!achievement) continue;
             haptics.success();
+            // A burst of confetti — the whole surface briefly celebrates.
+            fireConfetti({ count: 140, origin: { x: 0.5, y: 0.5 }, ttl: 2 });
             toast.success("Achievement unlocked", {
               description: `${achievement.icon} ${achievement.title} — ${achievement.description}`,
               duration: 4200,
@@ -55,6 +58,8 @@ export function useAchievementEngine() {
           const nextLevel = useAppStore.getState().stats.level;
           if (nextLevel > lastLevelRef.current) {
             haptics.success();
+            // A bigger, eponymous "level up" cannon from the top.
+            fireConfetti({ count: 220, origin: { x: 0.5, y: 0.3 }, ttl: 2.6, shape: "circle" });
             toast.success(`Level ${nextLevel} reached!`, {
               description: "Keep the momentum going.",
               duration: 4200,

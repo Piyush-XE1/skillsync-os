@@ -17,6 +17,7 @@ import {
   Braces,
   Briefcase,
   Circle,
+  Trophy,
 } from "lucide-react";
 import { useAppStore, useHydrated } from "@/store/useAppStore";
 import { searchAll, type SearchResult } from "@/lib/search";
@@ -234,6 +235,7 @@ function SearchPage() {
               { icon: CalendarRange, label: "Planner", to: "/planner" },
               { icon: BookOpen, label: "Learn", to: "/learn" },
               { icon: Flame, label: "Habits", to: "/habits" },
+              { icon: Trophy, label: "Trophies", to: "/achievements" },
               { icon: LayoutDashboard, label: "Dashboard", to: "/" },
             ].map(({ icon: Icon, label, to }) => (
               <Link

@@ -1,6 +1,7 @@
 import { useEffect } from "react";
 import { useAppStore } from "@/store/useAppStore";
 import { nativeSetTheme } from "@/lib/native/bridge";
+import { applyAccent, defaultAccentFor, safeAccent } from "@/lib/accent";
 
 /**
  * SkillSync owns its appearance. The Android/OS colour scheme is intentionally
@@ -36,7 +37,7 @@ const APPEARANCE_KEY = "skillsync:data:v1";
  * value the same way the store does and sets the class + colour scheme + status
  * bar colour synchronously, before any frame is produced.
  */
-export const APPEARANCE_INIT_SCRIPT = `(function(){try{var raw=window.localStorage.getItem(${JSON.stringify(APPEARANCE_KEY)});var bg="aurora";if(raw){var st=JSON.parse(raw);var val=st&&st.state&&st.state.preferences?st.state.preferences.background:null;if(${JSON.stringify(VALID_BACKGROUNDS)}.indexOf(val)>=0)bg=val;}var map=${JSON.stringify(APPEARANCE)};var a=map[bg]||map.aurora;var el=document.documentElement;el.classList.remove(${MANAGED_CLASSES.map((c) => JSON.stringify(c)).join(",")});el.classList.add(a.cls);el.style.colorScheme=a.scheme;var m=document.querySelector('meta[name="theme-color"]');if(m)m.setAttribute("content",a.themeColor);}catch(e){}})();`;
+export const APPEARANCE_INIT_SCRIPT = `(function(){try{var raw=window.localStorage.getItem(${JSON.stringify(APPEARANCE_KEY)});var bg="aurora";var accent=null;if(raw){var st=JSON.parse(raw);var prefs=st&&st.state?st.state.preferences:null;var val=prefs?prefs.background:null;if(${JSON.stringify(VALID_BACKGROUNDS)}.indexOf(val)>=0)bg=val;if(prefs&&typeof prefs.accent==="string"&&/^#([0-9a-fA-F]{3}|[0-9a-fA-F]{6}|[0-9a-fA-F]{8})$/.test(prefs.accent))accent=prefs.accent;}var map=${JSON.stringify(APPEARANCE)};var a=map[bg]||map.aurora;var el=document.documentElement;el.classList.remove(${MANAGED_CLASSES.map((c) => JSON.stringify(c)).join(",")});el.classList.add(a.cls);el.style.colorScheme=a.scheme;if(accent){el.style.setProperty("--primary",accent);el.style.setProperty("--primary-glow","color-mix(in oklab, "+accent+" 62%, white)");el.style.setProperty("--secondary","color-mix(in oklab, "+accent+" 58%, #0b0b12)");}var m=document.querySelector('meta[name="theme-color"]');if(m)m.setAttribute("content",a.themeColor);}catch(e){}})();`;
 
 /** Maps a background preference onto the resolved light/dark visual system. */
 export function resolveTheme(background: string | undefined): ResolvedTheme {
@@ -77,8 +78,13 @@ function applyTheme(background: string | undefined, animate: boolean) {
  * mirrors it onto the Android system bars. No system-preference listener: the
  * OS never flips the app's appearance.
  */
+function applyAccentSafe(accent: string | undefined) {
+  applyAccent(safeAccent(accent ?? defaultAccentFor("aurora")));
+}
+
 export function useTheme(): ResolvedTheme {
   const background = useAppStore((s) => s.preferences.background);
+  const accent = useAppStore((s) => s.preferences.accent);
   const resolved = resolveTheme(background);
 
   useEffect(() => {
@@ -86,6 +92,12 @@ export function useTheme(): ResolvedTheme {
     applyTheme(background, true);
     void nativeSetTheme(next.scheme, next.themeColor);
   }, [background]);
+
+  // Accent re-themes the entire OS; re-run whenever it (or the background it
+  // defaults from) changes. applyAccentSafe guards against empty values.
+  useEffect(() => {
+    applyAccentSafe(accent);
+  }, [accent, background]);
 
   return resolved;
 }

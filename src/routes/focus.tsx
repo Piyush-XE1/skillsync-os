@@ -19,6 +19,7 @@ import { Toggle } from "@/components/common/Toggle";
 import { useAppStore, useHydrated } from "@/store/useAppStore";
 import { formatClock, focusTotals, focusStreak, minutesByDay } from "@/lib/focus";
 import { haptics } from "@/lib/haptics";
+import { fireConfetti } from "@/lib/confetti";
 import { cn } from "@/lib/utils";
 
 export const Route = createFileRoute("/focus")({
@@ -134,6 +135,8 @@ function FocusPage() {
       completedRef.current += 1;
       const minutes = phaseMeta.focus.minutes;
       addFocusSession({ minutes, mode: "focus", task: task.trim() || undefined });
+      // Reward the deep-work win with a quiet celebratory scatter.
+      fireConfetti({ count: 90, origin: { x: 0.5, y: 0.6 }, ttl: 1.8 });
       toast.success("Focus session complete", {
         description: `+${minutes} XP · ${formatClock(minutes * 60)} of deep work logged.`,
       });

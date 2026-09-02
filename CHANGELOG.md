@@ -2,6 +2,29 @@
 
 All notable changes to SkillSync OS are documented here.
 
+## [3.2.0] — 2026-09-02
+
+### Added
+
+- **Theme Studio** — a complete accent re-skin. Pick from curated accents (or any
+  custom colour) and the entire OS — cards, gradients, chips, progress rings and
+  glows — re-themes instantly. A `v8 → v9` migrator seeds a tasteful default
+  accent per background so existing users see no change until they open it.
+- **Confetti celebration engine** — a dependency-free, canvas-based particle
+  simulator (gravity, air drag, spin, flutter) that fires on achievement
+  unlocks, level-ups and completed focus sessions. Zero runtime deps, ~2 KB.
+- **Trophies page** (`/achievements`) — a dedicated badge collection with an
+  overall completion ring, badge XP, player ranks (Rookie → Explorer → Builder →
+  Achiever → Grandmaster) and per-badge progress bars.
+- **`G` keyboard shortcut** jumps straight to the Trophies page.
+- Trophies reachable from the sidebar, command palette quick-launch and the
+  Profile badges section.
+
+### Changed
+
+- Test suite extended (accent palette, `v8 → v9` migration, schema defaults).
+- README updated with the new keyboard shortcuts and feature set.
+
 ## [3.1.0] — 2026-09-02
 
 ### Added

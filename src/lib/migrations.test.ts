@@ -136,4 +136,30 @@ describe("migrate", () => {
     const app: AppData = result;
     expect(app).toBeTruthy();
   });
+
+  it("migrates v8 to v9: adds a per-background accent default", () => {
+    const v8 = (bg: string) => ({
+      schemaVersion: 8,
+      preferences: { background: bg },
+    });
+    expect(migrate(v8("aurora")).preferences.accent).toBe("#7c3aed");
+    expect(migrate(v8("atelier")).preferences.accent).toBe("#c9a35c");
+    expect(migrate(v8("light")).preferences.accent).toBe("#20573f");
+  });
+
+  it("keeps a user-chosen accent when migrating", () => {
+    const result = migrate({
+      schemaVersion: 9,
+      preferences: { background: "aurora", accent: "#e11d48" },
+    });
+    expect(result.preferences.accent).toBe("#e11d48");
+  });
+
+  it("falls back a blank accent to the theme default", () => {
+    const result = migrate({
+      schemaVersion: 9,
+      preferences: { background: "aurora", accent: "" },
+    });
+    expect(result.preferences.accent).toBe("#7c3aed");
+  });
 });

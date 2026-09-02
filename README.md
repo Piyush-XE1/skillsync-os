@@ -8,36 +8,39 @@ Built with a **premium futuristic UI**, animated Aurora backgrounds, an offline-
 
 ## ✨ Features
 
-| Module | What it does |
-| --- | --- |
-| 📊 **Dashboard** | Streaks, XP, smart "Today" queue, continue-learning, habits, badges, daily insight |
-| 🎓 **Learn** | Structured roadmaps with phases, topics, checklists, resources & progress |
-| ⏱️ **Focus** | Pomodoro deep-work timer — sessions, sounds, XP and a focus streak |
-| 🎯 **CGPA Tracker** | Semester-wise SGPA, cumulative CGPA, grade breakdown & target simulator |
-| 📄 **Resume Builder** | Structured editor → print-ready ATS-friendly resume, JSON import/export |
-| 💻 **Code · DSA Prep** | Track solved problems across LeetCode, Codeforces, CodeChef & more — difficulty breakdowns, solve heatmap, streaks & contest ratings |
-| 🤝 **Career · Placements** | Job & internship pipeline from Saved → Applied → Referral → OA → Interview → Offer, with rounds & referrals |
-| 🔍 **Command Palette** | `/` or `⌘K` anywhere — search every roadmap, topic, note, project & task |
-| 🏆 **Achievements** | 26 badges with one-time XP awards, notifications & level-ups |
-| 🚀 **Projects** | Status, progress, deadlines, tasks and tech stack tracking |
-| 📅 **Planner** | Tasks with priorities, done timestamps and a smart Today queue |
-| 🔥 **Habits** | Check-ins, per-habit streaks (current & best) and consistency heatmaps |
-| 📝 **Notes** | Local-first notes with autosave |
-| 🔔 **Notifications** | Reminders, alerts, achievement pings & weekly digest |
-| 📈 **Analytics** | GitHub-style activity heatmap, learning velocity, focus & habit trends |
-| 🧾 **System** | Workspace diagnostics — schema version, storage, record counts |
-| 📱 **Android App** | Native Android experience with haptics & system navigation |
-| 🌌 **Aurora UI** | Animated futuristic visual environment (plus Light & Atelier themes) |
-| ⚡ **Offline-First** | Everything works without internet; data never leaves the device |
+| Module                     | What it does                                                                                                                                                 |
+| -------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| 📊 **Dashboard**           | Streaks, XP, smart "Today" queue, continue-learning, habits, badges, daily insight                                                                           |
+| 🎓 **Learn**               | Structured roadmaps with phases, topics, checklists, resources & progress                                                                                    |
+| ⏱️ **Focus**               | Pomodoro deep-work timer — sessions, sounds, XP and a focus streak                                                                                           |
+| 🎯 **CGPA Tracker**        | Semester-wise SGPA, cumulative CGPA, grade breakdown & target simulator                                                                                      |
+| 📄 **Resume Builder**      | Structured editor → print-ready ATS-friendly resume, JSON import/export                                                                                      |
+| 💻 **Code · DSA Prep**     | Track solved problems across LeetCode, Codeforces, CodeChef & more — difficulty breakdowns, solve heatmap, streaks & contest ratings                         |
+| 🤝 **Career · Placements** | Job & internship pipeline from Saved → Applied → Referral → OA → Interview → Offer, with rounds & referrals                                                  |
+| 🔍 **Command Palette**     | `/` or `⌘K` anywhere — search every roadmap, topic, note, project & task                                                                                     |
+| 🏆 **Achievements**        | 26 badges with one-time XP awards, notifications & level-ups — plus a dedicated **Trophies** page, rank titles (Rookie → Grandmaster) and per-badge progress |
+| 🎨 **Theme Studio**        | Pick an accent colour (or any custom hue) and the entire OS re-skins instantly — cards, gradients, chips and glows all follow                                |
+| 🎉 **Confetti**            | A dependency-free particle celebration on achievement unlocks, level-ups and completed focus sessions                                                        |
+| 🚀 **Projects**            | Status, progress, deadlines, tasks and tech stack tracking                                                                                                   |
+| 📅 **Planner**             | Tasks with priorities, done timestamps and a smart Today queue                                                                                               |
+| 🔥 **Habits**              | Check-ins, per-habit streaks (current & best) and consistency heatmaps                                                                                       |
+| 📝 **Notes**               | Local-first notes with autosave                                                                                                                              |
+| 🔔 **Notifications**       | Reminders, alerts, achievement pings & weekly digest                                                                                                         |
+| 📈 **Analytics**           | GitHub-style activity heatmap, learning velocity, focus & habit trends                                                                                       |
+| 🧾 **System**              | Workspace diagnostics — schema version, storage, record counts                                                                                               |
+| 📱 **Android App**         | Native Android experience with haptics & system navigation                                                                                                   |
+| 🌌 **Aurora UI**           | Animated futuristic visual environment (plus Light & Atelier themes)                                                                                         |
+| ⚡ **Offline-First**       | Everything works without internet; data never leaves the device                                                                                              |
 
 ## ⌨️ Keyboard shortcuts
 
-| Keys | Action |
-| --- | --- |
-| `/` or `⌘/Ctrl + K` | Open command palette (workspace-wide search) |
-| `F` | Jump to the Focus timer |
-| `C` | Jump to the Code (DSA prep) module |
-| `↑↓` / `Enter` / `Esc` | Navigate results inside the palette |
+| Keys                   | Action                                       |
+| ---------------------- | -------------------------------------------- |
+| `/` or `⌘/Ctrl + K`    | Open command palette (workspace-wide search) |
+| `F`                    | Jump to the Focus timer                      |
+| `C`                    | Jump to the Code (DSA prep) module           |
+| `G`                    | Jump to the Trophies / Achievements page     |
+| `↑↓` / `Enter` / `Esc` | Navigate results inside the palette          |
 
 ## 🛠️ Tech Stack
 

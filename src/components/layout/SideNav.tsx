@@ -19,6 +19,7 @@ import {
   Search,
   Braces,
   Briefcase,
+  Trophy,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { haptics } from "@/lib/haptics";
@@ -38,6 +39,7 @@ type Item = {
     | "/resume"
     | "/coding"
     | "/career"
+    | "/achievements"
     | "/search"
     | "/profile";
   label: string;
@@ -61,6 +63,7 @@ const items: Item[] = [
   { to: "/resume", label: "Resume", icon: FileText, module: "resume" },
   { to: "/coding", label: "Code", icon: Braces, module: "coding", kbd: "C" },
   { to: "/career", label: "Career", icon: Briefcase, module: "career" },
+  { to: "/achievements", label: "Trophies", icon: Trophy, kbd: "G" },
   { to: "/search", label: "Search", icon: Search, kbd: "⌘K" },
   { to: "/profile", label: "Profile", icon: User },
 ];

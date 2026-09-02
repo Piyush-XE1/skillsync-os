@@ -3,6 +3,7 @@ import { CURRENT_SCHEMA_VERSION, AppDataSchema, type AppData } from "./schema";
 import { createInitialData } from "./seed";
 import { todayISO } from "./date";
 import { createDefaultNotifications } from "./notifications/types";
+import { defaultAccentFor } from "./accent";
 
 /**
  * Loose shape of persisted data while it is being migrated. It can come from
@@ -132,6 +133,20 @@ const migrators: Record<number, (data: LegacyData) => LegacyData> = {
       career: data.career ?? { applications: [] },
     };
   },
+  /**
+   * v8 -> v9: the Theme Studio ships. A custom accent colour is stored per
+   * workspace; anyone who hasn't picked one gets the default that matches
+   * their current background, so the new setting is invisible for existing
+   * users until they open the picker.
+   */
+  8: (data) => {
+    const prefs = (data.preferences ?? {}) as LegacyData;
+    const accent =
+      typeof prefs.accent === "string" && prefs.accent.trim().length > 0
+        ? prefs.accent
+        : defaultAccentFor(prefs.background);
+    return { ...data, preferences: { ...prefs, accent } };
+  },
 };
 
 export function migrate(input: unknown): AppData {
@@ -152,6 +167,7 @@ export function migrate(input: unknown): AppData {
     notifications: true,
     developerMode: false,
     background: "aurora",
+    accent: defaultAccentFor((data.preferences ?? {}).background as string | undefined),
     ...(data.preferences ?? {}),
     modules: {
       attendance: false,
@@ -174,6 +190,10 @@ export function migrate(input: unknown): AppData {
     delete prefs.theme;
     if (!["aurora", "light", "atelier"].includes(prefs.background)) {
       prefs.background = "aurora";
+    }
+    // Accent: fall back to the background's default if it was never set.
+    if (typeof prefs.accent !== "string" || prefs.accent.trim().length === 0) {
+      prefs.accent = defaultAccentFor(prefs.background);
     }
   }
 

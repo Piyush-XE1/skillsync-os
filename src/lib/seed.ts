@@ -2,6 +2,7 @@ import type { AppData, Roadmap, Habit, Phase, Topic } from "./schema";
 import { CURRENT_SCHEMA_VERSION } from "./schema";
 import { createDefaultNotifications } from "./notifications/types";
 import { createDefaultFocusSettings } from "./schema";
+import { defaultAccentFor } from "./accent";
 const SEED_CREATED_AT = 1_704_067_200_000;
 const SEED_START_DATE = "2024-01-01";
 
@@ -208,6 +209,7 @@ export function createInitialData(): AppData {
         career: true,
       },
       background: "aurora",
+      accent: defaultAccentFor("aurora"),
       haptics: true,
       hapticIntensity: "standard",
     },
