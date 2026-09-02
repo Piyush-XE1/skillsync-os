@@ -32,9 +32,10 @@ import {
 } from "@/components/ui/primitives";
 import { EmptyState } from "@/components/common/EmptyState";
 import { Reveal } from "@/components/common/Reveal";
+import { Sparkline, getAxisLabel } from "@/components/common/Charts";
 import { useAppStore, useHydrated } from "@/store/useAppStore";
 import { roadmapPct, topicPct } from "@/lib/progress";
-import { todayISO } from "@/lib/date";
+import { todayISO, dateISO } from "@/lib/date";
 import { focusTotals } from "@/lib/focus";
 import { dailyQuote } from "@/lib/quotes";
 import { allAchievements, ACHIEVEMENTS } from "@/lib/achievements";
@@ -42,6 +43,7 @@ import { habitStreak } from "@/lib/habit-streaks";
 import { haptics } from "@/lib/haptics";
 import { codingStats } from "@/lib/coding";
 import { careerStats } from "@/lib/career";
+import { effortByDay, focusDaily } from "@/lib/trends";
 import type { AppData, Roadmap, Topic } from "@/lib/schema";
 
 export const Route = createFileRoute("/")({
@@ -147,6 +149,34 @@ function Dashboard() {
   const xpToNext = stats.xp % 100;
   const focus = useMemo(() => focusTotals(focusSessions), [focusSessions]);
   const nextTopic = useMemo(() => findNextTopic(roadmaps), [roadmaps]);
+
+  /* Short "this week" series for the dashboard sparklines. */
+  const activityWeek = useMemo(() => {
+    const s = useAppStore.getState() as unknown as AppData;
+    return effortByDay(s, 7).map((d) => ({ label: getAxisLabel(d.label), value: d.value }));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [habitLogs, focusSessions, planner, roadmaps, codingProblems]);
+  const focusWeek = useMemo(() => {
+    const s = useAppStore.getState() as unknown as AppData;
+    return focusDaily(s, 7).map((d) => ({ label: getAxisLabel(d.label), value: d.value }));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [focusSessions]);
+  const solvedWeek = useMemo(() => {
+    const s = useAppStore.getState() as unknown as AppData;
+    const perDay = new Map<string, number>();
+    for (const p of s.coding.problems) {
+      const day = dateISO(new Date(p.solvedAt));
+      perDay.set(day, (perDay.get(day) ?? 0) + 1);
+    }
+    const today = todayISO();
+    return Array.from({ length: 7 }).map((_, i) => {
+      const date = new Date(today);
+      date.setDate(date.getDate() - (6 - i));
+      const iso = dateISO(date);
+      return { label: getAxisLabel(iso), value: perDay.get(iso) ?? 0 };
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [codingProblems]);
   const achievements = useMemo(
     () => allAchievements(useAppStore.getState() as unknown as AppData),
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -312,6 +342,57 @@ function Dashboard() {
                 />
               </div>
             </Link>
+          </div>
+        </Reveal>
+
+        {/* This week · momentum strip */}
+        <Reveal delay={40}>
+          <div className="grid grid-cols-3 gap-3">
+            <Card className="p-4">
+              <div className="flex items-center justify-between">
+                <span className="flex items-center gap-1.5 text-[11px] text-muted-foreground">
+                  <Activity className="h-3 w-3" strokeWidth={2} />
+                  Momentum
+                </span>
+                <span className="text-[14px] font-semibold tabular-nums text-foreground">
+                  {hydrated ? activityWeek.reduce((s, d) => s + d.value, 0) : "—"}
+                </span>
+              </div>
+              <div className="mt-2 h-9">
+                <Sparkline data={activityWeek} color="var(--primary-glow)" />
+              </div>
+              <div className="mt-1.5 text-[10.5px] text-muted-foreground">last 7 days</div>
+            </Card>
+            <Card className="p-4">
+              <div className="flex items-center justify-between">
+                <span className="flex items-center gap-1.5 text-[11px] text-muted-foreground">
+                  <Timer className="h-3 w-3" strokeWidth={2} />
+                  Deep work
+                </span>
+                <span className="text-[14px] font-semibold tabular-nums text-foreground">
+                  {hydrated ? `${focusWeek.reduce((s, d) => s + d.value, 0)}m` : "—"}
+                </span>
+              </div>
+              <div className="mt-2 h-9">
+                <Sparkline data={focusWeek} color="var(--secondary)" />
+              </div>
+              <div className="mt-1.5 text-[10.5px] text-muted-foreground">focus minutes</div>
+            </Card>
+            <Card className="p-4">
+              <div className="flex items-center justify-between">
+                <span className="flex items-center gap-1.5 text-[11px] text-muted-foreground">
+                  <Braces className="h-3 w-3" strokeWidth={2} />
+                  Solved
+                </span>
+                <span className="text-[14px] font-semibold tabular-nums text-foreground">
+                  {hydrated ? prep.code.thisWeek : "—"}
+                </span>
+              </div>
+              <div className="mt-2 h-9">
+                <Sparkline data={solvedWeek} color="var(--warning)" />
+              </div>
+              <div className="mt-1.5 text-[10.5px] text-muted-foreground">DSA this week</div>
+            </Card>
           </div>
         </Reveal>
 

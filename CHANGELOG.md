@@ -2,6 +2,29 @@
 
 All notable changes to SkillSync OS are documented here.
 
+## [3.3.0] — 2026-09-02
+
+### Added
+
+- **Dependency-free charting engine** — a hand-written SVG chart system
+  (`src/lib/charts.ts` + `src/components/common/Charts.tsx`): smooth area
+  charts, rounded bar charts, donut rings, sparklines and hover tooltips, all
+  theme-aware (they inherit the active accent and adapt to Light / Atelier). No
+  chart library, no new runtime dependencies.
+- **Analytics redesign** — the Insights page now ships rich visualisations:
+  a 30-day **Momentum** area chart (weighted daily effort), a **Deep work** area
+  chart with mini stats, a **Learning completion** donut, a **Coding solved**
+  weekly bar chart, and **Difficulty + Platform** donuts with legends.
+- **Dashboard "This week" strip** — three live sparklines (Momentum, Deep work,
+  DSA solved) so the home screen tells a story at a glance.
+- **Trend helpers** (`src/lib/trends.ts`) — pure functions that convert raw
+  store slices into chart-ready series, covered by unit tests.
+
+### Changed
+
+- Test suite expanded to 186 tests (chart geometry, trend series, analytics
+  render). `typecheck`, `lint` (0 errors) and `build` all green.
+
 ## [3.2.0] — 2026-09-02
 
 ### Added

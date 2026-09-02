@@ -26,7 +26,7 @@ Built with a **premium futuristic UI**, animated Aurora backgrounds, an offline-
 | 🔥 **Habits**              | Check-ins, per-habit streaks (current & best) and consistency heatmaps                                                                                       |
 | 📝 **Notes**               | Local-first notes with autosave                                                                                                                              |
 | 🔔 **Notifications**       | Reminders, alerts, achievement pings & weekly digest                                                                                                         |
-| 📈 **Analytics**           | GitHub-style activity heatmap, learning velocity, focus & habit trends                                                                                       |
+| 📈 **Analytics** | GitHub-style activity heatmap, momentum & deep-work area charts, learning donut, coding bar chart + difficulty/platform donuts, habit trends |
 | 🧾 **System**              | Workspace diagnostics — schema version, storage, record counts                                                                                               |
 | 📱 **Android App**         | Native Android experience with haptics & system navigation                                                                                                   |
 | 🌌 **Aurora UI**           | Animated futuristic visual environment (plus Light & Atelier themes)                                                                                         |
@@ -49,7 +49,8 @@ Built with a **premium futuristic UI**, animated Aurora backgrounds, an offline-
 - **Tailwind CSS v4** — design tokens and utilities
 - **Zustand** — local-first store, persisted to `localStorage`
 - **Zod** — runtime validation of every persisted record, schema-versioned migrations (v1 → v8)
-- **Vitest** — 150+ unit & render tests for the domain/rule engines
+- **Vitest** — 185+ unit & render tests for the domain/rule engines and the custom SVG chart geometry
+- **Custom SVG charts** — dependency-free area, bar, donut, sparkline & tooltip components (no chart library)
 - **Capacitor** — native Android shell, haptics, notifications, file save/share
 - **GitHub Actions** — CI (typecheck · lint · tests · build) + signed APK releases
 

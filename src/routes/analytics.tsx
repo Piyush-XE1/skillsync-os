@@ -1,14 +1,35 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useMemo } from "react";
-import { ArrowLeft, Flame, Timer, TrendingDown, TrendingUp, Zap } from "lucide-react";
+import {
+  ArrowLeft,
+  Flame,
+  Timer,
+  TrendingDown,
+  TrendingUp,
+  Zap,
+  Braces,
+  Activity,
+  Target,
+  Clock,
+} from "lucide-react";
 import { AppShell } from "@/components/layout/AppShell";
 import { Card, CircularProgress, ProgressBar, SectionHeader } from "@/components/ui/primitives";
 import { Heatmap, type HeatCell } from "@/components/common/Heatmap";
+import { AreaChart, BarChart, DonutChart, Legend, getAxisLabel } from "@/components/common/Charts";
 import { useAppStore, useHydrated } from "@/store/useAppStore";
-import { roadmapPct } from "@/lib/progress";
+import { roadmapPct, roadmapCounts } from "@/lib/progress";
 import { todayISO, addDaysISO } from "@/lib/date";
 import { minutesByDay, focusTotals, focusStreak } from "@/lib/focus";
 import { habitStreak } from "@/lib/habit-streaks";
+import {
+  effortByDay,
+  focusDaily,
+  codingWeekly,
+  platformBreakdown,
+  difficultyBreakdown,
+  learningBreakdown,
+  codingStreak,
+} from "@/lib/trends";
 
 export const Route = createFileRoute("/analytics")({
   head: () => ({
@@ -97,6 +118,34 @@ function AnalyticsPage() {
   const focusWeek = useMemo(() => minutesByDay(data.focus.sessions, 14), [data.focus.sessions]);
   const focus = useMemo(() => focusTotals(data.focus.sessions), [data.focus.sessions]);
   const deepStreak = useMemo(() => focusStreak(data.focus.sessions), [data.focus.sessions]);
+
+  /* ------------------------------------------------------- momentum ---- */
+  const momentum = useMemo(() => {
+    const series = effortByDay(data, 30).map((d) => ({
+      label: getAxisLabel(d.label),
+      value: d.value,
+    }));
+    return series;
+  }, [data]);
+
+  const focusTrend = useMemo(
+    () => focusDaily(data, 30).map((d) => ({ label: getAxisLabel(d.label), value: d.value })),
+    [data],
+  );
+
+  const weeklySolve = useMemo(() => codingWeekly(data, 8), [data]);
+
+  const platformSegs = useMemo(() => platformBreakdown(data), [data]);
+  const difficultySegs = useMemo(() => difficultyBreakdown(data), [data]);
+  const learningSegs = useMemo(
+    () =>
+      learningBreakdown(data).map((s) => ({
+        ...s,
+        color: s.label === "Completed" ? "var(--primary)" : "oklch(1 0 0 / 0.10)",
+      })),
+    [data],
+  );
+  const streak = useMemo(() => codingStreak(data), [data]);
 
   const habitCells = useMemo(() => {
     const today = todayISO();
@@ -247,33 +296,119 @@ function AnalyticsPage() {
           </Card>
         </section>
 
-        {/* Focus */}
-        <section className="space-y-3">
-          <SectionHeader title="Deep work (14 days)" />
-          <Card className="p-4">
-            <div className="flex h-24 items-end gap-1">
-              {focusWeek.map(({ date, minutes }) => (
-                <div key={date} className="group relative flex flex-1 flex-col items-center">
-                  <div
-                    className="w-full rounded-md bg-gradient-to-t from-[var(--primary)]/40 to-[var(--primary)]/90"
-                    style={{
-                      height: `${minutes > 0 ? Math.max(5, (minutes / 120) * 80) : 3}px`,
-                      opacity: minutes > 0 ? 1 : 0.25,
-                    }}
-                    title={`${minutes}m`}
-                  />
-                </div>
-              ))}
+        {/* Momentum */}
+        <section className="space-y-3 lg:col-span-full">
+          <SectionHeader title="Momentum (30 days)" />
+          <Card className="p-4 sm:p-5">
+            <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
+              <div className="flex items-center gap-2 text-[12px] text-muted-foreground">
+                <Activity className="h-3.5 w-3.5" strokeWidth={2} />
+                Weighted daily effort across habits, focus, topics, tasks & solves
+              </div>
+              <div className="flex items-center gap-2 text-[12px] text-muted-foreground">
+                <span className="rounded-full bg-[var(--primary)]/15 px-2.5 py-1 text-[11px] font-medium text-[var(--primary-glow)]">
+                  {momentum.reduce((s, d) => s + d.value, 0)} pts
+                </span>
+                <span className="text-[11px]">
+                  Best day: {Math.max(...momentum.map((d) => d.value))}
+                </span>
+              </div>
             </div>
-            <div className="mt-3 flex items-center justify-between text-[11.5px] text-muted-foreground">
-              <span className="flex items-center gap-1.5">
-                <Timer className="h-3.5 w-3.5" strokeWidth={2} />
-                {focus.todayMinutes}m today · {focus.totalMinutes}m total
-              </span>
+            <AreaChart data={momentum} height={180} color="var(--primary)" className="mt-2" />
+          </Card>
+        </section>
+
+        {/* Focus trend */}
+        <section className="space-y-3">
+          <SectionHeader title="Deep work (30 days)" />
+          <Card className="p-4 sm:p-5">
+            <div className="mb-2 flex items-center justify-between text-[12px] text-muted-foreground">
               <span className="flex items-center gap-1.5">
                 <Flame className="h-3.5 w-3.5 text-[var(--warning)]" strokeWidth={2} />
-                {deepStreak} day streak
+                {deepStreak}-day streak
               </span>
+              <span>
+                {focus.todayMinutes}m today · {focus.totalMinutes}m total
+              </span>
+            </div>
+            <AreaChart data={focusTrend} height={160} color="var(--secondary)" className="mt-2" />
+            <div className="mt-3 grid grid-cols-3 gap-2 text-center">
+              <MiniStat label="Today" value={`${focus.todayMinutes}m`} />
+              <MiniStat
+                label="This week"
+                value={`${focusWeek.reduce((s, d) => s + d.minutes, 0)}m`}
+              />
+              <MiniStat label="Total" value={`${focus.totalMinutes}m`} />
+            </div>
+          </Card>
+        </section>
+
+        {/* Learning pivot */}
+        <section className="space-y-3">
+          <SectionHeader title="Learning completion" />
+          <Card className="p-5">
+            <div className="mb-4 flex items-center gap-2 text-[12px] text-muted-foreground">
+              <Target className="h-3.5 w-3.5" strokeWidth={2} />
+              Topics completed vs. remaining
+            </div>
+            <div className="flex flex-wrap items-center gap-6">
+              <DonutChart
+                segments={learningSegs}
+                size={132}
+                stroke={16}
+                label={`${overallLearning}%`}
+                sublabel="Avg"
+              />
+              <Legend
+                segments={learningSegs.map((s) => ({
+                  label: s.label,
+                  value: s.value,
+                  color: s.color,
+                }))}
+              />
+            </div>
+          </Card>
+        </section>
+
+        {/* Code · DSA */}
+        <section className="space-y-3">
+          <SectionHeader title="Coding · solved (8 weeks)" />
+          <Card className="p-4 sm:p-5">
+            <div className="mb-2 flex items-center justify-between text-[12px] text-muted-foreground">
+              <span className="flex items-center gap-1.5">
+                <Braces className="h-3.5 w-3.5" strokeWidth={2} />
+                {data.coding.problems.length} problems total
+              </span>
+              <span>
+                🔥 {streak.current} current · {streak.best} best streak
+              </span>
+            </div>
+            <BarChart data={weeklySolve} height={150} color="var(--primary)" className="mt-2" />
+          </Card>
+        </section>
+
+        {/* Difficulty & platform split */}
+        <section className="space-y-3">
+          <SectionHeader title="Difficulty & platforms" />
+          <Card className="space-y-5 p-5">
+            <div className="flex flex-wrap items-center gap-6">
+              <DonutChart segments={difficultySegs} size={120} stroke={14} sublabel="Difficulty" />
+              <Legend segments={difficultySegs} />
+            </div>
+            <div className="border-t border-white/[0.06] pt-4">
+              <div className="mb-3 flex items-center gap-2 text-[12px] text-muted-foreground">
+                <Braces className="h-3.5 w-3.5" strokeWidth={2} /> Platforms
+              </div>
+              {platformSegs.length > 0 ? (
+                <div className="flex flex-wrap items-center gap-6">
+                  <DonutChart segments={platformSegs} size={120} stroke={14} sublabel="Platform" />
+                  <Legend segments={platformSegs} />
+                </div>
+              ) : (
+                <p className="text-[12px] text-muted-foreground">
+                  Log a problem on the Code page to see your platform mix.
+                </p>
+              )}
             </div>
           </Card>
         </section>
@@ -358,5 +493,14 @@ function AnalyticsPage() {
         </section>
       </div>
     </AppShell>
+  );
+}
+
+function MiniStat({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="rounded-xl border border-white/[0.05] bg-white/[0.02] px-3 py-2">
+      <div className="text-[10.5px] uppercase tracking-wider text-muted-foreground">{label}</div>
+      <div className="mt-0.5 text-[16px] font-semibold tabular-nums tracking-tight">{value}</div>
+    </div>
   );
 }
