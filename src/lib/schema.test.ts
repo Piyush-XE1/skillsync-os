@@ -28,6 +28,8 @@ describe("schema", () => {
       focus: true,
       cgpa: true,
       resume: true,
+      coding: true,
+      career: true,
     });
     expect(parsed.stats).toEqual({
       xp: 0,
@@ -44,6 +46,8 @@ describe("schema", () => {
     expect(parsed.cgpa.semesters).toEqual([]);
     expect(parsed.resume.skills).toEqual([]);
     expect(parsed.notifications.items).toEqual([]);
+    expect(parsed.coding).toEqual({ problems: [], rating: 0, maxRating: 0, ratingHistory: [] });
+    expect(parsed.career).toEqual({ applications: [] });
   });
 
   it("rejects data without a schema version", () => {

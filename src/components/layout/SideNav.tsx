@@ -17,6 +17,8 @@ import {
   Award,
   FileText,
   Search,
+  Braces,
+  Briefcase,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { haptics } from "@/lib/haptics";
@@ -34,13 +36,15 @@ type Item = {
     | "/focus"
     | "/cgpa"
     | "/resume"
+    | "/coding"
+    | "/career"
     | "/search"
     | "/profile";
   label: string;
   icon: typeof LayoutDashboard;
   exact?: boolean;
   /** Module flag that gates this entry. */
-  module?: "attendance" | "expenses" | "focus" | "cgpa" | "resume";
+  module?: "attendance" | "expenses" | "focus" | "cgpa" | "resume" | "coding" | "career";
   kbd?: string;
 };
 
@@ -55,6 +59,8 @@ const items: Item[] = [
   { to: "/habits", label: "Habits", icon: Flame },
   { to: "/expenses", label: "Expenses", icon: Wallet, module: "expenses" },
   { to: "/resume", label: "Resume", icon: FileText, module: "resume" },
+  { to: "/coding", label: "Code", icon: Braces, module: "coding", kbd: "C" },
+  { to: "/career", label: "Career", icon: Briefcase, module: "career" },
   { to: "/search", label: "Search", icon: Search, kbd: "⌘K" },
   { to: "/profile", label: "Profile", icon: User },
 ];

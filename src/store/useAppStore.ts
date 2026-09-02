@@ -22,6 +22,10 @@ import type {
   CgpaSemester,
   CgpaSubject,
   ResumeData,
+  CodingProblem,
+  RatingPoint,
+  JobApplication,
+  InterviewRound,
 } from "@/lib/schema";
 import { AppDataSchema } from "@/lib/schema";
 import { createInitialData } from "@/lib/seed";
@@ -40,7 +44,7 @@ import {
   type ScheduledNotification,
 } from "@/lib/notifications/types";
 
-type ModuleKey = "attendance" | "expenses" | "focus" | "cgpa" | "resume";
+type ModuleKey = "attendance" | "expenses" | "focus" | "cgpa" | "resume" | "coding" | "career";
 
 type State = AppData & {
   _hydrated: boolean;
@@ -170,6 +174,28 @@ type State = AppData & {
   updateResume: (patch: Partial<ResumeData>) => void;
   setResume: (resume: ResumeData) => void;
 
+  // coding / DSA prep
+  addCodingProblem: (
+    partial: Pick<CodingProblem, "title" | "solvedAt"> & Partial<CodingProblem>,
+  ) => CodingProblem;
+  updateCodingProblem: (id: string, patch: Partial<CodingProblem>) => void;
+  deleteCodingProblem: (id: string) => void;
+  setCodeRating: (rating: number) => void;
+
+  // career / placements
+  addJobApplication: (
+    partial: Pick<JobApplication, "company"> & Partial<JobApplication>,
+  ) => JobApplication;
+  updateJobApplication: (id: string, patch: Partial<JobApplication>) => void;
+  deleteJobApplication: (id: string) => void;
+  addInterviewRound: (applicationId: string, partial: Partial<InterviewRound>) => InterviewRound;
+  updateInterviewRound: (
+    applicationId: string,
+    roundId: string,
+    patch: Partial<InterviewRound>,
+  ) => void;
+  deleteInterviewRound: (applicationId: string, roundId: string) => void;
+
   // attendance
   addSubject: (
     partial: Omit<Subject, "id" | "createdAt" | "present" | "absent"> & Partial<Subject>,
@@ -226,6 +252,8 @@ export const XP_AWARDS = {
   habit: 5,
   projectDone: 40,
   achievement: 25,
+  codingProblem: 8,
+  codeRating: 30,
 } as const;
 
 /** Pure XP helper: applies a gain (clamped ≥ 0) and recomputes the level. */
@@ -354,6 +382,8 @@ export function toAppData(state: AppData): AppData {
     cgpa: state.cgpa,
     resume: state.resume,
     notifications: state.notifications,
+    coding: state.coding,
+    career: state.career,
   };
 }
 
@@ -886,6 +916,129 @@ export const useAppStore = create<State>()(
       updateResume: (patch) => set((s) => ({ resume: { ...s.resume, ...patch } })),
       setResume: (resume) => set({ resume }),
 
+      addCodingProblem: (partial) => {
+        const problem: CodingProblem = {
+          id: newId(),
+          title: partial.title,
+          platform: partial.platform ?? "leetcode",
+          difficulty: partial.difficulty ?? "medium",
+          tags: partial.tags ?? [],
+          url: partial.url ?? "",
+          solvedAt: partial.solvedAt ?? Date.now(),
+          notes: partial.notes ?? "",
+          timeComplexity: partial.timeComplexity ?? "",
+          spaceComplexity: partial.spaceComplexity ?? "",
+        };
+        set((s) => ({
+          coding: { ...s.coding, problems: [problem, ...s.coding.problems] },
+          stats: touchStreakStats(addXpToStats(s.stats, XP_AWARDS.codingProblem)),
+        }));
+        return problem;
+      },
+      updateCodingProblem: (id, patch) =>
+        set((s) => ({
+          coding: {
+            ...s.coding,
+            problems: s.coding.problems.map((p) => (p.id === id ? { ...p, ...patch } : p)),
+          },
+        })),
+      deleteCodingProblem: (id) =>
+        set((s) => ({
+          coding: { ...s.coding, problems: s.coding.problems.filter((p) => p.id !== id) },
+        })),
+      setCodeRating: (rating) =>
+        set((s) => {
+          const point: RatingPoint = { at: Date.now(), rating };
+          return {
+            coding: {
+              ...s.coding,
+              rating,
+              maxRating: Math.max(s.coding.maxRating, rating),
+              ratingHistory: [...s.coding.ratingHistory, point],
+            },
+            stats: addXpToStats(s.stats, XP_AWARDS.codeRating),
+          };
+        }),
+
+      addJobApplication: (partial) => {
+        const app: JobApplication = {
+          id: newId(),
+          company: partial.company,
+          role: partial.role ?? "",
+          location: partial.location ?? "",
+          status: partial.status ?? "saved",
+          appliedAt: partial.appliedAt ?? Date.now(),
+          deadline: partial.deadline ?? null,
+          referral: partial.referral ?? "",
+          link: partial.link ?? "",
+          salary: partial.salary ?? "",
+          notes: partial.notes ?? "",
+          rounds: partial.rounds ?? [],
+        };
+        set((s) => ({
+          career: { ...s.career, applications: [app, ...s.career.applications] },
+        }));
+        return app;
+      },
+      updateJobApplication: (id, patch) =>
+        set((s) => ({
+          career: {
+            ...s.career,
+            applications: s.career.applications.map((a) => (a.id === id ? { ...a, ...patch } : a)),
+          },
+        })),
+      deleteJobApplication: (id) =>
+        set((s) => ({
+          career: {
+            ...s.career,
+            applications: s.career.applications.filter((a) => a.id !== id),
+          },
+        })),
+      addInterviewRound: (applicationId, partial) => {
+        const round: InterviewRound = {
+          id: newId(),
+          name: partial.name ?? "Interview",
+          date: partial.date ?? null,
+          type: partial.type ?? "virtual",
+          outcome: partial.outcome ?? "pending",
+          notes: partial.notes ?? "",
+        };
+        set((s) => ({
+          career: {
+            ...s.career,
+            applications: s.career.applications.map((a) =>
+              a.id === applicationId ? { ...a, rounds: [...a.rounds, round] } : a,
+            ),
+          },
+        }));
+        return round;
+      },
+      updateInterviewRound: (applicationId, roundId, patch) =>
+        set((s) => ({
+          career: {
+            ...s.career,
+            applications: s.career.applications.map((a) =>
+              a.id === applicationId
+                ? {
+                    ...a,
+                    rounds: a.rounds.map((r) => (r.id === roundId ? { ...r, ...patch } : r)),
+                  }
+                : a,
+            ),
+          },
+        })),
+      deleteInterviewRound: (applicationId, roundId) =>
+        set((s) => ({
+          career: {
+            ...s.career,
+            applications: s.career.applications.map((a) =>
+              a.id === applicationId
+                ? { ...a, rounds: a.rounds.filter((r) => r.id !== roundId) }
+                : a,
+            ),
+          },
+        })),
+
       addSubject: (partial) => {
         const subject: Subject = {
           id: newId(),
@@ -1094,7 +1247,7 @@ export const useAppStore = create<State>()(
     }),
     {
       name: STORAGE_KEY,
-      version: 7,
+      version: 8,
       storage: createJSONStorage(() =>
         // No storage during SSR — persist skips hydration when this is undefined.
         typeof window !== "undefined"

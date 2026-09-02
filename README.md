@@ -15,8 +15,10 @@ Built with a **premium futuristic UI**, animated Aurora backgrounds, an offline-
 | ⏱️ **Focus** | Pomodoro deep-work timer — sessions, sounds, XP and a focus streak |
 | 🎯 **CGPA Tracker** | Semester-wise SGPA, cumulative CGPA, grade breakdown & target simulator |
 | 📄 **Resume Builder** | Structured editor → print-ready ATS-friendly resume, JSON import/export |
+| 💻 **Code · DSA Prep** | Track solved problems across LeetCode, Codeforces, CodeChef & more — difficulty breakdowns, solve heatmap, streaks & contest ratings |
+| 🤝 **Career · Placements** | Job & internship pipeline from Saved → Applied → Referral → OA → Interview → Offer, with rounds & referrals |
 | 🔍 **Command Palette** | `/` or `⌘K` anywhere — search every roadmap, topic, note, project & task |
-| 🏆 **Achievements** | 18 badges with one-time XP awards, notifications & level-ups |
+| 🏆 **Achievements** | 26 badges with one-time XP awards, notifications & level-ups |
 | 🚀 **Projects** | Status, progress, deadlines, tasks and tech stack tracking |
 | 📅 **Planner** | Tasks with priorities, done timestamps and a smart Today queue |
 | 🔥 **Habits** | Check-ins, per-habit streaks (current & best) and consistency heatmaps |
@@ -34,6 +36,7 @@ Built with a **premium futuristic UI**, animated Aurora backgrounds, an offline-
 | --- | --- |
 | `/` or `⌘/Ctrl + K` | Open command palette (workspace-wide search) |
 | `F` | Jump to the Focus timer |
+| `C` | Jump to the Code (DSA prep) module |
 | `↑↓` / `Enter` / `Esc` | Navigate results inside the palette |
 
 ## 🛠️ Tech Stack
@@ -42,7 +45,7 @@ Built with a **premium futuristic UI**, animated Aurora backgrounds, an offline-
 - **TanStack Router + TanStack Start** — file-based routing, SSR-safe shell
 - **Tailwind CSS v4** — design tokens and utilities
 - **Zustand** — local-first store, persisted to `localStorage`
-- **Zod** — runtime validation of every persisted record, schema-versioned migrations (v1 → v7)
+- **Zod** — runtime validation of every persisted record, schema-versioned migrations (v1 → v8)
 - **Vitest** — 150+ unit & render tests for the domain/rule engines
 - **Capacitor** — native Android shell, haptics, notifications, file save/share
 - **GitHub Actions** — CI (typecheck · lint · tests · build) + signed APK releases
@@ -56,7 +59,7 @@ Routes (React, file-based)
    │  read/write via typed actions
 Store (zustand + persist middleware)
    │  partialize → only plain data is persisted
-Migrations (v1→v7, field-by-field salvage on corruption)
+Migrations (v1→v8, field-by-field salvage on corruption)
    │  validate
 Schema (zod — single source of truth for every record)
    │  derive
@@ -75,7 +78,7 @@ npm install         # or: bun install
 npm run dev         # start the dev server (hot reload)
 npm run typecheck   # strict TS check
 npm run lint        # eslint
-npm run test        # vitest suite (150+ tests)
+npm run test        # vitest suite (160+ tests)
 npm run build       # production build (TanStack Start + Nitro)
 ```
 
@@ -136,11 +139,13 @@ Instead of using separate tools for every part of personal development, SkillSyn
 - [x] Focus timer with XP & streaks
 - [x] CGPA tracker with target simulator
 - [x] Resume builder with print/PDF export
+- [x] DSA practice tracker with solve heatmap, streaks & contest ratings
+- [x] Placement / job application tracker with interview rounds
 - [x] Command palette with global keyboard shortcuts
 - [x] Achievements & gamification engine
 - [x] Activity heatmaps & learning velocity analytics
 - [x] Local notifications · Android APK · native haptics
-- [x] Schema-versioned migrations (v1 → v7) with corruption salvage
+- [x] Schema-versioned migrations (v1 → v8) with corruption salvage
 - [x] Unit + render test suite (Vitest) · CI (typecheck · lint · tests · build)
 - [ ] Cloud backup & sync
 - [ ] Multi-device synchronization

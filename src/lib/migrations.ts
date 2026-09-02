@@ -111,6 +111,27 @@ const migrators: Record<number, (data: LegacyData) => LegacyData> = {
       preferences: { ...(data.preferences ?? {}), modules },
     };
   },
+  /**
+   * v7 -> v8: the Coding (DSA prep) and Career (placement tracker) modules join
+   * the workspace. Existing data is untouched; the new domains start empty and
+   * are enabled by default for new workspaces while old workspaces keep their
+   * module preferences (both default on for existing installs too, so the
+   * modules are discoverable after the upgrade).
+   */
+  7: (data) => {
+    const prefs = (data.preferences ?? {}) as LegacyData;
+    const modules = {
+      ...(prefs.modules ?? {}),
+      coding: typeof (prefs.modules ?? {}).coding === "boolean" ? prefs.modules.coding : true,
+      career: typeof (prefs.modules ?? {}).career === "boolean" ? prefs.modules.career : true,
+    };
+    return {
+      ...data,
+      preferences: { ...prefs, modules },
+      coding: data.coding ?? { problems: [], rating: 0, maxRating: 0, ratingHistory: [] },
+      career: data.career ?? { applications: [] },
+    };
+  },
 };
 
 export function migrate(input: unknown): AppData {
@@ -135,6 +156,11 @@ export function migrate(input: unknown): AppData {
     modules: {
       attendance: false,
       expenses: false,
+      focus: true,
+      cgpa: true,
+      resume: true,
+      coding: true,
+      career: true,
       ...((data.preferences ?? {}).modules ?? {}),
     },
   };
