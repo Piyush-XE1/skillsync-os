@@ -198,7 +198,15 @@ export function createInitialData(): AppData {
     preferences: {
       notifications: true,
       developerMode: false,
-      modules: { attendance: false, expenses: false, focus: true, cgpa: true, resume: true },
+      modules: {
+        attendance: false,
+        expenses: false,
+        focus: true,
+        cgpa: true,
+        resume: true,
+        coding: true,
+        career: true,
+      },
       background: "aurora",
       haptics: true,
       hapticIntensity: "standard",
@@ -233,5 +241,7 @@ export function createInitialData(): AppData {
       certifications: [],
     },
     notifications: createDefaultNotifications(),
+    coding: { problems: [], rating: 0, maxRating: 0, ratingHistory: [] },
+    career: { applications: [] },
   };
 }

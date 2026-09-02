@@ -1,7 +1,7 @@
 import { z } from "zod";
 import { NotificationsStateSchema, createDefaultNotifications } from "./notifications/types";
 
-export const CURRENT_SCHEMA_VERSION = 7;
+export const CURRENT_SCHEMA_VERSION = 8;
 
 export const ChecklistItemSchema = z.object({
   id: z.string(),
@@ -128,6 +128,8 @@ export const ModuleFlagsSchema = z.object({
   focus: z.boolean().default(true),
   cgpa: z.boolean().default(true),
   resume: z.boolean().default(true),
+  coding: z.boolean().default(true),
+  career: z.boolean().default(true),
 });
 
 export const PreferencesSchema = z.object({
@@ -139,6 +141,8 @@ export const PreferencesSchema = z.object({
     focus: true,
     cgpa: true,
     resume: true,
+    coding: true,
+    career: true,
   }),
   /**
    * The single source of truth for the app's appearance. "light" activates the
@@ -342,6 +346,101 @@ export const ResumeSchema = z.object({
   certifications: z.array(ResumeCertificationSchema).default([]),
 });
 
+/* ------------------------------------------------------------------ *
+ * Coding / DSA Prep module
+ * ------------------------------------------------------------------ */
+
+export const CodingPlatform = z.enum([
+  "leetcode",
+  "codeforces",
+  "codechef",
+  "gfg",
+  "hackerrank",
+  "other",
+]);
+
+export const CodingDifficulty = z.enum(["easy", "medium", "hard"]);
+
+export const CodingProblemSchema = z.object({
+  id: z.string(),
+  title: z.string(),
+  platform: CodingPlatform.default("leetcode"),
+  difficulty: CodingDifficulty.default("medium"),
+  tags: z.array(z.string()).default([]),
+  /** Optional problem URL. */
+  url: z.string().default(""),
+  /** Epoch ms when the problem was solved. */
+  solvedAt: z.number(),
+  /** Personal notes on the approach. */
+  notes: z.string().default(""),
+  timeComplexity: z.string().default(""),
+  spaceComplexity: z.string().default(""),
+});
+
+export const RatingPointSchema = z.object({
+  at: z.number(),
+  rating: z.number(),
+});
+
+export const CodingSchema = z.object({
+  problems: z.array(CodingProblemSchema).default([]),
+  /** Current contest rating on the primary platform (optional). */
+  rating: z.number().default(0),
+  /** Best contest rating reached. */
+  maxRating: z.number().default(0),
+  /** Immutable contest rating history, newest last. */
+  ratingHistory: z.array(RatingPointSchema).default([]),
+});
+
+/* ------------------------------------------------------------------ *
+ * Career / Placement tracker module
+ * ------------------------------------------------------------------ */
+
+export const InterviewRoundType = z.enum(["phone", "virtual", "onsite", "takehome", "assignment"]);
+
+export const InterviewRoundOutcome = z.enum(["pending", "cleared", "rejected"]);
+
+export const InterviewRoundSchema = z.object({
+  id: z.string(),
+  name: z.string(),
+  /** Epoch ms for the round, or null until scheduled. */
+  date: z.number().nullable().default(null),
+  type: InterviewRoundType.default("virtual"),
+  outcome: InterviewRoundOutcome.default("pending"),
+  notes: z.string().default(""),
+});
+
+export const JobStatus = z.enum([
+  "saved",
+  "applied",
+  "referral",
+  "oa",
+  "interview",
+  "offer",
+  "rejected",
+]);
+
+export const JobApplicationSchema = z.object({
+  id: z.string(),
+  company: z.string(),
+  role: z.string().default(""),
+  location: z.string().default(""),
+  status: JobStatus.default("saved"),
+  /** Epoch ms when the application first went out. */
+  appliedAt: z.number(),
+  /** Optional application deadline (epoch ms), or null. */
+  deadline: z.number().nullable().default(null),
+  referral: z.string().default(""),
+  link: z.string().default(""),
+  salary: z.string().default(""),
+  notes: z.string().default(""),
+  rounds: z.array(InterviewRoundSchema).default([]),
+});
+
+export const CareerSchema = z.object({
+  applications: z.array(JobApplicationSchema).default([]),
+});
+
 export const AppDataSchema = z.object({
   schemaVersion: z.number(),
   roadmaps: z.array(RoadmapSchema).default([]),
@@ -354,7 +453,15 @@ export const AppDataSchema = z.object({
   preferences: PreferencesSchema.default({
     notifications: true,
     developerMode: false,
-    modules: { attendance: false, expenses: false, focus: true, cgpa: true, resume: true },
+    modules: {
+      attendance: false,
+      expenses: false,
+      focus: true,
+      cgpa: true,
+      resume: true,
+      coding: true,
+      career: true,
+    },
     background: "aurora",
     haptics: true,
     hapticIntensity: "standard",
@@ -374,6 +481,8 @@ export const AppDataSchema = z.object({
   cgpa: CgpaSchema.default({ semesters: [] }),
   resume: ResumeSchema.default(() => createDefaultResume()),
   notifications: NotificationsStateSchema.default(() => createDefaultNotifications()),
+  coding: CodingSchema.default({ problems: [], rating: 0, maxRating: 0, ratingHistory: [] }),
+  career: CareerSchema.default({ applications: [] }),
 });
 
 export type ChecklistItem = z.infer<typeof ChecklistItemSchema>;
@@ -400,6 +509,15 @@ export type FocusSession = z.infer<typeof FocusSessionSchema>;
 export type FocusSettings = z.infer<typeof FocusSettingsSchema>;
 export type CgpaSubject = z.infer<typeof CgpaSubjectSchema>;
 export type CgpaSemester = z.infer<typeof CgpaSemesterSchema>;
+export type CodingPlatform = z.infer<typeof CodingPlatform>;
+export type CodingDifficulty = z.infer<typeof CodingDifficulty>;
+export type CodingProblem = z.infer<typeof CodingProblemSchema>;
+export type Coding = z.infer<typeof CodingSchema>;
+export type RatingPoint = z.infer<typeof RatingPointSchema>;
+export type InterviewRound = z.infer<typeof InterviewRoundSchema>;
+export type JobStatus = z.infer<typeof JobStatus>;
+export type JobApplication = z.infer<typeof JobApplicationSchema>;
+export type Career = z.infer<typeof CareerSchema>;
 export type ResumeData = z.infer<typeof ResumeSchema>;
 export type ResumeEducation = z.infer<typeof ResumeEducationSchema>;
 export type ResumeExperience = z.infer<typeof ResumeExperienceSchema>;

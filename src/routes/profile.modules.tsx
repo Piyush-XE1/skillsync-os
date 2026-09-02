@@ -1,5 +1,14 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { ArrowLeft, GraduationCap, Wallet, Timer, Award, FileText } from "lucide-react";
+import {
+  ArrowLeft,
+  GraduationCap,
+  Wallet,
+  Timer,
+  Award,
+  FileText,
+  Braces,
+  Briefcase,
+} from "lucide-react";
 import { AppShell } from "@/components/layout/AppShell";
 import { Card } from "@/components/ui/primitives";
 import { Toggle } from "@/components/common/Toggle";
@@ -110,6 +119,20 @@ function ModulesPage() {
           desc="Structured resume editor with a print-ready preview and PDF export."
           on={modules.resume}
           onChange={(v) => setModuleEnabled("resume", v)}
+        />
+        <ModuleRow
+          icon={Braces}
+          title="Code · DSA Prep"
+          desc="Track problems solved across LeetCode, Codeforces, CodeChef and more — with streaks, difficulty breakdowns and a GitHub-style heatmap."
+          on={modules.coding}
+          onChange={(v) => setModuleEnabled("coding", v)}
+        />
+        <ModuleRow
+          icon={Briefcase}
+          title="Career · Placements"
+          desc="Manage job and internship applications, referrals, interview rounds and your entire pipeline until you sign the offer."
+          on={modules.career}
+          onChange={(v) => setModuleEnabled("career", v)}
         />
       </div>
     </AppShell>

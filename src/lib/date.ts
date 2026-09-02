@@ -5,6 +5,11 @@ export function todayISO(d: Date = new Date()): string {
   return `${y}-${m}-${day}`;
 }
 
+/** ISO `YYYY-MM-DD` for an arbitrary Date (alias for todayISO with a date). */
+export function dateISO(d: Date): string {
+  return todayISO(d);
+}
+
 export function addDaysISO(iso: string, delta: number): string {
   const [y, m, d] = iso.split("-").map(Number);
   const dt = new Date(y, m - 1, d);

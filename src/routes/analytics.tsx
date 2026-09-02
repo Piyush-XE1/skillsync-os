@@ -62,6 +62,7 @@ function AnalyticsPage() {
     for (const r of roadmaps)
       for (const p of r.phases)
         for (const t of p.topics) if (t.completedAt) bump(todayISO(new Date(t.completedAt)), 4);
+    for (const c of data.coding.problems) bump(todayISO(new Date(c.solvedAt)), 3);
 
     const today = todayISO();
     const cells: HeatCell[] = Array.from({ length: ACTIVITY_DAYS }).map((_, i) => {
@@ -71,7 +72,7 @@ function AnalyticsPage() {
       return { date, level };
     });
     return { cells, total: [...perDay.values()].reduce((a, b) => a + b, 0) };
-  }, [data.focus.sessions, data.planner, habitLogs, roadmaps]);
+  }, [data.focus.sessions, data.planner, data.coding.problems, habitLogs, roadmaps]);
 
   /* -------------------------------------------------------- velocity ---- */
   const topicsDoneDates = useMemo(() => {

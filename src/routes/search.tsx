@@ -14,6 +14,8 @@ import {
   Timer,
   Award,
   Wallet,
+  Braces,
+  Briefcase,
   Circle,
 } from "lucide-react";
 import { useAppStore, useHydrated } from "@/store/useAppStore";
@@ -39,6 +41,8 @@ const KIND_META: Record<SearchResult["kind"], { label: string; icon: typeof Layo
   planner: { label: "Task", icon: ListTodo },
   habit: { label: "Habit", icon: Flame },
   subject: { label: "Subject", icon: GraduationCap },
+  coding: { label: "Problem", icon: Braces },
+  job: { label: "Application", icon: Briefcase },
   page: { label: "Page", icon: LayoutDashboard },
 };
 
@@ -66,6 +70,10 @@ function resultHref(r: SearchResult): {
       return { to: "/habits/$habitId", params: { habitId: r.id } };
     case "subject":
       return { to: "/attendance" };
+    case "coding":
+      return { to: "/coding" };
+    case "job":
+      return { to: "/career" };
     case "page":
       return { to: r.to };
   }

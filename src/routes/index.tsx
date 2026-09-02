@@ -18,6 +18,8 @@ import {
   Quote,
   Circle,
   CheckCircle2,
+  Braces,
+  Briefcase,
 } from "lucide-react";
 import { useMemo } from "react";
 import { AppShell, PageHeader } from "@/components/layout/AppShell";
@@ -38,6 +40,8 @@ import { dailyQuote } from "@/lib/quotes";
 import { allAchievements, ACHIEVEMENTS } from "@/lib/achievements";
 import { habitStreak } from "@/lib/habit-streaks";
 import { haptics } from "@/lib/haptics";
+import { codingStats } from "@/lib/coding";
+import { careerStats } from "@/lib/career";
 import type { AppData, Roadmap, Topic } from "@/lib/schema";
 
 export const Route = createFileRoute("/")({
@@ -115,6 +119,8 @@ function Dashboard() {
   const modules = useAppStore((s) => s.preferences.modules);
   const subjects = useAppStore((s) => s.attendance.subjects);
   const focusSessions = useAppStore((s) => s.focus.sessions);
+  const codingProblems = useAppStore((s) => s.coding.problems);
+  const careerApps = useAppStore((s) => s.career.applications);
   const toggleHabitToday = useAppStore((s) => s.toggleHabitToday);
   const updatePlannerTask = useAppStore((s) => s.updatePlannerTask);
 
@@ -175,6 +181,12 @@ function Dashboard() {
     const currentSem = subjects.length > 0 ? Math.max(...subjects.map((s) => s.semester)) : null;
     return { present: p, total, pct, currentSem };
   }, [subjects]);
+
+  const prep = useMemo(() => {
+    const code = codingStats(codingProblems);
+    const career = careerStats(careerApps);
+    return { code, career, show: modules.coding || modules.career };
+  }, [codingProblems, careerApps, modules.coding, modules.career]);
 
   return (
     <AppShell>
@@ -684,6 +696,90 @@ function Dashboard() {
                 </div>
                 <ChevronRight className="h-4 w-4 text-muted-foreground/60" />
               </Link>
+            </section>
+          </Reveal>
+        ) : null}
+
+        {hydrated && prep.show ? (
+          <Reveal delay={210}>
+            <section className="space-y-3">
+              <SectionHeader title="Placement Prep" />
+              <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+                {modules.coding ? (
+                  <Link
+                    to="/coding"
+                    className="card-surface p-4 transition-all active:scale-[0.98]"
+                  >
+                    <div className="flex items-center gap-2 text-[12px] text-muted-foreground">
+                      <Braces className="h-3.5 w-3.5" strokeWidth={2} />
+                      <span>DSA solved</span>
+                    </div>
+                    <div className="mt-3 flex items-baseline gap-1.5">
+                      <span className="text-[28px] font-semibold tracking-tight">
+                        {prep.code.total}
+                      </span>
+                      <span className="text-[12.5px] text-muted-foreground">problems</span>
+                    </div>
+                    <div className="mt-2 text-[11.5px] text-muted-foreground">
+                      🔥 {prep.code.currentStreak}-day streak · {prep.code.thisWeek} this week
+                    </div>
+                  </Link>
+                ) : null}
+                {modules.coding ? (
+                  <div className="card-surface p-4">
+                    <div className="flex items-center gap-2 text-[12px] text-muted-foreground">
+                      <Trophy className="h-3.5 w-3.5" strokeWidth={2} />
+                      <span>Today</span>
+                    </div>
+                    <div className="mt-3 flex items-baseline gap-1.5">
+                      <span className="text-[28px] font-semibold tracking-tight">
+                        {prep.code.today}
+                      </span>
+                      <span className="text-[12.5px] text-muted-foreground">solved</span>
+                    </div>
+                    <div className="mt-2 text-[11.5px] text-muted-foreground">
+                      {prep.code.byDifficulty.hard} hard · {prep.code.byDifficulty.medium} medium
+                    </div>
+                  </div>
+                ) : null}
+                {modules.career ? (
+                  <Link
+                    to="/career"
+                    className="card-surface p-4 transition-all active:scale-[0.98]"
+                  >
+                    <div className="flex items-center gap-2 text-[12px] text-muted-foreground">
+                      <Briefcase className="h-3.5 w-3.5" strokeWidth={2} />
+                      <span>Applications</span>
+                    </div>
+                    <div className="mt-3 flex items-baseline gap-1.5">
+                      <span className="text-[28px] font-semibold tracking-tight">
+                        {prep.career.total}
+                      </span>
+                      <span className="text-[12.5px] text-muted-foreground">sent</span>
+                    </div>
+                    <div className="mt-2 text-[11.5px] text-muted-foreground">
+                      {prep.career.active} active · {prep.career.offers} offers
+                    </div>
+                  </Link>
+                ) : null}
+                {modules.career ? (
+                  <div className="card-surface p-4">
+                    <div className="flex items-center gap-2 text-[12px] text-muted-foreground">
+                      <CheckCircle2 className="h-3.5 w-3.5" strokeWidth={2} />
+                      <span>Interview rounds</span>
+                    </div>
+                    <div className="mt-3 flex items-baseline gap-1.5">
+                      <span className="text-[28px] font-semibold tracking-tight">
+                        {prep.career.interviewStages}
+                      </span>
+                      <span className="text-[12.5px] text-muted-foreground">cleared</span>
+                    </div>
+                    <div className="mt-2 text-[11.5px] text-muted-foreground">
+                      {prep.career.referrals} referrals · {prep.career.responseRate}% response
+                    </div>
+                  </div>
+                ) : null}
+              </div>
             </section>
           </Reveal>
         ) : null}

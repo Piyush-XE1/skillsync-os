@@ -37,6 +37,8 @@ is `src/routes/__root.tsx`.
 | Analytics | `analytics.tsx` |
 | Attendance | `attendance.tsx` · `attendance.index.tsx` · `attendance.$semester.tsx` |
 | Expenses | `expenses.tsx` · `expenses.index.tsx` |
+| Code (DSA prep) | `coding.tsx` · `coding.index.tsx` |
+| Career (placements) | `career.tsx` · `career.index.tsx` |
 | Profile | `profile.tsx` · `profile.index.tsx` · `profile.backup.tsx` · `profile.modules.tsx` · `profile.notifications.tsx` · `profile.system.tsx` |
 
 New feature routes follow the same file-based conventions above; logic lives in

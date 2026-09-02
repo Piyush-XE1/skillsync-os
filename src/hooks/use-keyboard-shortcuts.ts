@@ -12,6 +12,7 @@ function isTypingTarget(el: EventTarget | null): boolean {
  * Global keyboard shortcuts (ignored while typing in a field):
  *   Cmd/Ctrl + K or "/" → command palette (search)
  *   "f"                → focus timer
+ *   "c"                → code / DSA prep
  */
 export function useKeyboardShortcuts() {
   const navigate = useNavigate();
@@ -33,6 +34,9 @@ export function useKeyboardShortcuts() {
       }
       if (e.key.toLowerCase() === "f" && !e.altKey) {
         void navigate({ to: "/focus" });
+      }
+      if (e.key.toLowerCase() === "c" && !e.altKey && !e.metaKey && !e.ctrlKey) {
+        void navigate({ to: "/coding" });
       }
     };
     window.addEventListener("keydown", onKey);

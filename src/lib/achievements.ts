@@ -3,6 +3,7 @@ import { roadmapPct, roadmapCounts } from "./progress";
 import { habitStreak } from "./habit-streaks";
 import { cumulativeGpa } from "./cgpa";
 import { focusTotals } from "./focus";
+import { codingStats, solveStreak } from "./coding";
 
 export type Achievement = {
   id: string;
@@ -200,6 +201,65 @@ export const ACHIEVEMENTS: Achievement[] = [
     xp: 50,
     progressHint: (d) => `Level ${Math.min(5, d.stats.level)} / 5`,
     check: (d) => d.stats.level >= 5,
+  },
+  {
+    id: "code-first",
+    title: "Hello, World",
+    description: "Log your first solved problem",
+    icon: "💻",
+    xp: 25,
+    check: (d) => d.coding.problems.length >= 1,
+  },
+  {
+    id: "code-50",
+    title: "Grinder",
+    description: "Solve 50 problems",
+    icon: "🧩",
+    xp: 75,
+    progressHint: (d) => `${Math.min(50, d.coding.problems.length)} / 50 solved`,
+    check: (d) => d.coding.problems.length >= 50,
+  },
+  {
+    id: "code-150",
+    title: "Algo Ace",
+    description: "Solve 150 problems",
+    icon: "⚔️",
+    xp: 150,
+    progressHint: (d) => `${Math.min(150, d.coding.problems.length)} / 150 solved`,
+    check: (d) => d.coding.problems.length >= 150,
+  },
+  {
+    id: "code-streak-7",
+    title: "Daily Grind",
+    description: "Solve at least one problem 7 days in a row",
+    icon: "🔄",
+    xp: 60,
+    progressHint: (d) => `${Math.min(7, solveStreak(d.coding.problems).best)} / 7 days`,
+    check: (d) => solveStreak(d.coding.problems).best >= 7,
+  },
+  {
+    id: "code-hard",
+    title: "Giant Slayer",
+    description: "Solve a hard problem",
+    icon: "🏔️",
+    xp: 50,
+    check: (d) => d.coding.problems.some((p) => p.difficulty === "hard"),
+  },
+  {
+    id: "career-first",
+    title: "Foot in the Door",
+    description: "Add your first job application",
+    icon: "🚪",
+    xp: 20,
+    check: (d) => d.career.applications.length >= 1,
+  },
+  {
+    id: "career-offer",
+    title: "Signed, Sealed",
+    description: "Receive a job offer",
+    icon: "🤝",
+    xp: 100,
+    check: (d) => d.career.applications.some((a) => a.status === "offer"),
   },
 ];
 

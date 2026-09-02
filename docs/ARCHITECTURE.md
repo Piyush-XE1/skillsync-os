@@ -9,7 +9,7 @@
    app and the Android APK share one codebase and one data model.
 2. **Data is the product.** Every record is validated at the boundary —
    nothing malformed ever reaches a component.
-3. **Upgrades never lose data.** The persisted schema is versioned (v1 → v7)
+3. **Upgrades never lose data.** The persisted schema is versioned (v1 → v8)
    and migrated automatically, with field-level salvage when corruption is
    found.
 4. **Everything measurable.** XP, streaks, achievements, focus sessions and
@@ -30,7 +30,7 @@
 │  gamification (XP awards, streaks, completedAt stamps).    │
 ├────────────────────────────────────────────────────────────┤
 │  Migrations (src/lib/migrations.ts)                        │
-│  Pure functions v1→v7. Each migrator is additive. On       │
+│  Pure functions v1→v8. Each migrator is additive. On       │
 │  invalid input the engine salvages valid top-level fields  │
 │  one by one instead of crashing or wiping.                 │
 ├────────────────────────────────────────────────────────────┤
@@ -52,7 +52,7 @@
   survives.
 - `schemaVersion` lives **inside** the payload. Zustand's persist `version`
   bumps alongside it, so a stored v6 payload is routed through the migration
-  chain and emerges as valid v7 data.
+  chain and emerges as valid v8 data.
 - Migrations are **additive**: new domains (Focus, CGPA, Resume) start empty
   with safe defaults; existing records are enriched (e.g. planner tasks gain
   `priority`, topics gain `completedAt`).

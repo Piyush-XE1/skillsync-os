@@ -44,7 +44,28 @@ describe("migrate", () => {
       focus: true,
       cgpa: true,
       resume: true,
+      coding: true,
+      career: true,
     });
+    expect(result.coding).toEqual({ problems: [], rating: 0, maxRating: 0, ratingHistory: [] });
+    expect(result.career).toEqual({ applications: [] });
+  });
+
+  it("migrates v7 data to v8: adds the coding and career modules", () => {
+    const v7 = {
+      schemaVersion: 7,
+      preferences: { modules: { focus: true, cgpa: true, resume: true, coding: false } },
+      coding: undefined,
+      career: undefined,
+      stats: { xp: 12 },
+    };
+    const result = migrate(v7);
+    expect(result.schemaVersion).toBe(CURRENT_SCHEMA_VERSION);
+    expect(result.coding).toEqual({ problems: [], rating: 0, maxRating: 0, ratingHistory: [] });
+    expect(result.career).toEqual({ applications: [] });
+    // Existing module flag is preserved; missing one defaults on.
+    expect(result.preferences.modules.coding).toBe(false);
+    expect(result.preferences.modules.career).toBe(true);
   });
 
   it("migrates v6 data to v7: stats gains totalXp / joinedAt / achievements", () => {

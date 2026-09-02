@@ -12,7 +12,9 @@ import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as AnalyticsRouteImport } from './routes/analytics'
 import { Route as AttendanceRouteImport } from './routes/attendance'
+import { Route as CareerRouteImport } from './routes/career'
 import { Route as CgpaRouteImport } from './routes/cgpa'
+import { Route as CodingRouteImport } from './routes/coding'
 import { Route as ExpensesRouteImport } from './routes/expenses'
 import { Route as FocusRouteImport } from './routes/focus'
 import { Route as HabitsRouteImport } from './routes/habits'
@@ -27,6 +29,8 @@ import { Route as SearchRouteImport } from './routes/search'
 import { Route as SitemapDotxmlRouteImport } from './routes/sitemap[.]xml'
 import { Route as AttendanceIndexRouteImport } from './routes/attendance.index'
 import { Route as AttendanceSemesterRouteImport } from './routes/attendance.$semester'
+import { Route as CareerIndexRouteImport } from './routes/career.index'
+import { Route as CodingIndexRouteImport } from './routes/coding.index'
 import { Route as ExpensesIndexRouteImport } from './routes/expenses.index'
 import { Route as HabitsIndexRouteImport } from './routes/habits.index'
 import { Route as HabitsHabitIdRouteImport } from './routes/habits.$habitId'
@@ -57,9 +61,19 @@ const AttendanceRoute = AttendanceRouteImport.update({
   path: '/attendance',
   getParentRoute: () => rootRouteImport,
 } as any)
+const CareerRoute = CareerRouteImport.update({
+  id: '/career',
+  path: '/career',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const CgpaRoute = CgpaRouteImport.update({
   id: '/cgpa',
   path: '/cgpa',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const CodingRoute = CodingRouteImport.update({
+  id: '/coding',
+  path: '/coding',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ExpensesRoute = ExpensesRouteImport.update({
@@ -131,6 +145,16 @@ const AttendanceSemesterRoute = AttendanceSemesterRouteImport.update({
   id: '/$semester',
   path: '/$semester',
   getParentRoute: () => AttendanceRoute,
+} as any)
+const CareerIndexRoute = CareerIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => CareerRoute,
+} as any)
+const CodingIndexRoute = CodingIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => CodingRoute,
 } as any)
 const ExpensesIndexRoute = ExpensesIndexRouteImport.update({
   id: '/',
@@ -207,7 +231,9 @@ export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/analytics': typeof AnalyticsRoute
   '/attendance': typeof AttendanceRouteWithChildren
+  '/career': typeof CareerRouteWithChildren
   '/cgpa': typeof CgpaRoute
+  '/coding': typeof CodingRouteWithChildren
   '/expenses': typeof ExpensesRouteWithChildren
   '/focus': typeof FocusRoute
   '/habits': typeof HabitsRouteWithChildren
@@ -229,6 +255,8 @@ export interface FileRoutesByFullPath {
   '/profile/notifications': typeof ProfileNotificationsRoute
   '/profile/system': typeof ProfileSystemRoute
   '/attendance/': typeof AttendanceIndexRoute
+  '/career/': typeof CareerIndexRoute
+  '/coding/': typeof CodingIndexRoute
   '/expenses/': typeof ExpensesIndexRoute
   '/habits/': typeof HabitsIndexRoute
   '/learn/': typeof LearnIndexRoute
@@ -257,6 +285,8 @@ export interface FileRoutesByTo {
   '/profile/notifications': typeof ProfileNotificationsRoute
   '/profile/system': typeof ProfileSystemRoute
   '/attendance': typeof AttendanceIndexRoute
+  '/career': typeof CareerIndexRoute
+  '/coding': typeof CodingIndexRoute
   '/expenses': typeof ExpensesIndexRoute
   '/habits': typeof HabitsIndexRoute
   '/learn': typeof LearnIndexRoute
@@ -270,7 +300,9 @@ export interface FileRoutesById {
   '/': typeof IndexRoute
   '/analytics': typeof AnalyticsRoute
   '/attendance': typeof AttendanceRouteWithChildren
+  '/career': typeof CareerRouteWithChildren
   '/cgpa': typeof CgpaRoute
+  '/coding': typeof CodingRouteWithChildren
   '/expenses': typeof ExpensesRouteWithChildren
   '/focus': typeof FocusRoute
   '/habits': typeof HabitsRouteWithChildren
@@ -292,6 +324,8 @@ export interface FileRoutesById {
   '/profile/notifications': typeof ProfileNotificationsRoute
   '/profile/system': typeof ProfileSystemRoute
   '/attendance/': typeof AttendanceIndexRoute
+  '/career/': typeof CareerIndexRoute
+  '/coding/': typeof CodingIndexRoute
   '/expenses/': typeof ExpensesIndexRoute
   '/habits/': typeof HabitsIndexRoute
   '/learn/': typeof LearnIndexRoute
@@ -306,7 +340,9 @@ export interface FileRouteTypes {
     | '/'
     | '/analytics'
     | '/attendance'
+    | '/career'
     | '/cgpa'
+    | '/coding'
     | '/expenses'
     | '/focus'
     | '/habits'
@@ -328,6 +364,8 @@ export interface FileRouteTypes {
     | '/profile/notifications'
     | '/profile/system'
     | '/attendance/'
+    | '/career/'
+    | '/coding/'
     | '/expenses/'
     | '/habits/'
     | '/learn/'
@@ -356,6 +394,8 @@ export interface FileRouteTypes {
     | '/profile/notifications'
     | '/profile/system'
     | '/attendance'
+    | '/career'
+    | '/coding'
     | '/expenses'
     | '/habits'
     | '/learn'
@@ -368,7 +408,9 @@ export interface FileRouteTypes {
     | '/'
     | '/analytics'
     | '/attendance'
+    | '/career'
     | '/cgpa'
+    | '/coding'
     | '/expenses'
     | '/focus'
     | '/habits'
@@ -390,6 +432,8 @@ export interface FileRouteTypes {
     | '/profile/notifications'
     | '/profile/system'
     | '/attendance/'
+    | '/career/'
+    | '/coding/'
     | '/expenses/'
     | '/habits/'
     | '/learn/'
@@ -403,7 +447,9 @@ export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AnalyticsRoute: typeof AnalyticsRoute
   AttendanceRoute: typeof AttendanceRouteWithChildren
+  CareerRoute: typeof CareerRouteWithChildren
   CgpaRoute: typeof CgpaRoute
+  CodingRoute: typeof CodingRouteWithChildren
   ExpensesRoute: typeof ExpensesRouteWithChildren
   FocusRoute: typeof FocusRoute
   HabitsRoute: typeof HabitsRouteWithChildren
@@ -441,11 +487,25 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AttendanceRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/career': {
+      id: '/career'
+      path: '/career'
+      fullPath: '/career'
+      preLoaderRoute: typeof CareerRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/cgpa': {
       id: '/cgpa'
       path: '/cgpa'
       fullPath: '/cgpa'
       preLoaderRoute: typeof CgpaRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/coding': {
+      id: '/coding'
+      path: '/coding'
+      fullPath: '/coding'
+      preLoaderRoute: typeof CodingRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/expenses': {
@@ -545,6 +605,20 @@ declare module '@tanstack/react-router' {
       fullPath: '/attendance/$semester'
       preLoaderRoute: typeof AttendanceSemesterRouteImport
       parentRoute: typeof AttendanceRoute
+    }
+    '/career/': {
+      id: '/career/'
+      path: '/'
+      fullPath: '/career/'
+      preLoaderRoute: typeof CareerIndexRouteImport
+      parentRoute: typeof CareerRoute
+    }
+    '/coding/': {
+      id: '/coding/'
+      path: '/'
+      fullPath: '/coding/'
+      preLoaderRoute: typeof CodingIndexRouteImport
+      parentRoute: typeof CodingRoute
     }
     '/expenses/': {
       id: '/expenses/'
@@ -661,6 +735,28 @@ const AttendanceRouteWithChildren = AttendanceRoute._addFileChildren(
   AttendanceRouteChildren,
 )
 
+interface CareerRouteChildren {
+  CareerIndexRoute: typeof CareerIndexRoute
+}
+
+const CareerRouteChildren: CareerRouteChildren = {
+  CareerIndexRoute: CareerIndexRoute,
+}
+
+const CareerRouteWithChildren =
+  CareerRoute._addFileChildren(CareerRouteChildren)
+
+interface CodingRouteChildren {
+  CodingIndexRoute: typeof CodingIndexRoute
+}
+
+const CodingRouteChildren: CodingRouteChildren = {
+  CodingIndexRoute: CodingIndexRoute,
+}
+
+const CodingRouteWithChildren =
+  CodingRoute._addFileChildren(CodingRouteChildren)
+
 interface ExpensesRouteChildren {
   ExpensesIndexRoute: typeof ExpensesIndexRoute
 }
@@ -737,7 +833,9 @@ const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AnalyticsRoute: AnalyticsRoute,
   AttendanceRoute: AttendanceRouteWithChildren,
+  CareerRoute: CareerRouteWithChildren,
   CgpaRoute: CgpaRoute,
+  CodingRoute: CodingRouteWithChildren,
   ExpensesRoute: ExpensesRouteWithChildren,
   FocusRoute: FocusRoute,
   HabitsRoute: HabitsRouteWithChildren,

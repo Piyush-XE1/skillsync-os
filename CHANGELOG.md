@@ -2,6 +2,37 @@
 
 All notable changes to SkillSync OS are documented here.
 
+## [3.1.0] — 2026-09-02
+
+### Added
+
+- **Code · DSA Prep module** (`/coding`) — log solved problems across LeetCode,
+  Codeforces, CodeChef, GeeksforGeeks, HackerRank and more, with difficulty
+  breakdowns, a GitHub-style solve heatmap, current/best solve streaks,
+  per-platform and per-tag stats, big-O notes, and contest-rating tracking.
+- **Career · Placements module** (`/career`) — track job and internship
+  applications through a full pipeline (Saved → Applied → Referral → OA →
+  Interview → Offer → Rejected), with referrals, salary, links, and a nested
+  interview-round tracker (phone/virtual/onsite/takehome/assignment) with
+  pending/cleared/rejected outcomes.
+- **Schema v8** — `coding` and `career` domains with a v7 → v8 migrator;
+  both modules on by default for new and existing workspaces.
+- **Achievements** — 8 new badges (first problem, 50/150 problems, 7-day solve
+  streak, hard problem, first application, offer received) with XP rewards.
+- **Dashboard "Placement Prep" row** — live solves, streak, today count,
+  applications, interview rounds and referral stats at a glance.
+- **`C` keyboard shortcut** jumps straight to the Code module.
+- **Analytics** — coding solves now contribute to the global activity heatmap.
+- **Command palette** — searchable problems and applications, plus Code and
+  Career quick-launch pages.
+
+### Changed
+
+- Sidebar, Profile → Modules and the command palette now include Code and Career
+  (module-gated with `C` hint).
+- Test suite expanded to 160+ tests covering coding stats, streaks, career
+  stats, migrations v7 → v8 and route rendering.
+
 ## [3.0.0] — 2026-09-01
 
 ### Added

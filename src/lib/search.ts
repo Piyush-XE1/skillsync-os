@@ -22,6 +22,8 @@ export type SearchResult =
   | { kind: "planner"; id: string; title: string; subtitle: string; done: boolean }
   | { kind: "habit"; id: string; title: string; subtitle: string }
   | { kind: "subject"; id: string; title: string; subtitle: string }
+  | { kind: "coding"; id: string; title: string; subtitle: string; difficulty: string }
+  | { kind: "job"; id: string; title: string; subtitle: string; status: string }
   | { kind: "page"; to: string; title: string; subtitle: string };
 
 const PAGES: SearchResult[] = [
@@ -38,6 +40,8 @@ const PAGES: SearchResult[] = [
   { kind: "page", to: "/notifications", title: "Notifications", subtitle: "Alerts & digest" },
   { kind: "page", to: "/attendance", title: "Attendance", subtitle: "Class attendance" },
   { kind: "page", to: "/expenses", title: "Expenses", subtitle: "Spending tracker" },
+  { kind: "page", to: "/coding", title: "Code", subtitle: "DSA problem solving" },
+  { kind: "page", to: "/career", title: "Career", subtitle: "Job & placement tracking" },
   { kind: "page", to: "/profile", title: "Profile", subtitle: "You & preferences" },
 ];
 
@@ -137,8 +141,39 @@ export function searchAll(data: AppData, query: string, limit = 30): SearchResul
     );
   }
 
+  for (const p of data.coding.problems) {
+    add(
+      {
+        kind: "coding",
+        id: p.id,
+        title: p.title,
+        subtitle: `${capitalize(p.platform)} · ${capitalize(p.difficulty)}${p.tags.length ? ` · ${p.tags.slice(0, 3).join(", ")}` : ""}`,
+        difficulty: p.difficulty,
+      },
+      Math.max(score(p.title, q), score(p.tags.join(" "), q) * 0.4),
+    );
+  }
+
+  for (const a of data.career.applications) {
+    add(
+      {
+        kind: "job",
+        id: a.id,
+        title: a.company,
+        subtitle: `${a.role || "Role"} · ${a.status}`,
+        status: a.status,
+      },
+      Math.max(score(a.company, q), score(a.role, q) * 0.6),
+    );
+  }
+
   return [...scored.values()]
     .sort((a, b) => b.score - a.score)
     .map((s) => s.result)
     .slice(0, limit);
+}
+
+function capitalize(s: string): string {
+  if (!s) return s;
+  return s.charAt(0).toUpperCase() + s.slice(1);
 }
