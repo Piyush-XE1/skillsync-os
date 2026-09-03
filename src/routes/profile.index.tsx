@@ -36,6 +36,7 @@ import { Toggle } from "@/components/common/Toggle";
 import { useShallow } from "zustand/react/shallow";
 import { STORAGE_KEY, toAppData, useAppStore, useHydrated } from "@/store/useAppStore";
 import { BACKGROUND_OPTIONS, type BackgroundStyle } from "@/components/layout/backgrounds";
+import { ACCENT_PRESETS, defaultAccentFor, safeAccent } from "@/lib/accent";
 import { formatBytes } from "@/lib/backup";
 import { APP_VERSION } from "@/lib/version";
 import { haptics, hapticsSupported, type HapticIntensity } from "@/lib/haptics";
@@ -303,7 +304,10 @@ function ProfilePage() {
 
         {/* Achievements */}
         <section className="space-y-3">
-          <SectionHeader title={`Badges · ${stats.achievements.length}/${achievements.length}`} />
+          <SectionHeader
+            title={`Badges · ${stats.achievements.length}/${achievements.length}`}
+            action={<Link to="/achievements">See all</Link>}
+          />
           <Card className="p-4">
             <div className="grid grid-cols-4 gap-3 sm:grid-cols-6">
               {achievements.map((a) => {
@@ -542,7 +546,7 @@ function ProfilePage() {
               >
                 <SettingRow
                   icon={Sparkles}
-                  label="Background"
+                  label="Appearance & accent"
                   right={
                     <span className="flex items-center gap-2">
                       <span className="text-[13px] text-muted-foreground">
@@ -728,7 +732,7 @@ function ProfilePage() {
       <BottomSheet
         open={openAppearance}
         onClose={() => setOpenAppearance(false)}
-        title="Background"
+        title="Appearance"
       >
         <p className="mb-4 text-[13px] leading-relaxed text-muted-foreground">
           Tap a style to apply it instantly across the whole app.
@@ -772,6 +776,92 @@ function ProfilePage() {
               </button>
             );
           })}
+        </div>
+
+        <div className="!mt-6 border-t border-white/[0.06] pt-5">
+          <div className="mb-3">
+            <div className="text-[12px] font-semibold uppercase tracking-[0.1em] text-muted-foreground">
+              Accent colour
+            </div>
+          </div>
+          <p className="mb-3 text-[12.5px] leading-relaxed text-muted-foreground">
+            Re-skin the entire OS. Pick an accent and the whole app follows instantly.
+          </p>
+          <div className="grid grid-cols-3 gap-2 sm:grid-cols-5">
+            {ACCENT_PRESETS.map((preset) => {
+              const active =
+                (
+                  preferences.accent ?? defaultAccentFor(preferences.background ?? "aurora")
+                ).toLowerCase() === preset.color.toLowerCase();
+              return (
+                <button
+                  key={preset.id}
+                  type="button"
+                  aria-label={preset.label}
+                  title={preset.label}
+                  aria-pressed={active}
+                  onClick={() => {
+                    haptics.selection();
+                    updatePreferences({ accent: preset.color });
+                  }}
+                  className={
+                    "relative flex h-14 flex-col items-center justify-center rounded-2xl border transition-all active:scale-[0.96] " +
+                    (active
+                      ? "border-[color-mix(in_oklab,var(--primary)_60%,transparent)] shadow-[var(--shadow-glow)]"
+                      : "border-border")
+                  }
+                >
+                  <span className="h-8 w-8 rounded-full" style={{ background: preset.color }} />
+                  <span className="mt-1 text-[9.5px] font-medium text-muted-foreground">
+                    {preset.label}
+                  </span>
+                  {active ? (
+                    <span className="absolute -right-1 -top-1 flex h-4 w-4 items-center justify-center rounded-full bg-[var(--primary)] text-[9px] font-bold text-primary-foreground">
+                      ✓
+                    </span>
+                  ) : null}
+                </button>
+              );
+            })}
+          </div>
+
+          <div className="mt-3 flex items-center gap-3">
+            <label
+              htmlFor="custom-accent"
+              className="flex flex-1 items-center gap-3 rounded-2xl border border-white/[0.06] bg-white/[0.02] px-3 py-2.5"
+            >
+              <input
+                id="custom-accent"
+                type="color"
+                value={
+                  /^#[0-9a-fA-F]{6}$/.test(preferences.accent ?? "")
+                    ? preferences.accent
+                    : defaultAccentFor(preferences.background ?? "aurora")
+                }
+                onChange={(e) => {
+                  haptics.tap();
+                  updatePreferences({ accent: safeAccent(e.target.value) });
+                }}
+                className="h-8 w-8 cursor-pointer rounded-lg border-0 bg-transparent p-0"
+              />
+              <span className="text-[12.5px] text-muted-foreground">
+                Custom colour{" "}
+                <span className="ml-1 font-mono text-[11px] text-foreground">
+                  {preferences.accent ?? ""}
+                </span>
+              </span>
+            </label>
+            <button
+              type="button"
+              onClick={() => {
+                haptics.tap();
+                updatePreferences({ accent: defaultAccentFor(preferences.background ?? "aurora") });
+              }}
+              className="rounded-2xl border border-white/[0.06] bg-white/[0.02] px-3 py-2.5 text-[12px] font-medium text-muted-foreground hover:text-foreground"
+            >
+              Theme default
+            </button>
+          </div>
         </div>
       </BottomSheet>
 

@@ -22,6 +22,7 @@ describe("schema", () => {
     });
     expect(parsed.profile).toEqual({ name: "Learner", avatar: "" });
     expect(parsed.preferences.background).toBe("aurora");
+    expect(parsed.preferences.accent).toBe("#7c3aed");
     expect(parsed.preferences.modules).toEqual({
       attendance: false,
       expenses: false,

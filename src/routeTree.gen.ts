@@ -10,6 +10,7 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as AchievementsRouteImport } from './routes/achievements'
 import { Route as AnalyticsRouteImport } from './routes/analytics'
 import { Route as AttendanceRouteImport } from './routes/attendance'
 import { Route as CareerRouteImport } from './routes/career'
@@ -25,6 +26,7 @@ import { Route as PlannerRouteImport } from './routes/planner'
 import { Route as ProfileRouteImport } from './routes/profile'
 import { Route as ProjectsRouteImport } from './routes/projects'
 import { Route as ResumeRouteImport } from './routes/resume'
+import { Route as ReviewRouteImport } from './routes/review'
 import { Route as SearchRouteImport } from './routes/search'
 import { Route as SitemapDotxmlRouteImport } from './routes/sitemap[.]xml'
 import { Route as AttendanceIndexRouteImport } from './routes/attendance.index'
@@ -49,6 +51,11 @@ import { Route as NotesNoteIdEditRouteImport } from './routes/notes.$noteId_.edi
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AchievementsRoute = AchievementsRouteImport.update({
+  id: '/achievements',
+  path: '/achievements',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AnalyticsRoute = AnalyticsRouteImport.update({
@@ -124,6 +131,11 @@ const ProjectsRoute = ProjectsRouteImport.update({
 const ResumeRoute = ResumeRouteImport.update({
   id: '/resume',
   path: '/resume',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ReviewRoute = ReviewRouteImport.update({
+  id: '/review',
+  path: '/review',
   getParentRoute: () => rootRouteImport,
 } as any)
 const SearchRoute = SearchRouteImport.update({
@@ -229,6 +241,7 @@ const NotesNoteIdEditRoute = NotesNoteIdEditRouteImport.update({
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/achievements': typeof AchievementsRoute
   '/analytics': typeof AnalyticsRoute
   '/attendance': typeof AttendanceRouteWithChildren
   '/career': typeof CareerRouteWithChildren
@@ -244,6 +257,7 @@ export interface FileRoutesByFullPath {
   '/profile': typeof ProfileRouteWithChildren
   '/projects': typeof ProjectsRoute
   '/resume': typeof ResumeRoute
+  '/review': typeof ReviewRoute
   '/search': typeof SearchRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
   '/attendance/$semester': typeof AttendanceSemesterRoute
@@ -267,6 +281,7 @@ export interface FileRoutesByFullPath {
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/achievements': typeof AchievementsRoute
   '/analytics': typeof AnalyticsRoute
   '/cgpa': typeof CgpaRoute
   '/focus': typeof FocusRoute
@@ -274,6 +289,7 @@ export interface FileRoutesByTo {
   '/planner': typeof PlannerRoute
   '/projects': typeof ProjectsRoute
   '/resume': typeof ResumeRoute
+  '/review': typeof ReviewRoute
   '/search': typeof SearchRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
   '/attendance/$semester': typeof AttendanceSemesterRoute
@@ -298,6 +314,7 @@ export interface FileRoutesByTo {
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/achievements': typeof AchievementsRoute
   '/analytics': typeof AnalyticsRoute
   '/attendance': typeof AttendanceRouteWithChildren
   '/career': typeof CareerRouteWithChildren
@@ -313,6 +330,7 @@ export interface FileRoutesById {
   '/profile': typeof ProfileRouteWithChildren
   '/projects': typeof ProjectsRoute
   '/resume': typeof ResumeRoute
+  '/review': typeof ReviewRoute
   '/search': typeof SearchRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
   '/attendance/$semester': typeof AttendanceSemesterRoute
@@ -338,6 +356,7 @@ export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
     | '/'
+    | '/achievements'
     | '/analytics'
     | '/attendance'
     | '/career'
@@ -353,6 +372,7 @@ export interface FileRouteTypes {
     | '/profile'
     | '/projects'
     | '/resume'
+    | '/review'
     | '/search'
     | '/sitemap.xml'
     | '/attendance/$semester'
@@ -376,6 +396,7 @@ export interface FileRouteTypes {
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
+    | '/achievements'
     | '/analytics'
     | '/cgpa'
     | '/focus'
@@ -383,6 +404,7 @@ export interface FileRouteTypes {
     | '/planner'
     | '/projects'
     | '/resume'
+    | '/review'
     | '/search'
     | '/sitemap.xml'
     | '/attendance/$semester'
@@ -406,6 +428,7 @@ export interface FileRouteTypes {
   id:
     | '__root__'
     | '/'
+    | '/achievements'
     | '/analytics'
     | '/attendance'
     | '/career'
@@ -421,6 +444,7 @@ export interface FileRouteTypes {
     | '/profile'
     | '/projects'
     | '/resume'
+    | '/review'
     | '/search'
     | '/sitemap.xml'
     | '/attendance/$semester'
@@ -445,6 +469,7 @@ export interface FileRouteTypes {
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  AchievementsRoute: typeof AchievementsRoute
   AnalyticsRoute: typeof AnalyticsRoute
   AttendanceRoute: typeof AttendanceRouteWithChildren
   CareerRoute: typeof CareerRouteWithChildren
@@ -460,6 +485,7 @@ export interface RootRouteChildren {
   ProfileRoute: typeof ProfileRouteWithChildren
   ProjectsRoute: typeof ProjectsRoute
   ResumeRoute: typeof ResumeRoute
+  ReviewRoute: typeof ReviewRoute
   SearchRoute: typeof SearchRoute
   SitemapDotxmlRoute: typeof SitemapDotxmlRoute
 }
@@ -471,6 +497,13 @@ declare module '@tanstack/react-router' {
       path: '/'
       fullPath: '/'
       preLoaderRoute: typeof IndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/achievements': {
+      id: '/achievements'
+      path: '/achievements'
+      fullPath: '/achievements'
+      preLoaderRoute: typeof AchievementsRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/analytics': {
@@ -576,6 +609,13 @@ declare module '@tanstack/react-router' {
       path: '/resume'
       fullPath: '/resume'
       preLoaderRoute: typeof ResumeRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/review': {
+      id: '/review'
+      path: '/review'
+      fullPath: '/review'
+      preLoaderRoute: typeof ReviewRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/search': {
@@ -831,6 +871,7 @@ const ProfileRouteWithChildren =
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  AchievementsRoute: AchievementsRoute,
   AnalyticsRoute: AnalyticsRoute,
   AttendanceRoute: AttendanceRouteWithChildren,
   CareerRoute: CareerRouteWithChildren,
@@ -846,6 +887,7 @@ const rootRouteChildren: RootRouteChildren = {
   ProfileRoute: ProfileRouteWithChildren,
   ProjectsRoute: ProjectsRoute,
   ResumeRoute: ResumeRoute,
+  ReviewRoute: ReviewRoute,
   SearchRoute: SearchRoute,
   SitemapDotxmlRoute: SitemapDotxmlRoute,
 }

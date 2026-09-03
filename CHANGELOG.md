@@ -2,6 +2,72 @@
 
 All notable changes to SkillSync OS are documented here.
 
+## [3.4.0] — 2026-09-02
+
+### Added
+
+- **Week in Review** (`/review`) — a pure, auto-generated weekly report card
+  that turns the workspace into plain-English insights: an **effort score**
+  (weighted activity across habits, focus, topics, tasks & solves), a **grade**
+  (Warming up → Building momentum → Solid → Great → Outstanding), per-day score
+  bars with a best-day highlight, **week-over-week deltas** for every metric,
+  narrative **highlights**, and data-driven **next-up suggestions**.
+- **`R` keyboard shortcut** jumps straight to Review; it's also in the sidebar
+  and the command palette quick-launch.
+- **`src/lib/review.ts`** — pure, deterministic review model with unit tests;
+  regenerates live as the user keeps working.
+
+### Changed
+
+- Test suite expanded to 194 tests (review model + render). `typecheck`, `lint`
+  (0 errors) and `build` all green.
+
+## [3.3.0] — 2026-09-02
+
+### Added
+
+- **Dependency-free charting engine** — a hand-written SVG chart system
+  (`src/lib/charts.ts` + `src/components/common/Charts.tsx`): smooth area
+  charts, rounded bar charts, donut rings, sparklines and hover tooltips, all
+  theme-aware (they inherit the active accent and adapt to Light / Atelier). No
+  chart library, no new runtime dependencies.
+- **Analytics redesign** — the Insights page now ships rich visualisations:
+  a 30-day **Momentum** area chart (weighted daily effort), a **Deep work** area
+  chart with mini stats, a **Learning completion** donut, a **Coding solved**
+  weekly bar chart, and **Difficulty + Platform** donuts with legends.
+- **Dashboard "This week" strip** — three live sparklines (Momentum, Deep work,
+  DSA solved) so the home screen tells a story at a glance.
+- **Trend helpers** (`src/lib/trends.ts`) — pure functions that convert raw
+  store slices into chart-ready series, covered by unit tests.
+
+### Changed
+
+- Test suite expanded to 186 tests (chart geometry, trend series, analytics
+  render). `typecheck`, `lint` (0 errors) and `build` all green.
+
+## [3.2.0] — 2026-09-02
+
+### Added
+
+- **Theme Studio** — a complete accent re-skin. Pick from curated accents (or any
+  custom colour) and the entire OS — cards, gradients, chips, progress rings and
+  glows — re-themes instantly. A `v8 → v9` migrator seeds a tasteful default
+  accent per background so existing users see no change until they open it.
+- **Confetti celebration engine** — a dependency-free, canvas-based particle
+  simulator (gravity, air drag, spin, flutter) that fires on achievement
+  unlocks, level-ups and completed focus sessions. Zero runtime deps, ~2 KB.
+- **Trophies page** (`/achievements`) — a dedicated badge collection with an
+  overall completion ring, badge XP, player ranks (Rookie → Explorer → Builder →
+  Achiever → Grandmaster) and per-badge progress bars.
+- **`G` keyboard shortcut** jumps straight to the Trophies page.
+- Trophies reachable from the sidebar, command palette quick-launch and the
+  Profile badges section.
+
+### Changed
+
+- Test suite extended (accent palette, `v8 → v9` migration, schema defaults).
+- README updated with the new keyboard shortcuts and feature set.
+
 ## [3.1.0] — 2026-09-02
 
 ### Added

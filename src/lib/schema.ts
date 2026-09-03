@@ -1,7 +1,8 @@
 import { z } from "zod";
 import { NotificationsStateSchema, createDefaultNotifications } from "./notifications/types";
+import { defaultAccentFor, DEFAULT_ACCENT } from "./accent";
 
-export const CURRENT_SCHEMA_VERSION = 8;
+export const CURRENT_SCHEMA_VERSION = 9;
 
 export const ChecklistItemSchema = z.object({
   id: z.string(),
@@ -150,6 +151,8 @@ export const PreferencesSchema = z.object({
    * (Removed v5 values "gradient"/"atmospheric" are migrated to "aurora".)
    */
   background: z.enum(["aurora", "light", "atelier"]).default("aurora"),
+  /** Custom accent colour. Overrides `--primary`/`--secondary` for any background. */
+  accent: z.string().default(DEFAULT_ACCENT),
   /** Tactile feedback on supported devices. */
   haptics: z.boolean().default(true),
   hapticIntensity: z.enum(["light", "standard", "strong"]).default("standard"),
@@ -463,6 +466,7 @@ export const AppDataSchema = z.object({
       career: true,
     },
     background: "aurora",
+    accent: defaultAccentFor("aurora"),
     haptics: true,
     hapticIntensity: "standard",
   }),
