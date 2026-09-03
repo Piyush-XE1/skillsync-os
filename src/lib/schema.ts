@@ -1,8 +1,10 @@
 import { z } from "zod";
 import { NotificationsStateSchema, createDefaultNotifications } from "./notifications/types";
 import { defaultAccentFor, DEFAULT_ACCENT } from "./accent";
+import { DEFAULT_SOUND_VOLUME } from "./sound";
+import { defaultWidgetLayout } from "./widgets";
 
-export const CURRENT_SCHEMA_VERSION = 9;
+export const CURRENT_SCHEMA_VERSION = 10;
 
 export const ChecklistItemSchema = z.object({
   id: z.string(),
@@ -156,6 +158,26 @@ export const PreferencesSchema = z.object({
   /** Tactile feedback on supported devices. */
   haptics: z.boolean().default(true),
   hapticIntensity: z.enum(["light", "standard", "strong"]).default("standard"),
+  /** Synthesised UI audio (see `@/lib/sound`). Off = completely silent. */
+  sound: z.boolean().default(true),
+  /** Master volume for the UI cues, 0..1. */
+  soundVolume: z.number().min(0).max(1).default(DEFAULT_SOUND_VOLUME),
+});
+
+/* ------------------------------------------------------------------ *
+ * Dashboard widgets
+ * ------------------------------------------------------------------ */
+
+/**
+ * A widget slot on the dashboard. The id is validated against the catalogue at
+ * the edge (`normalizeWidgetLayout`) rather than by the schema, so a widget
+ * retired in a future release simply disappears from old workspaces instead of
+ * failing the whole parse.
+ */
+export const WidgetPlacementSchema = z.object({
+  id: z.string(),
+  size: z.enum(["tile", "wide", "full"]).default("tile"),
+  visible: z.boolean().default(true),
 });
 
 export const StatsSchema = z.object({
@@ -469,7 +491,10 @@ export const AppDataSchema = z.object({
     accent: defaultAccentFor("aurora"),
     haptics: true,
     hapticIntensity: "standard",
+    sound: true,
+    soundVolume: DEFAULT_SOUND_VOLUME,
   }),
+  widgets: z.array(WidgetPlacementSchema).default(() => defaultWidgetLayout()),
   stats: StatsSchema.default({
     xp: 0,
     level: 1,
@@ -522,6 +547,7 @@ export type InterviewRound = z.infer<typeof InterviewRoundSchema>;
 export type JobStatus = z.infer<typeof JobStatus>;
 export type JobApplication = z.infer<typeof JobApplicationSchema>;
 export type Career = z.infer<typeof CareerSchema>;
+export type WidgetPlacement = z.infer<typeof WidgetPlacementSchema>;
 export type ResumeData = z.infer<typeof ResumeSchema>;
 export type ResumeEducation = z.infer<typeof ResumeEducationSchema>;
 export type ResumeExperience = z.infer<typeof ResumeExperienceSchema>;

@@ -26,6 +26,7 @@ import type {
   RatingPoint,
   JobApplication,
   InterviewRound,
+  WidgetPlacement,
 } from "@/lib/schema";
 import { AppDataSchema } from "@/lib/schema";
 import { createInitialData } from "@/lib/seed";
@@ -35,6 +36,17 @@ import { newId } from "@/lib/id";
 import { todayISO, addDaysISO } from "@/lib/date";
 import { errorMessage } from "@/lib/utils";
 import { topicPct, subtopicPct } from "@/lib/progress";
+import { applyOrder } from "@/lib/drag-sort";
+import {
+  applyWidgetOrder,
+  moveWidget,
+  nextWidgetSize,
+  normalizeWidgetLayout,
+  resetWidgetLayout,
+  setWidgetSize,
+  setWidgetVisible,
+  type WidgetId,
+} from "@/lib/widgets";
 import { focusXp } from "@/lib/focus";
 import {
   HISTORY_LIMIT,
@@ -209,8 +221,27 @@ type State = AppData & {
   ) => Transaction;
   updateTransaction: (id: string, patch: Partial<Omit<Transaction, "id">>) => void;
   deleteTransaction: (id: string) => void;
-  /** Persist a manual order for the given transaction ids (ascending). */
+  /**
+   * Persist a manual order for the given transaction ids.
+   *
+   * The ids may be a *subset* (a filtered month, a search result): they simply
+   * swap the positions they already own, so hidden rows never move.
+   */
   setTransactionOrder: (ids: string[]) => void;
+
+  // dashboard widgets
+  /** Replace the whole layout (already normalised by the caller or not). */
+  setWidgets: (layout: WidgetPlacement[]) => void;
+  /** Show/hide a widget. */
+  toggleWidget: (id: WidgetId, visible?: boolean) => void;
+  /** Cycle a widget through its allowed sizes. */
+  resizeWidget: (id: WidgetId) => void;
+  /** Apply a drag-sort result (visible ids only). */
+  reorderWidgets: (orderedIds: string[]) => void;
+  /** Move a widget to an absolute index (used by the a11y list controls). */
+  moveWidgetTo: (id: WidgetId, index: number) => void;
+  /** Restore the shipped dashboard. */
+  resetWidgets: () => void;
 
   // notifications
   pushNotification: (
@@ -270,6 +301,16 @@ export function touchStreakStats(stats: Stats, today: string = todayISO()): Stat
   const yesterday = addDaysISO(today, -1);
   const streak = stats.lastActive === yesterday ? stats.streak + 1 : 1;
   return { ...stats, streak, lastActive: today };
+}
+
+/** Current visibility of a widget in a layout. */
+function isVisible(layout: WidgetPlacement[], id: string): boolean {
+  return layout.find((entry) => entry.id === id)?.visible ?? true;
+}
+
+/** Current size of a widget in a layout. */
+function sizeOf(layout: WidgetPlacement[], id: string): WidgetPlacement["size"] {
+  return layout.find((entry) => entry.id === id)?.size ?? "tile";
 }
 
 function findTopic(
@@ -384,6 +425,7 @@ export function toAppData(state: AppData): AppData {
     notifications: state.notifications,
     coding: state.coding,
     career: state.career,
+    widgets: state.widgets,
   };
 }
 
@@ -1106,18 +1148,12 @@ export const useAppStore = create<State>()(
           },
         })),
       setTransactionOrder: (ids) =>
-        set((s) => {
-          const order = new Map(ids.map((id, i) => [id, i]));
-          const base = s.expenses.transactions.reduce((m, t) => Math.min(m, t.position ?? 0), 0);
-          return {
-            expenses: {
-              ...s.expenses,
-              transactions: s.expenses.transactions.map((t) =>
-                order.has(t.id) ? { ...t, position: base + (order.get(t.id) as number) } : t,
-              ),
-            },
-          };
-        }),
+        set((s) => ({
+          expenses: {
+            ...s.expenses,
+            transactions: applyOrder(s.expenses.transactions, ids),
+          },
+        })),
       deleteTransaction: (id) =>
         set((s) => ({
           expenses: {
@@ -1125,6 +1161,20 @@ export const useAppStore = create<State>()(
             transactions: s.expenses.transactions.filter((t) => t.id !== id),
           },
         })),
+
+      setWidgets: (layout) => set({ widgets: normalizeWidgetLayout(layout) }),
+      toggleWidget: (id, visible) =>
+        set((s) => ({
+          widgets: setWidgetVisible(s.widgets, id, visible ?? !isVisible(s.widgets, id)),
+        })),
+      resizeWidget: (id) =>
+        set((s) => ({
+          widgets: setWidgetSize(s.widgets, id, nextWidgetSize(id, sizeOf(s.widgets, id))),
+        })),
+      reorderWidgets: (orderedIds) =>
+        set((s) => ({ widgets: applyWidgetOrder(s.widgets, orderedIds) })),
+      moveWidgetTo: (id, index) => set((s) => ({ widgets: moveWidget(s.widgets, id, index) })),
+      resetWidgets: () => set({ widgets: resetWidgetLayout() }),
 
       pushNotification: (input) => {
         const state = get();
@@ -1247,7 +1297,7 @@ export const useAppStore = create<State>()(
     }),
     {
       name: STORAGE_KEY,
-      version: 9,
+      version: 10,
       storage: createJSONStorage(() =>
         // No storage during SSR — persist skips hydration when this is undefined.
         typeof window !== "undefined"

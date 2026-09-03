@@ -10,8 +10,9 @@ Built with a **premium futuristic UI**, animated Aurora backgrounds, an offline-
 
 | Module                     | What it does                                                                                                                                                 |
 | -------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| 📊 **Dashboard**           | Streaks, XP, smart "Today" queue, continue-learning, habits, badges, daily insight                                                                           |
-| 📅 **Week in Review**      | An auto-generated weekly report card — effort score, grade, day-by-day bars, week-over-week deltas, highlights & next-up nudges. Press `R`!                     |
+| 📊 **Dashboard**           | A widget grid you own — streaks, XP, smart "Today" queue, continue-learning, habits, badges, daily insight                                                   |
+| 🧩 **Widget Grid**         | 23 dashboard widgets: hide, resize (small/wide/tall/full) and drag them into place; the layout persists with the workspace                                   |
+| 📅 **Week in Review**      | An auto-generated weekly report card — effort score, grade, day-by-day bars, week-over-week deltas, highlights & next-up nudges. Press `R`!                  |
 | 🎓 **Learn**               | Structured roadmaps with phases, topics, checklists, resources & progress                                                                                    |
 | ⏱️ **Focus**               | Pomodoro deep-work timer — sessions, sounds, XP and a focus streak                                                                                           |
 | 🎯 **CGPA Tracker**        | Semester-wise SGPA, cumulative CGPA, grade breakdown & target simulator                                                                                      |
@@ -22,6 +23,7 @@ Built with a **premium futuristic UI**, animated Aurora backgrounds, an offline-
 | 🏆 **Achievements**        | 26 badges with one-time XP awards, notifications & level-ups — plus a dedicated **Trophies** page, rank titles (Rookie → Grandmaster) and per-badge progress |
 | 🎨 **Theme Studio**        | Pick an accent colour (or any custom hue) and the entire OS re-skins instantly — cards, gradients, chips and glows all follow                                |
 | 🎉 **Confetti**            | A dependency-free particle celebration on achievement unlocks, level-ups and completed focus sessions                                                        |
+| 🔊 **Sound Design**        | A dependency-free Web Audio cue system — taps, lifts, drops, streaks, level-ups, timer ticks — with a master switch, volume slider and per-cue previews      |
 | 🚀 **Projects**            | Status, progress, deadlines, tasks and tech stack tracking                                                                                                   |
 | 📅 **Planner**             | Tasks with priorities, done timestamps and a smart Today queue                                                                                               |
 | 🔥 **Habits**              | Check-ins, per-habit streaks (current & best) and consistency heatmaps                                                                                       |
@@ -35,14 +37,15 @@ Built with a **premium futuristic UI**, animated Aurora backgrounds, an offline-
 
 ## ⌨️ Keyboard shortcuts
 
-| Keys                   | Action                                       |
-| ---------------------- | -------------------------------------------- |
-| `/` or `⌘/Ctrl + K`    | Open command palette (workspace-wide search) |
-| `F`                    | Jump to the Focus timer                      |
-| `C` | Jump to the Code (DSA prep) module |
-| `G` | Jump to the Trophies / Achievements page |
-| `R` | Jump to the Week in Review page |
-| `↑↓` / `Enter` / `Esc` | Navigate results inside the palette |
+| Keys                              | Action                                          |
+| --------------------------------- | ----------------------------------------------- |
+| `/` or `⌘/Ctrl + K`               | Open command palette (workspace-wide search)    |
+| `F`                               | Jump to the Focus timer                         |
+| `C`                               | Jump to the Code (DSA prep) module              |
+| `G`                               | Jump to the Trophies / Achievements page        |
+| `R`                               | Jump to the Week in Review page                 |
+| `↑↓` / `Enter` / `Esc`            | Navigate results inside the palette             |
+| `Space` / `↑↓←→` / `Home` / `End` | Reorder a widget or list row from its drag grip |
 
 ## 🛠️ Tech Stack
 
@@ -65,11 +68,12 @@ Routes (React, file-based)
    │  read/write via typed actions
 Store (zustand + persist middleware)
    │  partialize → only plain data is persisted
-Migrations (v1→v8, field-by-field salvage on corruption)
+Migrations (v1→v10, field-by-field salvage on corruption)
    │  validate
 Schema (zod — single source of truth for every record)
    │  derive
-Domain libs (progress, streaks, CGPA, focus, achievements, search…)
+Domain libs (progress, streaks, CGPA, focus, achievements, search, widgets,
+             drag-sort, sound…)
 ```
 
 Every record that touches disk is validated by Zod on read and write. Backups are
@@ -84,7 +88,7 @@ npm install         # or: bun install
 npm run dev         # start the dev server (hot reload)
 npm run typecheck   # strict TS check
 npm run lint        # eslint
-npm run test        # vitest suite (160+ tests)
+npm run test        # vitest suite (260+ tests)
 npm run build       # production build (TanStack Start + Nitro)
 ```
 
@@ -96,8 +100,8 @@ npm run build       # production build (TanStack Start + Nitro)
 
 Core domain logic — migrations, backup/restore, the notification rule engine,
 progress calculation, roadmap import, URL safety, streaks, CGPA math, focus
-stats, achievements, quotes, search and the app store — is unit-tested with
-Vitest. Tests live beside the code (`src/**/*.test.ts`) and run in Node by
+stats, achievements, quotes, search, the widget layout model, drag-sort slot
+math, sound gating and the app store — is unit-tested with Vitest. Tests live beside the code (`src/**/*.test.ts`) and run in Node by
 default; browser-only tests (the store, `localStorage` state, route rendering)
 opt into jsdom with a `// @vitest-environment jsdom` comment.
 

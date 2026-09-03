@@ -522,6 +522,31 @@ html.light .gradient-primary [class*="text-white"] {
   animation: dialog-pop 0.22s var(--ease-spring) both;
 }
 
+/* ------------------------------------------------------------------ *
+ * Widget grid — customize mode
+ * The jiggle animates the CARD inside the drag slot, never the slot itself,
+ * so a CSS animation can't override the inline transforms DragSortList writes
+ * while a widget is being dragged.
+ * ------------------------------------------------------------------ */
+@keyframes widget-jiggle {
+  0%,
+  100% {
+    transform: rotate(-0.35deg);
+  }
+  50% {
+    transform: rotate(0.35deg);
+  }
+}
+.widget-jiggle > * {
+  animation: widget-jiggle 2.6s var(--ease-out-soft) infinite;
+}
+.widget-jiggle:nth-child(2n) > * {
+  animation-delay: -0.7s;
+}
+.widget-jiggle:nth-child(3n) > * {
+  animation-delay: -1.4s;
+}
+
 /* Hide scrollbars on horizontal scrollers */
 @utility no-scrollbar {
   scrollbar-width: none;
@@ -651,7 +676,9 @@ html.atelier .gradient-mesh {
   height: 11px;
   border-radius: 3px;
   background: var(--heat-0, color-mix(in oklab, var(--foreground) 7%, transparent));
-  transition: background-color 150ms var(--ease-out-soft), transform 150ms var(--ease-out-soft);
+  transition:
+    background-color 150ms var(--ease-out-soft),
+    transform 150ms var(--ease-out-soft);
 }
 .heat-cell:hover {
   transform: scale(1.2);

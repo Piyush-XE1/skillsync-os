@@ -24,6 +24,7 @@ import { ActionButton, IconButton } from "@/components/edit/Buttons";
 import { useAppStore, useHydrated } from "@/store/useAppStore";
 import { careerStats, JOB_STATUS_META } from "@/lib/career";
 import { cn } from "@/lib/utils";
+import { sound } from "@/lib/sound";
 import type { JobApplication, JobStatus, InterviewRound } from "@/lib/schema";
 
 export const Route = createFileRoute("/career/")({
@@ -98,6 +99,7 @@ function CareerPage() {
 
   function submitNew() {
     if (!company.trim()) {
+      sound.error();
       toast.error("Enter the company name first.");
       return;
     }
@@ -110,6 +112,7 @@ function CareerPage() {
       link: link.trim(),
       salary: salary.trim(),
     });
+    sound.success();
     toast.success(`Added ${company.trim()}.`);
     setCompany("");
     setRole("");
@@ -127,6 +130,7 @@ function CareerPage() {
       ...form,
       company: form.company.trim(),
     });
+    sound.success();
     toast.success("Updated.");
     setEditing(null);
   }
@@ -256,7 +260,10 @@ function CareerPage() {
               return (
                 <button
                   key={s}
-                  onClick={() => setFilter(s)}
+                  onClick={() => {
+                    sound.select();
+                    setFilter(s);
+                  }}
                   className={cn(
                     "shrink-0 rounded-full border px-3.5 py-1.5 text-[12px] transition-colors",
                     filter === s
@@ -326,6 +333,7 @@ function CareerPage() {
                         size="sm"
                         aria-label={`Edit ${app.company}`}
                         onClick={() => {
+                          sound.tap();
                           setForm(app);
                           setEditing(app);
                         }}
@@ -474,7 +482,10 @@ function CareerPage() {
           ) : null}
 
           <button
-            onClick={() => setConfirmDelete(true)}
+            onClick={() => {
+              sound.error();
+              setConfirmDelete(true);
+            }}
             className="flex w-full items-center justify-center gap-2 rounded-[14px] border border-danger/25 py-3 text-[13px] font-medium text-danger"
           >
             <Trash2 className="h-4 w-4" /> Delete application
@@ -487,6 +498,7 @@ function CareerPage() {
         onClose={() => setConfirmDelete(false)}
         onConfirm={() => {
           if (editing) deleteJobApplication(editing.id);
+          sound.trash();
           setEditing(null);
         }}
         title="Delete this application?"
@@ -525,7 +537,10 @@ function StatusPicker({ value, onChange }: { value: JobStatus; onChange: (s: Job
           <button
             key={s}
             type="button"
-            onClick={() => onChange(s)}
+            onClick={() => {
+              sound.select();
+              onChange(s);
+            }}
             className={cn(
               "rounded-xl border px-2 py-2 text-[12px] font-medium transition-colors",
               value === s
@@ -561,7 +576,10 @@ function RoundsEditor({
       <div className="flex items-center justify-between">
         <SectionHeader title="Interview rounds" />
         <button
-          onClick={() => setAddOpen(true)}
+          onClick={() => {
+            sound.tap();
+            setAddOpen(true);
+          }}
           className="flex items-center gap-1 text-[12px] font-medium text-primary"
         >
           <Plus className="h-3.5 w-3.5" /> Add
@@ -586,9 +604,10 @@ function RoundsEditor({
               <div className="flex items-center gap-1">
                 <select
                   value={r.outcome}
-                  onChange={(e) =>
-                    onUpdate(r.id, { outcome: e.target.value as InterviewRound["outcome"] })
-                  }
+                  onChange={(e) => {
+                    sound.select();
+                    onUpdate(r.id, { outcome: e.target.value as InterviewRound["outcome"] });
+                  }}
                   className="rounded-lg border border-white/[0.06] bg-white/[0.03] px-2 py-1 text-[11px] text-muted-foreground outline-none"
                 >
                   {ROUND_OUTCOMES.map((o) => (
@@ -597,7 +616,13 @@ function RoundsEditor({
                     </option>
                   ))}
                 </select>
-                <IconButton size="sm" onClick={() => onDelete(r.id)}>
+                <IconButton
+                  size="sm"
+                  onClick={() => {
+                    sound.trash();
+                    onDelete(r.id);
+                  }}
+                >
                   <Trash2 className="h-3.5 w-3.5" />
                 </IconButton>
               </div>
@@ -624,7 +649,10 @@ function RoundsEditor({
                 <button
                   key={t}
                   type="button"
-                  onClick={() => setType(t)}
+                  onClick={() => {
+                    sound.select();
+                    setType(t);
+                  }}
                   className={cn(
                     "rounded-xl border px-2 py-2 text-[12px] font-medium capitalize transition-colors",
                     type === t
@@ -641,10 +669,12 @@ function RoundsEditor({
             className="w-full"
             onClick={() => {
               if (!name.trim()) {
+                sound.error();
                 toast.error("Name the round first.");
                 return;
               }
               onAdd({ name: name.trim(), type });
+              sound.success();
               setName("");
               setAddOpen(false);
             }}

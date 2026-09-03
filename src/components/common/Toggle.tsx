@@ -1,5 +1,6 @@
 import { cn } from "@/lib/utils";
 import { haptics } from "@/lib/haptics";
+import { sound } from "@/lib/sound";
 
 /**
  * Minimal switch used across the settings screens.
@@ -24,6 +25,7 @@ export function Toggle({
       aria-label={label}
       onClick={() => {
         haptics.toggle(!on);
+        sound.toggle();
         onChange(!on);
       }}
       className={cn(

@@ -1,5 +1,6 @@
 import { cn } from "@/lib/utils";
 import { haptics } from "@/lib/haptics";
+import { sound } from "@/lib/sound";
 import type { ButtonHTMLAttributes, ReactNode } from "react";
 
 type Variant = "primary" | "ghost" | "outline" | "danger";
@@ -35,6 +36,7 @@ export function IconButton({
         if (!props.disabled) {
           if (variant === "danger") haptics.impact();
           else haptics.tap();
+          sound.tap();
         }
         props.onClick?.(e);
       }}
@@ -74,6 +76,7 @@ export function ActionButton({
         if (!props.disabled) {
           if (variant === "danger") haptics.impact();
           else haptics.tap();
+          sound.tap();
         }
         props.onClick?.(e);
       }}
@@ -99,7 +102,10 @@ export function Fab({
   return (
     <button
       onClick={(e) => {
-        if (!props.disabled) haptics.tap();
+        if (!props.disabled) {
+          haptics.tap();
+          sound.tap();
+        }
         props.onClick?.(e);
       }}
       className={cn(

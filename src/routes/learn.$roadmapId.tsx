@@ -23,6 +23,7 @@ import { BottomSheet, ConfirmDialog } from "@/components/edit/Sheet";
 import { TextField } from "@/components/edit/Fields";
 import { ActionButton, IconButton } from "@/components/edit/Buttons";
 import { haptics } from "@/lib/haptics";
+import { sound } from "@/lib/sound";
 import { cn } from "@/lib/utils";
 import { PhaseNode, RouteStart, RouteFinish } from "@/components/roadmap/RouteRail";
 
@@ -408,8 +409,13 @@ function RoadmapDetail() {
                                           <button
                                             onClick={(e) => {
                                               e.stopPropagation();
-                                              if (tPct === 100) haptics.selection();
-                                              else haptics.success();
+                                              if (tPct === 100) {
+                                                haptics.selection();
+                                                sound.tap();
+                                              } else {
+                                                haptics.success();
+                                                sound.complete();
+                                              }
                                               setTopicComplete(
                                                 roadmap.id,
                                                 phase.id,

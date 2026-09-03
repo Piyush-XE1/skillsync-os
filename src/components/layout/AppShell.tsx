@@ -5,6 +5,7 @@ import { useAppStore } from "@/store/useAppStore";
 import { BottomNav } from "./BottomNav";
 import { SideNav } from "./SideNav";
 import { useHapticPreferences } from "@/hooks/use-haptics";
+import { useSoundPreferences } from "@/hooks/use-sound";
 import { useKeyboardShortcuts } from "@/hooks/use-keyboard-shortcuts";
 import { useAchievementEngine } from "@/hooks/use-achievement-engine";
 
@@ -15,6 +16,7 @@ import { useAchievementEngine } from "@/hooks/use-achievement-engine";
  */
 export function AppShell({ children }: { children: ReactNode }) {
   useHapticPreferences();
+  useSoundPreferences();
   useKeyboardShortcuts();
   useAchievementEngine();
   // A debounced subscription means local recovery snapshots happen off the typing path.

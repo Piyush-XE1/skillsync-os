@@ -23,6 +23,7 @@ import { useAppStore, useHydrated } from "@/store/useAppStore";
 import { topicPct, subtopicPct } from "@/lib/progress";
 import { newId } from "@/lib/id";
 import { haptics } from "@/lib/haptics";
+import { sound } from "@/lib/sound";
 import { isSafeUrl, safeHref } from "@/lib/url";
 import type { Subtopic, ChecklistItem } from "@/lib/schema";
 
@@ -237,6 +238,7 @@ function TopicDetail() {
                         resources: topic.resources.filter((x) => x.id !== r.id),
                       });
                       touch();
+                      sound.trash();
                     }}
                   >
                     <Trash2 className="h-3.5 w-3.5" />
@@ -266,6 +268,8 @@ function TopicDetail() {
                   onClick={() => {
                     updateChecklistItem({ roadmapId, phaseId, topicId }, c.id, { done: !c.done });
                     touch();
+                    if (!c.done) sound.complete();
+                    else sound.tap();
                   }}
                   className="flex h-5 w-5 items-center justify-center"
                 >
@@ -417,6 +421,7 @@ function TopicDetail() {
               if (!url) return;
               if (!isSafeUrl(url)) {
                 haptics.error();
+                sound.error();
                 toast.error("Enter a valid http(s) link.");
                 return;
               }
@@ -425,6 +430,7 @@ function TopicDetail() {
               });
               setResOpen(false);
               touch();
+              sound.success();
             }}
           >
             Add resource
@@ -501,7 +507,11 @@ function SubtopicBlock({
             {sub.checklist.map((c) => (
               <div key={c.id} className="flex items-center gap-2">
                 <button
-                  onClick={() => updateCheck(c.id, { done: !c.done })}
+                  onClick={() => {
+                    updateCheck(c.id, { done: !c.done });
+                    if (!c.done) sound.complete();
+                    else sound.tap();
+                  }}
                   className="flex h-5 w-5 items-center justify-center"
                 >
                   {c.done ? (

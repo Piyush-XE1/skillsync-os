@@ -9,6 +9,7 @@ import { BottomSheet, ConfirmDialog } from "@/components/edit/Sheet";
 import { TextField } from "@/components/edit/Fields";
 import { ActionButton, IconButton } from "@/components/edit/Buttons";
 import { useAppStore, useHydrated } from "@/store/useAppStore";
+import { sound } from "@/lib/sound";
 import type { Subject } from "@/lib/schema";
 
 export const Route = createFileRoute("/attendance/$semester")({
@@ -69,7 +70,10 @@ function SemesterPage() {
   };
 
   const submitAdd = () => {
-    if (!name.trim()) return;
+    if (!name.trim()) {
+      sound.error();
+      return;
+    }
     addSubject({
       semester: semNum,
       name: name.trim(),
@@ -78,6 +82,7 @@ function SemesterPage() {
     });
     resetForm();
     setAddOpen(false);
+    sound.success();
     toast.success("Subject added");
   };
 
@@ -152,14 +157,24 @@ function SemesterPage() {
                   </div>
                 </div>
                 <div className="flex gap-1">
-                  <IconButton size="sm" aria-label="Edit" onClick={() => setEditing(sub)}>
+                  <IconButton
+                    size="sm"
+                    aria-label="Edit"
+                    onClick={() => {
+                      sound.tap();
+                      setEditing(sub);
+                    }}
+                  >
                     <Pencil className="h-3.5 w-3.5" />
                   </IconButton>
                   <IconButton
                     size="sm"
                     variant="danger"
                     aria-label="Delete"
-                    onClick={() => setConfirmDelete(sub.id)}
+                    onClick={() => {
+                      sound.error();
+                      setConfirmDelete(sub.id);
+                    }}
                   >
                     <Trash2 className="h-3.5 w-3.5" />
                   </IconButton>
@@ -172,13 +187,19 @@ function SemesterPage() {
 
               <div className="mt-4 grid grid-cols-2 gap-2">
                 <button
-                  onClick={() => updateSubject(sub.id, { present: sub.present + 1 })}
+                  onClick={() => {
+                    updateSubject(sub.id, { present: sub.present + 1 });
+                    sound.complete();
+                  }}
                   className="flex items-center justify-center gap-1.5 rounded-xl border border-emerald-400/20 bg-emerald-400/[0.08] py-2 text-[12.5px] font-medium text-emerald-200 active:scale-[0.97]"
                 >
                   <Plus className="h-3.5 w-3.5" /> Present
                 </button>
                 <button
-                  onClick={() => updateSubject(sub.id, { absent: sub.absent + 1 })}
+                  onClick={() => {
+                    updateSubject(sub.id, { absent: sub.absent + 1 });
+                    sound.tap();
+                  }}
                   className="flex items-center justify-center gap-1.5 rounded-xl border border-[var(--danger)]/20 bg-[var(--danger)]/[0.08] py-2 text-[12.5px] font-medium text-[var(--danger)] active:scale-[0.97]"
                 >
                   <Plus className="h-3.5 w-3.5" /> Absent
@@ -187,22 +208,20 @@ function SemesterPage() {
               <div className="mt-2 grid grid-cols-2 gap-2">
                 <button
                   disabled={sub.present === 0}
-                  onClick={() =>
-                    updateSubject(sub.id, {
-                      present: Math.max(0, sub.present - 1),
-                    })
-                  }
+                  onClick={() => {
+                    updateSubject(sub.id, { present: Math.max(0, sub.present - 1) });
+                    sound.tap();
+                  }}
                   className="flex items-center justify-center gap-1.5 rounded-xl border border-white/[0.06] bg-white/[0.02] py-2 text-[11.5px] text-muted-foreground active:scale-[0.97] disabled:opacity-40"
                 >
                   <Minus className="h-3 w-3" /> Undo present
                 </button>
                 <button
                   disabled={sub.absent === 0}
-                  onClick={() =>
-                    updateSubject(sub.id, {
-                      absent: Math.max(0, sub.absent - 1),
-                    })
-                  }
+                  onClick={() => {
+                    updateSubject(sub.id, { absent: Math.max(0, sub.absent - 1) });
+                    sound.tap();
+                  }}
                   className="flex items-center justify-center gap-1.5 rounded-xl border border-white/[0.06] bg-white/[0.02] py-2 text-[11.5px] text-muted-foreground active:scale-[0.97] disabled:opacity-40"
                 >
                   <Minus className="h-3 w-3" /> Undo absent
@@ -291,7 +310,10 @@ function SemesterPage() {
         title="Delete subject?"
         description="Attendance history for this subject will be lost."
         onConfirm={() => {
-          if (confirmDelete) deleteSubject(confirmDelete);
+          if (confirmDelete) {
+            deleteSubject(confirmDelete);
+            sound.trash();
+          }
         }}
       />
     </AppShell>

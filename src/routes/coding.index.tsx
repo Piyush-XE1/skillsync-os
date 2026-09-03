@@ -27,6 +27,7 @@ import { useAppStore, useHydrated } from "@/store/useAppStore";
 import { codingStats, problemsByDay } from "@/lib/coding";
 import { todayISO, formatFriendly, dateISO } from "@/lib/date";
 import { cn } from "@/lib/utils";
+import { sound } from "@/lib/sound";
 import type { CodingProblem, CodingPlatform, CodingDifficulty } from "@/lib/schema";
 
 export const Route = createFileRoute("/coding/")({
@@ -121,6 +122,7 @@ function CodingPage() {
 
   function submitNew() {
     if (!title.trim()) {
+      sound.error();
       toast.error("Give the problem a title first.");
       return;
     }
@@ -134,6 +136,7 @@ function CodingPage() {
       timeComplexity: timeComplexity.trim(),
       solvedAt: Date.now(),
     });
+    sound.success();
     toast.success("Problem logged. +8 XP 🎉");
     setTitle("");
     setUrl("");
@@ -152,6 +155,7 @@ function CodingPage() {
       title: form.title.trim(),
       tags: editTags,
     });
+    sound.success();
     toast.success("Updated.");
     setEditing(null);
   }
@@ -398,6 +402,7 @@ function CodingPage() {
                         ) : null}
                         <button
                           onClick={() => {
+                            sound.tap();
                             setForm(p);
                             setEditTags(p.tags);
                             setEditing(p);
@@ -436,7 +441,10 @@ function CodingPage() {
               {(Object.keys(PLATFORM_META) as CodingPlatform[]).map((p) => (
                 <button
                   key={p}
-                  onClick={() => setPlatform(p)}
+                  onClick={() => {
+                    sound.select();
+                    setPlatform(p);
+                  }}
                   className={cn(
                     "rounded-xl border px-2 py-2.5 text-[12px] font-medium transition-colors",
                     platform === p
@@ -456,7 +464,10 @@ function CodingPage() {
               {(["easy", "medium", "hard"] as CodingDifficulty[]).map((d) => (
                 <button
                   key={d}
-                  onClick={() => setDifficulty(d)}
+                  onClick={() => {
+                    sound.select();
+                    setDifficulty(d);
+                  }}
                   className={cn(
                     "rounded-xl border px-2 py-2.5 text-[12px] font-medium capitalize transition-colors",
                     difficulty === d
@@ -554,7 +565,10 @@ function CodingPage() {
             />
           </div>
           <button
-            onClick={() => setConfirmDelete(true)}
+            onClick={() => {
+              sound.error();
+              setConfirmDelete(true);
+            }}
             className="flex w-full items-center justify-center gap-2 rounded-[14px] border border-danger/25 py-3 text-[13px] font-medium text-danger"
           >
             <Trash2 className="h-4 w-4" /> Delete problem
@@ -567,6 +581,7 @@ function CodingPage() {
         onClose={() => setConfirmDelete(false)}
         onConfirm={() => {
           if (editing) deleteCodingProblem(editing.id);
+          sound.trash();
           setEditing(null);
         }}
         title="Delete this problem?"
@@ -616,6 +631,7 @@ function TagPicker({ value, onChange }: { value: string[]; onChange: (tags: stri
             const t = custom.trim();
             if (!t || value.includes(t)) return;
             onChange([...value, t]);
+            sound.tap();
             setCustom("");
           }}
         >

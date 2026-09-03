@@ -3,6 +3,8 @@ import { createPortal } from "react-dom";
 import { X } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { haptics } from "@/lib/haptics";
+import { useOverlaySound } from "@/hooks/use-sound";
+import { sound } from "@/lib/sound";
 import { useKeyboardInset, useScrollFocusedIntoView } from "@/hooks/use-keyboard-inset";
 import {
   useDismissOnEscape,
@@ -48,6 +50,7 @@ export function BottomSheet({
   /** Sticky action row pinned above the keyboard. */
   footer?: ReactNode;
 }) {
+  useOverlaySound(open);
   const kb = useKeyboardInset();
   const bodyRef = useRef<HTMLDivElement>(null);
   const surfaceRef = useRef<HTMLDivElement>(null);
@@ -154,6 +157,7 @@ export function ConfirmDialog({
   confirmLabel?: string;
   destructive?: boolean;
 }) {
+  useOverlaySound(open);
   const kb = useKeyboardInset();
   const surfaceRef = useRef<HTMLDivElement>(null);
   const titleId = useId();
@@ -165,9 +169,13 @@ export function ConfirmDialog({
   useDismissOnEscape(open, isTop, onClose);
   useFocusTrap(surfaceRef, mounted);
 
-  // Destructive confirmations announce themselves tactilely, exactly once.
+  // Destructive confirmations announce themselves tactilely (and audibly),
+  // exactly once.
   useEffect(() => {
-    if (open && destructive) haptics.warning();
+    if (open && destructive) {
+      haptics.warning();
+      sound.error();
+    }
   }, [open, destructive]);
 
   if (!mounted) return null;
@@ -216,6 +224,8 @@ export function ConfirmDialog({
               type="button"
               onClick={() => {
                 haptics.impact();
+                if (destructive) sound.trash();
+                else sound.success();
                 onConfirm();
                 onClose();
               }}

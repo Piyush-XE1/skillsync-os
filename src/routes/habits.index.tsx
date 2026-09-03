@@ -12,6 +12,8 @@ import { useAppStore, useHydrated } from "@/store/useAppStore";
 import { todayISO, addDaysISO } from "@/lib/date";
 import { cn } from "@/lib/utils";
 import { haptics } from "@/lib/haptics";
+import { sound } from "@/lib/sound";
+import { fireConfetti } from "@/lib/confetti";
 
 export const Route = createFileRoute("/habits/")({
   head: () => ({
@@ -134,11 +136,15 @@ function HabitsPage() {
                       e.stopPropagation();
                       if (doneToday) {
                         haptics.tap();
+                        sound.tap();
                       } else if ((streak + 1) % 7 === 0) {
                         // Weekly streak milestone earns a richer confirmation.
                         haptics.milestone();
+                        sound.streak();
+                        fireConfetti({ count: 70, origin: { x: 0.5, y: 0.6 }, ttl: 1.5 });
                       } else {
                         haptics.success();
+                        sound.complete();
                       }
                       toggleHabitToday(h.id);
                     }}
@@ -214,6 +220,7 @@ function HabitsPage() {
               addGuard.current = true;
               addHabit(title.trim(), emoji || "✨");
               haptics.success();
+              sound.success();
               setTitle("");
               setEmoji("✨");
               setOpen(false);

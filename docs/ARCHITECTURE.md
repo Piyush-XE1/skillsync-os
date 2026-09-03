@@ -30,7 +30,7 @@
 │  gamification (XP awards, streaks, completedAt stamps).    │
 ├────────────────────────────────────────────────────────────┤
 │  Migrations (src/lib/migrations.ts)                        │
-│  Pure functions v1→v8. Each migrator is additive. On       │
+│  Pure functions v1→v10. Each migrator is additive. On      │
 │  invalid input the engine salvages valid top-level fields  │
 │  one by one instead of crashing or wiping.                 │
 ├────────────────────────────────────────────────────────────┤
@@ -52,7 +52,7 @@
   survives.
 - `schemaVersion` lives **inside** the payload. Zustand's persist `version`
   bumps alongside it, so a stored v6 payload is routed through the migration
-  chain and emerges as valid v8 data.
+  chain and emerges as valid v10 data.
 - Migrations are **additive**: new domains (Focus, CGPA, Resume) start empty
   with safe defaults; existing records are enriched (e.g. planner tasks gain
   `priority`, topics gain `completedAt`).
@@ -69,8 +69,9 @@
 - **Achievements** (`src/lib/achievements.ts`) are declarative predicates
   over `AppData`. The engine hook (`useAchievementEngine`) evaluates on a
   debounced store subscription, unlocks new badges exactly once (idempotent
-  by stored id list), and fires XP + toast + haptic + notification. The
-  notification runner dedupes via `sourceId`.
+  by stored id list), and fires XP + toast + haptic + sound cue + confetti +
+  notification (level-ups get their own rising arpeggio). The notification
+  runner dedupes via `sourceId`.
 
 ## 5. Derived analytics
 
@@ -103,8 +104,8 @@ navigation, haptics and notifications flow through
 
 - `npm run typecheck` — strict TypeScript, zero `any` leaks in the domain.
 - `npm run lint` — eslint + prettier.
-- `npm run test` — 150+ Vitest tests: pure Node for libs, jsdom for the store
-  and route render smoke tests.
+- `npm run test` — 260+ Vitest tests: pure Node for libs, jsdom for the store,
+  drag-sort/keyboard interaction and route render smoke tests.
 - CI (GitHub Actions) runs all three plus a production build on every PR.
 
 ## 9. Design system
@@ -113,3 +114,31 @@ Three themes (Aurora, Light, Atelier) share one token set in `styles.css`.
 Components consume semantic tokens only (`var(--primary)`, `card-surface`,
 `gradient-primary`…), so adding a theme is a token exercise, not a component
 rewrite.
+
+## 10. Interaction layer — widgets, drag-sort & sound
+
+Three dependency-free primitives carry the "feels native" layer. None of them
+add a runtime package, and all three are unit-tested beside their source.
+
+- **Widget system** — the dashboard is a grid the user owns. `src/lib/widgets.ts`
+  holds the pure model (a 23-widget catalog with id, title, default size and an
+  optional module gate, plus `normalizeWidgetLayout`, `visibleWidgets` and
+  `applyWidgetOrder`), `src/components/widgets/` renders it (`WidgetFrame`
+  chrome, `tiles`/`panels`, `registry`, `WidgetGrid`, `WidgetCustomizer`) and the
+  store exposes typed actions (`setWidgets`, `toggleWidget`, `resizeWidget`,
+  `reorderWidgets`, `moveWidgetTo`, `resetWidgets`). Layout persists as
+  `widgets: WidgetPlacement[]` (schema v10) — never as component state.
+- **Drag & keyboard reorder** — `src/lib/drag-sort.ts` computes target slots from
+  _measured_ item rects (variable heights, either axis) and `DragSortList.tsx`
+  drives the gesture: pointer + long-press lift, transform-only movement,
+  auto-scroll of the real scroll container, a settle transition on release, and
+  a full keyboard path on the grip (Space to lift, arrows to move, Enter/Space
+  to drop, Escape to cancel, Home/End to jump) with `aria-live` announcements.
+  The expenses transaction list and the widget grid share it.
+- **Sound** — `src/lib/sound.ts` is a tiny Web Audio synth (pentatonic palette
+  through a master gain → lowpass) with semantic cues: `tap`, `select`,
+  `toggle`, `open`/`close`, `lift`/`move`/`drop`, `success`, `complete`, `coin`,
+  `trash`, `error`, `streak`, `achievement`, `levelUp`, `chime`, `tick`. It mirrors `haptics.ts`: SSR-safe, never throws, unlock on first
+  user gesture, per-cue cooldowns so rapid input can't machine-gun. Preferences
+  (`sound`, `soundVolume`) persist in the schema and are editable in
+  Profile → Sound design, where every cue can be previewed.
