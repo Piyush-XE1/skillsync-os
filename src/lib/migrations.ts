@@ -4,6 +4,8 @@ import { createInitialData } from "./seed";
 import { todayISO } from "./date";
 import { createDefaultNotifications } from "./notifications/types";
 import { defaultAccentFor } from "./accent";
+import { DEFAULT_SOUND_VOLUME, clampVolume } from "./sound";
+import { defaultWidgetLayout, normalizeWidgetLayout } from "./widgets";
 
 /**
  * Loose shape of persisted data while it is being migrated. It can come from
@@ -147,6 +149,23 @@ const migrators: Record<number, (data: LegacyData) => LegacyData> = {
         : defaultAccentFor(prefs.background);
     return { ...data, preferences: { ...prefs, accent } };
   },
+  /**
+   * v9 -> v10: the dashboard becomes a widget grid and the OS grows a sound
+   * design. Existing workspaces get the shipped layout (every widget in its
+   * default place) plus sound on at the default volume — nothing they already
+   * had moves or disappears.
+   */
+  9: (data) => {
+    const prefs = (data.preferences ?? {}) as LegacyData;
+    const sound = typeof prefs.sound === "boolean" ? prefs.sound : true;
+    const soundVolume =
+      typeof prefs.soundVolume === "number" ? clampVolume(prefs.soundVolume) : DEFAULT_SOUND_VOLUME;
+    return {
+      ...data,
+      preferences: { ...prefs, sound, soundVolume },
+      widgets: Array.isArray(data.widgets) ? data.widgets : defaultWidgetLayout(),
+    };
+  },
 };
 
 export function migrate(input: unknown): AppData {
@@ -195,7 +214,15 @@ export function migrate(input: unknown): AppData {
     if (typeof prefs.accent !== "string" || prefs.accent.trim().length === 0) {
       prefs.accent = defaultAccentFor(prefs.background);
     }
+    // Sound design: always a boolean + a clamped 0..1 volume.
+    if (typeof prefs.sound !== "boolean") prefs.sound = true;
+    prefs.soundVolume =
+      typeof prefs.soundVolume === "number" ? clampVolume(prefs.soundVolume) : DEFAULT_SOUND_VOLUME;
   }
+
+  // Widget layout: repair whatever was persisted (unknown ids, duplicates,
+  // impossible sizes) and append widgets this workspace has never seen.
+  data.widgets = normalizeWidgetLayout(data.widgets);
 
   data.attendance = data.attendance ?? { subjects: [] };
   data.expenses = data.expenses ?? { transactions: [] };

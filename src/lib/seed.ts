@@ -3,6 +3,8 @@ import { CURRENT_SCHEMA_VERSION } from "./schema";
 import { createDefaultNotifications } from "./notifications/types";
 import { createDefaultFocusSettings } from "./schema";
 import { defaultAccentFor } from "./accent";
+import { DEFAULT_SOUND_VOLUME } from "./sound";
+import { defaultWidgetLayout } from "./widgets";
 const SEED_CREATED_AT = 1_704_067_200_000;
 const SEED_START_DATE = "2024-01-01";
 
@@ -212,7 +214,10 @@ export function createInitialData(): AppData {
       accent: defaultAccentFor("aurora"),
       haptics: true,
       hapticIntensity: "standard",
+      sound: true,
+      soundVolume: DEFAULT_SOUND_VOLUME,
     },
+    widgets: defaultWidgetLayout(),
     stats: {
       xp: 0,
       level: 1,

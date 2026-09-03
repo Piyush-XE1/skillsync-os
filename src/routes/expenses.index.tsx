@@ -1,16 +1,18 @@
 import { createFileRoute, Link, Navigate } from "@tanstack/react-router";
-import { useCallback, useEffect, useMemo, useRef, useState, memo } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
 import { ArrowLeft, Pencil, Plus, Search, Trash2, TrendingDown, TrendingUp, X } from "lucide-react";
 import { AppShell } from "@/components/layout/AppShell";
 import { PrimaryAction } from "@/components/layout/PrimaryAction";
 import { Card, Chip } from "@/components/ui/primitives";
 import { EmptyState } from "@/components/common/EmptyState";
+import { DragHandle, DragSortList, type HandleProps } from "@/components/common/DragSortList";
 import { BottomSheet, ConfirmDialog } from "@/components/edit/Sheet";
 import { TextField, TextArea, NO_AUTOFILL_PROPS } from "@/components/edit/Fields";
 import { ActionButton, IconButton } from "@/components/edit/Buttons";
 import { useAppStore, useHydrated } from "@/store/useAppStore";
 import { haptics } from "@/lib/haptics";
+import { sound } from "@/lib/sound";
 import { cn } from "@/lib/utils";
 import type { Transaction } from "@/lib/schema";
 
@@ -108,47 +110,60 @@ function matchesQuery(t: Transaction, q: string) {
 
 /* ---------------------------------- Row ---------------------------------- */
 
-type RowProps = {
-  tx: Transaction;
+type RowChrome = {
   dragging: boolean;
-  onEdit: (tx: Transaction) => void;
-  onLongPressStart: (id: string, e: React.PointerEvent<HTMLDivElement>) => void;
-  registerRow: (id: string, el: HTMLDivElement | null) => void;
+  sorting: boolean;
+  setNodeRef: (el: HTMLDivElement | null) => void;
+  rowProps: {
+    onPointerDown: (event: React.PointerEvent<HTMLElement>) => void;
+    "data-sort-row": string;
+  };
+  handleProps: HandleProps;
 };
 
-const ExpenseRow = memo(function ExpenseRow({
+function ExpenseRow({
   tx,
-  dragging,
   onEdit,
-  onLongPressStart,
-  registerRow,
-}: RowProps) {
+  chrome,
+}: {
+  tx: Transaction;
+  onEdit: (tx: Transaction) => void;
+  chrome: RowChrome;
+}) {
   const credit = tx.type === "credit";
+  const { dragging, sorting, setNodeRef, rowProps, handleProps } = chrome;
   return (
     <div
-      data-expense-row={tx.id}
-      ref={(el) => registerRow(tx.id, el)}
-      onPointerDown={(e) => onLongPressStart(tx.id, e)}
+      ref={setNodeRef}
+      {...rowProps}
       style={{
-        // Declared up front so activating a drag never waits on a React render.
+        // Declared up front so activating a drag never waits on a React render:
+        // vertical panning stays available until the lift sets `touch-action`.
         touchAction: "pan-y",
       }}
       className={cn(
-        // transition-transform lets untouched neighbour rows glide out of the
-        // way while dragging and lets the dropped row settle into place; paint()
-        // pins the ACTIVE row to the finger with inline `transition: none`.
-        "relative flex items-start gap-3 rounded-2xl border border-white/[0.05] bg-white/[0.02] px-3 py-3 transition-transform duration-200 ease-out select-none motion-reduce:transition-none",
+        "group/row relative flex items-start gap-2 rounded-2xl border border-white/[0.05] bg-white/[0.02] py-3 pl-1.5 pr-3",
+        "shadow-[0_1px_0_0_oklch(1_0_0/0.04)_inset] transition-[border-color,background-color,box-shadow] duration-200 ease-[var(--ease-out-soft)]",
+        "[@media(hover:hover)_and_(pointer:fine)]:hover:border-white/[0.1] [@media(hover:hover)_and_(pointer:fine)]:hover:bg-white/[0.04]",
         dragging &&
-          "z-20 scale-[1.03] border-white/[0.12] bg-white/[0.06] shadow-[0_20px_45px_-18px_rgba(0,0,0,0.8)] ring-1 ring-primary/25 brightness-110",
+          "border-[color-mix(in_oklab,var(--primary)_45%,transparent)] bg-[color-mix(in_oklab,var(--primary)_10%,transparent)] shadow-[0_26px_50px_-22px_oklch(0_0_0/0.9)] ring-1 ring-[color-mix(in_oklab,var(--primary)_30%,transparent)]",
+        sorting && !dragging && "opacity-80",
       )}
     >
+      <DragHandle
+        {...handleProps}
+        active={dragging}
+        className="mt-0.5 opacity-70 md:opacity-0 md:transition-opacity md:group-hover/row:opacity-100 md:group-focus-within/row:opacity-100"
+      />
+
       <span
         className={cn(
-          "mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-xl",
+          "mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-xl transition-colors",
           credit
             ? "bg-emerald-400/15 text-emerald-300"
             : "bg-[var(--danger)]/15 text-[var(--danger)]",
         )}
+        aria-hidden
       >
         {credit ? (
           <TrendingUp className="h-4 w-4" strokeWidth={1.75} />
@@ -182,7 +197,7 @@ const ExpenseRow = memo(function ExpenseRow({
           <div className="flex shrink-0 flex-col items-end gap-1.5">
             <div
               className={cn(
-                "text-[14px] font-semibold",
+                "text-[14px] font-semibold tabular-nums",
                 credit ? "text-emerald-300" : "text-[var(--danger)]",
               )}
             >
@@ -205,11 +220,17 @@ const ExpenseRow = memo(function ExpenseRow({
       </div>
     </div>
   );
-});
+}
 
 /* ------------------------------- Drag list ------------------------------- */
 
-function DragList({
+/**
+ * One month of transactions, reorderable.
+ *
+ * All of the pointer/keyboard/scroll machinery lives in `DragSortList`; this
+ * wrapper only decides how a row looks and how a finished order is persisted.
+ */
+function TransactionList({
   items,
   onEdit,
   onReorder,
@@ -218,238 +239,25 @@ function DragList({
   onEdit: (tx: Transaction) => void;
   onReorder: (ids: string[]) => void;
 }) {
-  const [activeId, setActiveId] = useState<string | null>(null);
-  const [order, setOrder] = useState<string[] | null>(null);
-
-  /** Live row elements, so a drag can write transforms without re-rendering. */
-  const rows = useRef(new Map<string, HTMLDivElement>());
-  const registerRow = useCallback((id: string, el: HTMLDivElement | null) => {
-    if (el) rows.current.set(id, el);
-    else rows.current.delete(id);
-  }, []);
-
-  const state = useRef({
-    timer: 0 as unknown as ReturnType<typeof setTimeout>,
-    startY: 0,
-    pointerY: 0,
-    scrolled: 0,
-    scrollDir: 0,
-    rowH: 0,
-    baseIds: [] as string[],
-    ids: [] as string[],
-    index: 0,
-    dragId: null as string | null,
-    active: false,
-    raf: 0,
-    captured: null as { el: HTMLDivElement; pointerId: number } | null,
-  });
-
-  const list = useMemo(() => {
-    if (!order) return items;
-    const map = new Map(items.map((t) => [t.id, t]));
-    return order.map((id) => map.get(id)!).filter(Boolean);
-  }, [items, order]);
-
-  // Once the store is the source of truth again (a commit landed, or the
-  // underlying items changed), drop the local drag order. Without this, a
-  // transaction added after a reorder never appeared in the list — it had no
-  // entry in the stale in-flight order.
-  useEffect(() => {
-    setOrder(null);
-  }, [items]);
-
-  /** Writes every row's transform for the current in-flight order. */
-  const paint = useCallback(() => {
-    const s = state.current;
-    if (!s.active || !s.dragId) return;
-    const delta = s.pointerY - s.startY + s.scrolled;
-
-    s.baseIds.forEach((id, domIndex) => {
-      const el = rows.current.get(id);
-      if (!el) return;
-      if (id === s.dragId) {
-        el.style.transition = "none";
-        el.style.transform = `translateY(${delta}px) scale(1.03)`;
-        return;
-      }
-      const next = s.ids.indexOf(id);
-      const shift = (next - domIndex) * s.rowH;
-      el.style.transform = shift ? `translateY(${shift}px)` : "";
-    });
-  }, []);
-
-  const stopLoop = useCallback(() => {
-    if (state.current.raf) cancelAnimationFrame(state.current.raf);
-    state.current.raf = 0;
-  }, []);
-
-  const loop = useCallback(() => {
-    const s = state.current;
-    if (!s.active) return;
-    if (s.scrollDir) {
-      const step = s.scrollDir * 12;
-      window.scrollBy({ top: step });
-      s.scrolled += step;
-    }
-    // Order resolution from the current pointer position.
-    const delta = s.pointerY - s.startY + s.scrolled;
-    const from = s.baseIds.indexOf(s.dragId!);
-    const target = Math.max(0, Math.min(s.ids.length - 1, from + Math.round(delta / s.rowH)));
-    if (target !== s.index) {
-      const next = s.baseIds.filter((x) => x !== s.dragId);
-      next.splice(target, 0, s.dragId!);
-      s.index = target;
-      s.ids = next;
-      haptics.selection();
-    }
-    paint();
-    s.raf = requestAnimationFrame(loop);
-  }, [paint]);
-
-  const cleanup = useCallback(() => {
-    const s = state.current;
-    clearTimeout(s.timer);
-    stopLoop();
-    s.active = false;
-    s.scrollDir = 0;
-    s.scrolled = 0;
-    if (s.captured) {
-      try {
-        s.captured.el.releasePointerCapture(s.captured.pointerId);
-      } catch {
-        /* already released */
-      }
-      s.captured = null;
-    }
-    // Clear every imperative transform; React owns layout again.
-    rows.current.forEach((el) => {
-      el.style.transform = "";
-      el.style.transition = "";
-      el.style.touchAction = "pan-y";
-    });
-    s.dragId = null;
-  }, [stopLoop]);
-
-  /** Pointer released: commit the in-flight order if a drag was active. */
-  const finish = useCallback(() => {
-    const s = state.current;
-    const committed = s.active ? s.ids.slice() : null;
-    cleanup();
-    setActiveId(null);
-    if (committed) {
-      haptics.tap();
-      setOrder(committed);
-      onReorder(committed);
-    }
-  }, [cleanup, onReorder]);
-
-  /** Gesture stolen/cancelled (OS took the pointer, mouse button lost): roll back. */
-  const cancel = useCallback(() => {
-    cleanup();
-    setActiveId(null);
-  }, [cleanup]);
-
-  const onLongPressStart = useCallback(
-    (id: string, e: React.PointerEvent<HTMLDivElement>) => {
-      // Ignore non-primary buttons (right/middle click, barrel buttons).
-      if (e.pointerType === "mouse" && e.button !== 0) return;
-      const el = e.currentTarget;
-      const pointerId = e.pointerId;
-      const ids = list.map((t) => t.id);
-      const s = state.current;
-      s.startY = e.clientY;
-      s.pointerY = e.clientY;
-      s.scrolled = 0;
-      s.scrollDir = 0;
-      s.rowH = el.getBoundingClientRect().height + 6;
-      s.baseIds = ids;
-      s.ids = ids.slice();
-      s.index = ids.indexOf(id);
-      s.dragId = id;
-      s.active = false;
-
-      const move = (ev: PointerEvent) => {
-        if (ev.pointerId !== pointerId) return;
-        if (!s.active) {
-          // Movement before the long press wins → treat as a scroll, bail out.
-          if (Math.abs(ev.clientY - s.startY) > 8) {
-            clearTimeout(s.timer);
-            detach();
-          }
-          return;
-        }
-        // A mouse that lost its button without pointerup (off-window release)
-        // must not leave the drag running.
-        if (ev.pointerType === "mouse" && (ev.buttons & 1) === 0) {
-          detach();
-          cancel();
-          return;
-        }
-        ev.preventDefault();
-        s.pointerY = ev.clientY;
-        const edge = 90;
-        const vh = window.innerHeight;
-        s.scrollDir = ev.clientY < edge ? -1 : ev.clientY > vh - edge ? 1 : 0;
-      };
-      const up = (ev: PointerEvent) => {
-        if (ev.pointerId !== pointerId) return;
-        detach();
-        finish();
-      };
-      const cancelled = (ev: PointerEvent) => {
-        if (ev.pointerId !== pointerId) return;
-        detach();
-        cancel();
-      };
-      // Window-scoped listeners: a gesture must always terminate, even when
-      // the pointer ends outside the row (mouse drags leave the element).
-      const detach = () => {
-        window.removeEventListener("pointermove", move);
-        window.removeEventListener("pointerup", up);
-        window.removeEventListener("pointercancel", cancelled);
-      };
-
-      window.addEventListener("pointermove", move, { passive: false });
-      window.addEventListener("pointerup", up);
-      window.addEventListener("pointercancel", cancelled);
-
-      s.timer = setTimeout(() => {
-        s.active = true;
-        // Own the gesture immediately — no render gap, no WebView steal.
-        el.style.touchAction = "none";
-        try {
-          el.setPointerCapture(pointerId);
-          s.captured = { el, pointerId };
-        } catch {
-          /* capture unsupported */
-        }
-        haptics.longPress();
-        setActiveId(id);
-        paint();
-        s.raf = requestAnimationFrame(loop);
-      }, 380);
-    },
-    [cancel, finish, list, loop, paint],
-  );
-
-  useEffect(() => cleanup, [cleanup]);
+  const onReorderRef = useRef(onReorder);
+  onReorderRef.current = onReorder;
 
   return (
-    <div className="space-y-1.5">
-      {list.map((t) => (
+    <DragSortList
+      items={items}
+      className="gap-1.5"
+      itemLabel={(tx) => tx.title}
+      onReorder={(ids) => onReorderRef.current(ids)}
+      renderItem={({ item, dragging, sorting, setNodeRef, rowProps, handleProps }) => (
         <ExpenseRow
-          key={t.id}
-          tx={t}
-          dragging={activeId === t.id}
+          tx={item}
           onEdit={onEdit}
-          onLongPressStart={onLongPressStart}
-          registerRow={registerRow}
+          chrome={{ dragging, sorting, setNodeRef, rowProps, handleProps }}
         />
-      ))}
-    </div>
+      )}
+    />
   );
 }
-
 /* -------------------------------- Tag input ------------------------------ */
 
 function TagPicker({ value, onChange }: { value: string[]; onChange: (tags: string[]) => void }) {
@@ -547,6 +355,35 @@ function ExpensesPage() {
   });
   const [confirmDelete, setConfirmDelete] = useState(false);
 
+  /**
+   * Reordering is scoped: the dragged rows swap the positions they already own,
+   * so a filtered month never scrambles the transactions hidden by the search.
+   * The previous order is kept for a one-tap Undo.
+   */
+  const undoRef = useRef<string[] | null>(null);
+  const handleReorder = useCallback(
+    (group: Transaction[], ids: string[]) => {
+      undoRef.current = group.map((t) => t.id);
+      setTransactionOrder(ids);
+      toast("Order updated", {
+        description: "Drag the grip to rearrange — or focus it and use the arrow keys.",
+        duration: 4200,
+        action: {
+          label: "Undo",
+          onClick: () => {
+            if (undoRef.current) {
+              setTransactionOrder(undoRef.current);
+              undoRef.current = null;
+              haptics.selection();
+              sound.select();
+            }
+          },
+        },
+      });
+    },
+    [setTransactionOrder],
+  );
+
   const groups = useMemo(() => {
     const q = query.trim().toLowerCase();
     const visible = transactions.filter((t) => matchesQuery(t, q) && matchesFilter(t, filter));
@@ -575,11 +412,14 @@ function ExpensesPage() {
     if (addGuard.current) return;
     const value = Number(amount);
     if (!title.trim() || !value || value <= 0) {
+      haptics.error();
+      sound.error();
       toast.error("Add a title and a positive amount");
       return;
     }
     addGuard.current = true;
     haptics.success();
+    sound.coin();
     addTransaction({ title: title.trim(), amount: value, type });
     setTitle("");
     setAmount("");
@@ -603,6 +443,8 @@ function ExpensesPage() {
     if (!editing) return;
     const value = Number(form.amount);
     if (!form.title.trim() || !value || value <= 0) {
+      haptics.error();
+      sound.error();
       toast.error("Add a title and a positive amount");
       return;
     }
@@ -615,6 +457,8 @@ function ExpensesPage() {
       at: fromDateInput(form.date, editing.at),
     });
     setEditing(null);
+    haptics.success();
+    sound.success();
     toast.success("Expense updated");
   };
 
@@ -669,7 +513,13 @@ function ExpensesPage() {
           {FILTERS.map((f) => (
             <button
               key={f}
-              onClick={() => setFilter(f)}
+              onClick={() => {
+                if (filter !== f) {
+                  haptics.selection();
+                  sound.select();
+                }
+                setFilter(f);
+              }}
               className={cn(
                 "shrink-0 rounded-full border px-3.5 py-1.5 text-[12px] transition-colors",
                 filter === f
@@ -703,8 +553,13 @@ function ExpensesPage() {
 
         {groups.map((g) => (
           <section key={g.key} className="space-y-3">
-            <div className="flex items-center justify-between px-1">
-              <h2 className="text-[13px] font-semibold tracking-tight">{g.label}</h2>
+            <div className="flex items-center justify-between gap-3 px-1">
+              <div className="flex min-w-0 items-baseline gap-2">
+                <h2 className="truncate text-[13px] font-semibold tracking-tight">{g.label}</h2>
+                <span className="shrink-0 text-[11px] text-muted-foreground/70">
+                  {g.list.length} {g.list.length === 1 ? "entry" : "entries"}
+                </span>
+              </div>
               <Chip tone={g.balance >= 0 ? "success" : "danger"}>
                 {g.balance >= 0 ? "+" : "−"}
                 {fmtMoney(g.balance)}
@@ -716,7 +571,7 @@ function ExpensesPage() {
                   <div className="text-[10.5px] uppercase tracking-wider text-muted-foreground">
                     Credit
                   </div>
-                  <div className="mt-1 text-[15px] font-semibold text-emerald-300">
+                  <div className="mt-1 text-[15px] font-semibold tabular-nums text-emerald-300">
                     {fmtMoney(g.credit)}
                   </div>
                 </div>
@@ -724,7 +579,7 @@ function ExpensesPage() {
                   <div className="text-[10.5px] uppercase tracking-wider text-muted-foreground">
                     Debit
                   </div>
-                  <div className="mt-1 text-[15px] font-semibold text-[var(--danger)]">
+                  <div className="mt-1 text-[15px] font-semibold tabular-nums text-[var(--danger)]">
                     {fmtMoney(g.debit)}
                   </div>
                 </div>
@@ -734,7 +589,7 @@ function ExpensesPage() {
                   </div>
                   <div
                     className={cn(
-                      "mt-1 text-[15px] font-semibold",
+                      "mt-1 text-[15px] font-semibold tabular-nums",
                       g.balance >= 0 ? "text-emerald-300" : "text-[var(--danger)]",
                     )}
                   >
@@ -742,8 +597,28 @@ function ExpensesPage() {
                   </div>
                 </div>
               </div>
+              {g.credit + g.debit > 0 ? (
+                <div
+                  className="mt-3.5 flex h-1.5 w-full overflow-hidden rounded-full bg-white/[0.06]"
+                  role="img"
+                  aria-label={`Credit ${fmtMoney(g.credit)}, debit ${fmtMoney(g.debit)}`}
+                >
+                  <div
+                    className="h-full rounded-l-full bg-emerald-400/80 transition-[width] duration-700 ease-[var(--ease-out-soft)]"
+                    style={{ width: `${(g.credit / (g.credit + g.debit)) * 100}%` }}
+                  />
+                  <div
+                    className="h-full rounded-r-full bg-[var(--danger)]/70 transition-[width] duration-700 ease-[var(--ease-out-soft)]"
+                    style={{ width: `${(g.debit / (g.credit + g.debit)) * 100}%` }}
+                  />
+                </div>
+              ) : null}
             </Card>
-            <DragList items={g.list} onEdit={openEditor} onReorder={setTransactionOrder} />
+            <TransactionList
+              items={g.list}
+              onEdit={openEditor}
+              onReorder={(ids) => handleReorder(g.list, ids)}
+            />
           </section>
         ))}
       </div>
@@ -882,7 +757,12 @@ function ExpensesPage() {
         open={confirmDelete}
         onClose={() => setConfirmDelete(false)}
         onConfirm={() => {
-          if (editing) deleteTransaction(editing.id);
+          if (editing) {
+            deleteTransaction(editing.id);
+            haptics.impact();
+            sound.trash();
+            toast.success("Expense deleted");
+          }
           setEditing(null);
         }}
         title="Delete this expense?"

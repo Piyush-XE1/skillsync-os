@@ -24,6 +24,7 @@ import { useAppStore, useHydrated } from "@/store/useAppStore";
 import { searchAll, type SearchResult } from "@/lib/search";
 import { cn } from "@/lib/utils";
 import { haptics } from "@/lib/haptics";
+import { sound } from "@/lib/sound";
 
 export const Route = createFileRoute("/search")({
   head: () => ({
@@ -103,6 +104,7 @@ function SearchPage() {
     const result = results[index];
     if (!result) return;
     haptics.selection();
+    sound.select();
     const href = resultHref(result);
     void navigate({
       to: href.to as never,

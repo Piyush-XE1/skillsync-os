@@ -1,6 +1,7 @@
 import { useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
 import { haptics } from "@/lib/haptics";
+import { sound } from "@/lib/sound";
 import {
   Download,
   Upload,
@@ -106,6 +107,7 @@ export function BackupSection({ onRequestReset }: { onRequestReset: () => void }
       toast.success("Backup created");
     } catch (e) {
       haptics.error();
+      sound.error();
       toast.error(errorMessage(e, "Could not create backup"));
     } finally {
       setCreating(false);
@@ -119,6 +121,7 @@ export function BackupSection({ onRequestReset }: { onRequestReset: () => void }
       const result = await saveBackupFile(created);
       if (result.status === "saved" || result.status === "fallback-download") {
         haptics.success();
+        sound.success();
         toast.success(
           result.status === "saved"
             ? `Saved ${created.filename}`
@@ -127,6 +130,7 @@ export function BackupSection({ onRequestReset }: { onRequestReset: () => void }
       } else if (result.status === "cancelled") toast("Save cancelled");
       else {
         haptics.error();
+        sound.error();
         toast.error(`Could not save backup${result.message ? `: ${result.message}` : ""}`);
       }
     } finally {
@@ -141,12 +145,14 @@ export function BackupSection({ onRequestReset }: { onRequestReset: () => void }
       const result = await shareBackupFile(created);
       if (result.status === "shared") {
         haptics.success();
+        sound.success();
         toast.success("Backup shared");
       } else if (result.status === "fallback-download")
         toast("File sharing is unavailable here — the backup was downloaded.");
       else if (result.status === "cancelled") toast("Share cancelled");
       else {
         haptics.error();
+        sound.error();
         toast.error(`Could not share backup${result.message ? `: ${result.message}` : ""}`);
       }
     } finally {
@@ -160,6 +166,7 @@ export function BackupSection({ onRequestReset }: { onRequestReset: () => void }
       const result = validateBackup(text);
       if (!result.ok) {
         haptics.error();
+        sound.error();
         toast.error(result.error);
         return;
       }
@@ -167,6 +174,7 @@ export function BackupSection({ onRequestReset }: { onRequestReset: () => void }
       setRestoreStep(1);
     } catch (e) {
       haptics.error();
+      sound.error();
       toast.error(errorMessage(e, "Could not read file"));
     }
   };
@@ -180,6 +188,7 @@ export function BackupSection({ onRequestReset }: { onRequestReset: () => void }
       const safety = createSafetySnapshot(snapshotData());
       if (!safety) {
         haptics.error();
+        sound.error();
         toast.error("Restore stopped: SkillSync could not create a safety snapshot.");
         return;
       }
@@ -187,6 +196,7 @@ export function BackupSection({ onRequestReset }: { onRequestReset: () => void }
       const result = importJSON(JSON.stringify(pendingRestore.data));
       if (!result.ok) {
         haptics.error();
+        sound.error();
         toast.error(`Restore failed: ${result.error}`);
         return;
       }

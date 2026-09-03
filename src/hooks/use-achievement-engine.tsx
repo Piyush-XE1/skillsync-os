@@ -3,6 +3,7 @@ import { toast } from "sonner";
 import { useAppStore } from "@/store/useAppStore";
 import { newlyUnlocked, achievementById } from "@/lib/achievements";
 import { haptics } from "@/lib/haptics";
+import { sound } from "@/lib/sound";
 import { fireConfetti } from "@/lib/confetti";
 import type { AppData } from "@/lib/schema";
 
@@ -38,6 +39,7 @@ export function useAchievementEngine() {
             const achievement = achievementById(id);
             if (!achievement) continue;
             haptics.success();
+            sound.achievement();
             // A burst of confetti — the whole surface briefly celebrates.
             fireConfetti({ count: 140, origin: { x: 0.5, y: 0.5 }, ttl: 2 });
             toast.success("Achievement unlocked", {
@@ -57,7 +59,8 @@ export function useAchievementEngine() {
           // Level-up celebration when achievement XP tips the scale.
           const nextLevel = useAppStore.getState().stats.level;
           if (nextLevel > lastLevelRef.current) {
-            haptics.success();
+            haptics.milestone();
+            sound.levelUp();
             // A bigger, eponymous "level up" cannon from the top.
             fireConfetti({ count: 220, origin: { x: 0.5, y: 0.3 }, ttl: 2.6, shape: "circle" });
             toast.success(`Level ${nextLevel} reached!`, {

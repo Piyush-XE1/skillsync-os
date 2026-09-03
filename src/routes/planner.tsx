@@ -11,6 +11,7 @@ import { useAppStore, useHydrated } from "@/store/useAppStore";
 import { addDaysISO, todayISO, fromISO } from "@/lib/date";
 import { cn } from "@/lib/utils";
 import { haptics } from "@/lib/haptics";
+import { sound } from "@/lib/sound";
 
 export const Route = createFileRoute("/planner")({
   head: () => ({
@@ -181,8 +182,13 @@ function PlannerPage() {
                   <div key={t.id} className="flex items-center gap-3">
                     <button
                       onClick={() => {
-                        if (t.done) haptics.tap();
-                        else haptics.success();
+                        if (t.done) {
+                          haptics.tap();
+                          sound.tap();
+                        } else {
+                          haptics.success();
+                          sound.complete();
+                        }
                         updateTask(t.id, { done: !t.done });
                       }}
                       className={cn(
@@ -291,6 +297,7 @@ function PlannerPage() {
               addGuard.current = true;
               addTask({ title: title.trim(), date: selected, time });
               haptics.success();
+              sound.success();
               setTitle("");
               setTime("");
               setOpen(false);

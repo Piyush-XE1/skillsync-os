@@ -20,6 +20,7 @@ import { useAppStore, useHydrated } from "@/store/useAppStore";
 import { GRADE_KEYS } from "@/lib/schema";
 import { cumulativeGpa, semesterGpa, gradeBreakdown, requiredNextGpa } from "@/lib/cgpa";
 import { haptics } from "@/lib/haptics";
+import { sound } from "@/lib/sound";
 import { cn } from "@/lib/utils";
 
 export const Route = createFileRoute("/cgpa")({
@@ -69,6 +70,7 @@ function CgpaPage() {
     const creditsNum = Math.min(10, Math.max(1, parseInt(subjectCredits, 10) || 3));
     addCgpaSubject(openSubject, { name, code: subjectCode.trim(), credits: creditsNum });
     haptics.success();
+    sound.success();
     setSubjectName("");
     setSubjectCode("");
     setSubjectCredits("3");
@@ -80,6 +82,7 @@ function CgpaPage() {
     const next = Array.from({ length: 8 }, (_, i) => i + 1).find((n) => !used.has(n)) ?? 1;
     addCgpaSemester(next);
     haptics.success();
+    sound.success();
     toast.success(`Semester ${next} added`);
   };
 

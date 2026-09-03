@@ -2,6 +2,56 @@
 
 All notable changes to SkillSync OS are documented here.
 
+## [3.5.0] — 2026-09-03
+
+### Added
+
+- **Widget dashboard** — the home screen is now a grid the user owns. 23
+  widgets (streak, level & XP, today queue, continue learning, focus ring,
+  habits, money this month, coding heat, career pipeline, week in review,
+  badges, quote of the day and more) can be **hidden, resized**
+  (small / wide / tall / full) and **dragged into place** from a _Customize_
+  mode with a jiggling grid, per-widget grips and a widget library sheet.
+  The layout is persisted (`widgets: WidgetPlacement[]`) and survives reload,
+  backup and restore; widgets whose module is switched off hide automatically.
+- **`src/lib/widgets.ts`** — pure widget catalog + layout model
+  (`normalizeWidgetLayout`, `visibleWidgets`, `applyWidgetOrder`,
+  `setWidgetVisible`, `resizeWidget`), with store actions `setWidgets`,
+  `toggleWidget`, `resizeWidget`, `reorderWidgets`, `moveWidgetTo` and
+  `resetWidgets`.
+- **Sound design** — a dependency-free Web Audio cue engine
+  (`src/lib/sound.ts`) with 18 semantic cues (tap, select, toggle, open/close,
+  lift/move/drop, success, complete, coin, trash, error, streak, achievement,
+  level-up, milestone, chime, tick) built from a pentatonic palette through a
+  master gain and lowpass filter. Wired app-wide: navigation, sheets and
+  dialogs, toggles, the focus timer (including a 5-second countdown), habit
+  check-ins, planner tasks, learning progress, expenses, projects, attendance,
+  coding, career, CGPA, resume, review, backups and achievement unlocks.
+  Profile → **Sound design** exposes a master switch, a volume slider and a
+  preview grid for every cue. Like haptics, it is SSR-safe, never throws,
+  unlocks on the first user gesture and rate-limits repeated cues.
+- **Drag-sort primitive** — `src/lib/drag-sort.ts` (pure slot math over
+  _measured_ rects, either axis) plus `src/components/common/DragSortList.tsx`
+  (pointer + long-press lift, transform-only motion, real scroll-container
+  auto-scroll, settle transition, and a complete keyboard path on the grip:
+  Space to lift, arrows to move, Home/End to jump, Escape to cancel, with
+  `aria-live` announcements).
+
+### Changed
+
+- **Expenses reordering rewritten** on the shared primitive — no more
+  fixed-row-height assumptions, jumpiness on variable-height rows, stuck
+  ghosts or scroll drift. Reorders are now undoable from a toast, announce
+  their position while dragging, and play lift/move/drop cues.
+- **Schema v10** — `PreferencesSchema` gains `sound` and `soundVolume`;
+  `AppDataSchema` gains `widgets`. The v9→v10 migrator adds safe defaults, so
+  existing workspaces upgrade without losing data.
+- Overlay plumbing centralised (`OverlayPortal`, focus trap, Escape stack) so
+  sheets, dialogs and the command palette share one dismiss/announce behaviour.
+- Test suite expanded to **264 tests across 38 files** (widgets, drag-sort,
+  sound, DragSortList interaction, dashboard render). `typecheck`, `lint`
+  (0 errors) and `build` all green.
+
 ## [3.4.0] — 2026-09-02
 
 ### Added

@@ -2,6 +2,7 @@ import type { ButtonHTMLAttributes } from "react";
 import { Plus } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { haptics } from "@/lib/haptics";
+import { sound } from "@/lib/sound";
 
 /**
  * Primary create action.
@@ -17,7 +18,10 @@ export function PrimaryAction({
     <button
       aria-label={label}
       onClick={(e) => {
-        if (!props.disabled) haptics.tap();
+        if (!props.disabled) {
+          haptics.tap();
+          sound.tap();
+        }
         props.onClick?.(e);
       }}
       className={cn(

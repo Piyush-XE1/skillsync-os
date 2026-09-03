@@ -2,6 +2,7 @@ import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useRef, useState } from "react";
 import { toast } from "sonner";
 import { haptics } from "@/lib/haptics";
+import { sound } from "@/lib/sound";
 import {
   Plus,
   ChevronRight,
@@ -129,6 +130,7 @@ function LearnPage() {
       const result = parseImportJSON(raw);
       if (!result.ok) {
         haptics.error();
+        sound.error();
         toast.error("Import failed", { description: result.error });
         return;
       }
@@ -139,6 +141,7 @@ function LearnPage() {
     };
     reader.onerror = () => {
       haptics.error();
+      sound.error();
       toast.error("Could not read file");
     };
     reader.readAsText(file);

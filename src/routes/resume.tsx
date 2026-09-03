@@ -24,6 +24,7 @@ import { useAppStore, useHydrated } from "@/store/useAppStore";
 import { saveBackupFile } from "@/lib/platform-files";
 import { newId } from "@/lib/id";
 import { haptics } from "@/lib/haptics";
+import { sound } from "@/lib/sound";
 import { cn } from "@/lib/utils";
 import { ResumeSchema, type ResumeData } from "@/lib/schema";
 
@@ -203,6 +204,7 @@ function ResumePage() {
   ) => {
     updateResume({ [key]: [...resume[key], factory()] } as Partial<ResumeData>);
     haptics.success();
+    sound.success();
   };
 
   const removeItem = <K extends "education" | "experience" | "projects" | "certifications">(
@@ -251,6 +253,7 @@ function ResumePage() {
   const fillExample = () => {
     setResume(SAMPLE_RESUME);
     haptics.success();
+    sound.success();
     toast.success("Example loaded — make it yours");
   };
 

@@ -22,6 +22,7 @@ import { getAxisLabel } from "@/components/common/Charts";
 import { effortByDay } from "@/lib/trends";
 import { cn } from "@/lib/utils";
 import { haptics } from "@/lib/haptics";
+import { sound } from "@/lib/sound";
 import { fireConfetti } from "@/lib/confetti";
 import type { AppData } from "@/lib/schema";
 
@@ -92,6 +93,7 @@ function ReviewPage() {
 
   const celebrate = () => {
     haptics.success();
+    sound.streak();
     fireConfetti({ count: 120, origin: { x: 0.5, y: 0.35 }, ttl: 2 });
   };
 

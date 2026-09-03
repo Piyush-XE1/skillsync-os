@@ -19,6 +19,7 @@ import { Toggle } from "@/components/common/Toggle";
 import { useAppStore, useHydrated } from "@/store/useAppStore";
 import { formatClock, focusTotals, focusStreak, minutesByDay } from "@/lib/focus";
 import { haptics } from "@/lib/haptics";
+import { sound } from "@/lib/sound";
 import { fireConfetti } from "@/lib/confetti";
 import { cn } from "@/lib/utils";
 
@@ -37,33 +38,6 @@ export const Route = createFileRoute("/focus")({
 });
 
 type Phase = "focus" | "break" | "longBreak";
-
-function chime() {
-  try {
-    const Ctx =
-      window.AudioContext ??
-      (window as unknown as { webkitAudioContext?: typeof AudioContext }).webkitAudioContext;
-    if (!Ctx) return;
-    const ctx = new Ctx();
-    const notes = [523.25, 659.25, 783.99];
-    notes.forEach((freq, i) => {
-      const osc = ctx.createOscillator();
-      const gain = ctx.createGain();
-      osc.type = "sine";
-      osc.frequency.value = freq;
-      gain.gain.setValueAtTime(0.0001, ctx.currentTime + i * 0.18);
-      gain.gain.exponentialRampToValueAtTime(0.25, ctx.currentTime + i * 0.18 + 0.03);
-      gain.gain.exponentialRampToValueAtTime(0.0001, ctx.currentTime + i * 0.18 + 0.5);
-      osc.connect(gain);
-      gain.connect(ctx.destination);
-      osc.start(ctx.currentTime + i * 0.18);
-      osc.stop(ctx.currentTime + i * 0.18 + 0.55);
-    });
-    window.setTimeout(() => void ctx.close(), 1600);
-  } catch {
-    /* sound is best-effort */
-  }
-}
 
 const RING = 2 * Math.PI * 120;
 
@@ -87,6 +61,8 @@ function FocusPage() {
   // Latest-render refs so the ticking interval never runs stale closures.
   const phaseRef = useRef<Phase>("focus");
   phaseRef.current = phase;
+  const soundOnRef = useRef(settings.sound);
+  soundOnRef.current = settings.sound;
 
   const phaseMeta: Record<Phase, { label: string; minutes: number }> = useMemo(
     () => ({
@@ -118,6 +94,11 @@ function FocusPage() {
     intervalRef.current = setInterval(() => {
       const remaining = Math.max(0, Math.round((deadlineRef.current - Date.now()) / 1000));
       setLeft(remaining);
+      // A quiet tick for the last five seconds of a focus phase — you can hear
+      // the landing without watching the ring.
+      if (remaining > 0 && remaining <= 5 && phaseRef.current === "focus" && soundOnRef.current) {
+        sound.tick();
+      }
       if (remaining <= 0) {
         if (intervalRef.current) clearInterval(intervalRef.current);
         intervalRef.current = null;
@@ -130,7 +111,9 @@ function FocusPage() {
   const finishRef = useRef<(finished: Phase) => void>(() => {});
   finishRef.current = (finished: Phase) => {
     haptics.milestone();
-    if (settings.sound) chime();
+    // The completion chime respects both the timer's own toggle and the
+    // workspace-wide sound preference (the engine is muted when sound is off).
+    if (settings.sound) sound.chime();
     if (finished === "focus") {
       completedRef.current += 1;
       const minutes = phaseMeta.focus.minutes;
@@ -161,6 +144,7 @@ function FocusPage() {
   const start = () => {
     if (running) return;
     haptics.tap();
+    sound.toggle();
     begin(left);
   };
 
@@ -178,6 +162,7 @@ function FocusPage() {
     intervalRef.current = null;
     setRunning(false);
     haptics.tap();
+    sound.tap();
   };
 
   const reset = () => {
@@ -231,6 +216,7 @@ function FocusPage() {
                     key={key}
                     onClick={() => {
                       haptics.selection();
+                      sound.select();
                       loadPhase(key);
                     }}
                     className={cn(
@@ -328,6 +314,7 @@ function FocusPage() {
                     key={m}
                     onClick={() => {
                       haptics.selection();
+                      sound.select();
                       updateFocusSettings({ workMin: m });
                       if (phase === "focus") applySeconds(m * 60);
                     }}

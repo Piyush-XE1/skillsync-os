@@ -22,6 +22,7 @@ import {
   GraduationCap,
   Wallet,
   Vibrate,
+  Volume2,
   Timer,
   Award,
   FileText,
@@ -40,6 +41,7 @@ import { ACCENT_PRESETS, defaultAccentFor, safeAccent } from "@/lib/accent";
 import { formatBytes } from "@/lib/backup";
 import { APP_VERSION } from "@/lib/version";
 import { haptics, hapticsSupported, type HapticIntensity } from "@/lib/haptics";
+import { SOUND_CUES, previewSound, sound, soundSupported, type SoundCue } from "@/lib/sound";
 import { allAchievements } from "@/lib/achievements";
 import { focusTotals } from "@/lib/focus";
 
@@ -56,6 +58,22 @@ export const Route = createFileRoute("/profile/")({
   }),
   component: ProfilePage,
 });
+
+/** The cues worth auditioning in settings — the rest fire on their own. */
+const PREVIEW_CUES: SoundCue[] = [
+  "tap",
+  "toggle",
+  "select",
+  "success",
+  "complete",
+  "drop",
+  "coin",
+  "streak",
+  "achievement",
+  "levelUp",
+  "chime",
+  "error",
+];
 
 async function fileToResizedDataUrl(file: File, max = 256): Promise<string> {
   const url = URL.createObjectURL(file);
@@ -100,6 +118,7 @@ function ProfilePage() {
   const [openJson, setOpenJson] = useState(false);
   const [openAppearance, setOpenAppearance] = useState(false);
   const [openHaptics, setOpenHaptics] = useState(false);
+  const [openSound, setOpenSound] = useState(false);
 
   const avatarFileRef = useRef<HTMLInputElement>(null);
 
@@ -139,6 +158,7 @@ function ProfilePage() {
       updateProfile({ avatar: dataUrl });
     } catch {
       haptics.error();
+      sound.error();
       toast.error("Couldn't read that image.");
     }
   };
@@ -162,6 +182,7 @@ function ProfilePage() {
       toast.success("Developer mode enabled");
     } else {
       haptics.error();
+      sound.error();
       toast.error("Entered name doesn't match. Developer mode was not enabled.");
     }
     setDevNameInput("");
@@ -192,6 +213,7 @@ function ProfilePage() {
       );
     } else {
       haptics.error();
+      sound.error();
       toast.error("The entered text was wrong. No data was wiped.");
     }
   };
@@ -541,6 +563,26 @@ function ProfilePage() {
               </button>
               <button
                 type="button"
+                onClick={() => setOpenSound(true)}
+                className="w-full text-left transition-transform active:scale-[0.99]"
+              >
+                <SettingRow
+                  icon={Volume2}
+                  label="Sound design"
+                  right={
+                    <span className="flex items-center gap-2">
+                      <span className="text-[13px] text-muted-foreground">
+                        {(preferences.sound ?? true)
+                          ? `${Math.round((preferences.soundVolume ?? 0.7) * 100)}%`
+                          : "Off"}
+                      </span>
+                      <ChevronRight className="h-4 w-4 text-muted-foreground/60" />
+                    </span>
+                  }
+                />
+              </button>
+              <button
+                type="button"
                 onClick={() => setOpenAppearance(true)}
                 className="w-full text-left transition-transform active:scale-[0.99]"
               >
@@ -726,6 +768,90 @@ function ProfilePage() {
               })}
             </div>
           </div>
+        </div>
+      </BottomSheet>
+
+      <BottomSheet open={openSound} onClose={() => setOpenSound(false)} title="Sound design">
+        <p className="mb-4 text-[13px] leading-relaxed text-muted-foreground">
+          Short synthesised cues for taps, toggles, drops and celebrations — no audio files, nothing
+          downloaded. Everything is mixed live from oscillators, so it stays tiny and instant.
+        </p>
+        <div className="space-y-3">
+          <div className="flex items-center justify-between gap-3 rounded-[18px] border border-border bg-white/[0.03] px-4 py-3.5">
+            <div className="min-w-0">
+              <div className="text-[14px] font-semibold tracking-tight">Interface sounds</div>
+              <div className="text-[12px] text-muted-foreground">
+                {soundSupported() ? "Supported on this device" : "Not supported on this device"}
+              </div>
+            </div>
+            <Toggle
+              on={preferences.sound ?? true}
+              onChange={(v) => {
+                updatePreferences({ sound: v });
+                if (v) window.setTimeout(() => previewSound("success"), 60);
+              }}
+              label="Interface sounds"
+            />
+          </div>
+
+          <div
+            className={
+              "rounded-[18px] border border-border bg-white/[0.03] p-4 transition-opacity " +
+              ((preferences.sound ?? true) ? "" : "pointer-events-none opacity-40")
+            }
+          >
+            <div className="flex items-center justify-between">
+              <span className="text-[13px] font-semibold tracking-tight">Volume</span>
+              <span className="text-[12px] tabular-nums text-muted-foreground">
+                {Math.round((preferences.soundVolume ?? 0.7) * 100)}%
+              </span>
+            </div>
+            <input
+              type="range"
+              min={0}
+              max={100}
+              step={5}
+              value={Math.round((preferences.soundVolume ?? 0.7) * 100)}
+              aria-label="Interface sound volume"
+              onChange={(e) => updatePreferences({ soundVolume: Number(e.target.value) / 100 })}
+              onPointerUp={() => previewSound("tap")}
+              className="mt-3 h-1.5 w-full cursor-pointer appearance-none rounded-full bg-white/[0.09] accent-[var(--primary)]"
+            />
+            <div className="mt-2 flex justify-between text-[10.5px] uppercase tracking-wider text-muted-foreground/70">
+              <span>Subtle</span>
+              <span>Balanced</span>
+              <span>Bold</span>
+            </div>
+          </div>
+
+          <div
+            className={
+              "rounded-[18px] border border-border bg-white/[0.03] p-4 transition-opacity " +
+              ((preferences.sound ?? true) ? "" : "pointer-events-none opacity-40")
+            }
+          >
+            <div className="text-[13px] font-semibold tracking-tight">Preview a cue</div>
+            <div className="mt-3 flex flex-wrap gap-2">
+              {PREVIEW_CUES.map((cue) => (
+                <button
+                  key={cue}
+                  type="button"
+                  onClick={() => {
+                    haptics.selection();
+                    previewSound(cue);
+                  }}
+                  className="pressable rounded-full border border-white/[0.07] bg-white/[0.03] px-3 py-1.5 text-[12px] font-medium text-muted-foreground transition-colors hover:border-[color-mix(in_oklab,var(--primary)_40%,transparent)] hover:text-foreground"
+                >
+                  {SOUND_CUES[cue].label}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          <p className="text-[11.5px] leading-relaxed text-muted-foreground">
+            The Focus timer has its own completion-chime switch under the timer's settings icon; it
+            follows this master volume too.
+          </p>
         </div>
       </BottomSheet>
 

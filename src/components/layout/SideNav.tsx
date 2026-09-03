@@ -24,6 +24,7 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { haptics } from "@/lib/haptics";
+import { sound } from "@/lib/sound";
 import { useAppStore } from "@/store/useAppStore";
 
 type Item = {
@@ -134,6 +135,7 @@ export function SideNav() {
         <button
           onClick={() => {
             haptics.tap();
+            sound.tap();
             toggle();
           }}
           aria-label={collapsed ? "Expand sidebar" : "Collapse sidebar"}
@@ -159,7 +161,10 @@ export function SideNav() {
               to={item.to}
               title={collapsed ? item.label : undefined}
               onClick={() => {
-                if (!active) haptics.selection();
+                if (!active) {
+                  haptics.selection();
+                  sound.select();
+                }
               }}
               className={cn(
                 "group relative flex items-center gap-3 rounded-[14px] px-3 py-2.5 transition-all duration-200 ease-[var(--ease-out-soft)]",

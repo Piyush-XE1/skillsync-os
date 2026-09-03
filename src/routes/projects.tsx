@@ -12,6 +12,7 @@ import { useAppStore, useHydrated } from "@/store/useAppStore";
 import { isSafeUrl, safeHref } from "@/lib/url";
 import type { Project } from "@/lib/schema";
 import { haptics } from "@/lib/haptics";
+import { sound } from "@/lib/sound";
 
 export const Route = createFileRoute("/projects")({
   head: () => ({
@@ -211,11 +212,17 @@ function ProjectsPage() {
                 </label>
                 <select
                   value={current.status}
-                  onChange={(e) =>
-                    updateProject(current.id, {
-                      status: e.target.value as Project["status"],
-                    })
-                  }
+                  onChange={(e) => {
+                    const next = e.target.value as Project["status"];
+                    updateProject(current.id, { status: next });
+                    if (next === "done") {
+                      haptics.success();
+                      sound.success();
+                    } else {
+                      haptics.selection();
+                      sound.select();
+                    }
+                  }}
                   className="w-full rounded-xl border border-white/[0.07] bg-white/[0.03] px-3 py-2.5 text-[13.5px] outline-none"
                 >
                   <option value="planning">Planning</option>
@@ -256,8 +263,13 @@ function ProjectsPage() {
                   // Only pulse when crossing a 10% milestone — never per pixel.
                   if (Math.floor(next / 10) !== Math.floor(current.progress / 10)) {
                     haptics.selection();
+                    sound.select();
                   }
                   updateProject(current.id, { progress: next });
+                  if (next === 100 && current.progress < 100) {
+                    haptics.success();
+                    sound.success();
+                  }
                 }}
                 className="w-full accent-[var(--primary)]"
               />
@@ -271,11 +283,12 @@ function ProjectsPage() {
                 {current.techStack.map((t, i) => (
                   <button
                     key={i}
-                    onClick={() =>
+                    onClick={() => {
                       updateProject(current.id, {
                         techStack: current.techStack.filter((_, j) => j !== i),
-                      })
-                    }
+                      });
+                      sound.trash();
+                    }}
                     className="rounded-md border border-white/[0.06] bg-white/[0.03] px-2 py-1 text-[10.5px] font-medium text-muted-foreground"
                   >
                     {t} ×
@@ -306,6 +319,7 @@ function ProjectsPage() {
                       techStack: [...current.techStack, newTech.trim()],
                     });
                     setNewTech("");
+                    sound.tap();
                   }}
                 >
                   <Plus className="h-4 w-4" />
@@ -347,11 +361,17 @@ function ProjectsPage() {
                     <input
                       type="checkbox"
                       checked={t.done}
-                      onChange={(e) =>
+                      onChange={(e) => {
                         updateProjectTask(current.id, t.id, {
                           done: e.target.checked,
-                        })
-                      }
+                        });
+                        if (e.target.checked) {
+                          haptics.selection();
+                          sound.complete();
+                        } else {
+                          sound.tap();
+                        }
+                      }}
                       className="h-4 w-4 accent-[var(--primary)]"
                     />
                     <input
@@ -368,7 +388,10 @@ function ProjectsPage() {
                       size="sm"
                       variant="danger"
                       aria-label="Remove"
-                      onClick={() => deleteProjectTask(current.id, t.id)}
+                      onClick={() => {
+                        deleteProjectTask(current.id, t.id);
+                        sound.trash();
+                      }}
                     >
                       <Trash2 className="h-3.5 w-3.5" />
                     </IconButton>
@@ -395,6 +418,7 @@ function ProjectsPage() {
                     if (!newTask.trim()) return;
                     addProjectTask(current.id, newTask.trim());
                     setNewTask("");
+                    sound.tap();
                   }}
                 >
                   <Plus className="h-4 w-4" />
@@ -431,6 +455,7 @@ function ProjectsPage() {
         onConfirm={() => {
           if (confirmDelete) {
             deleteProject(confirmDelete);
+            sound.trash();
             setEditing(null);
           }
         }}

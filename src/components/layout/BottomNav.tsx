@@ -2,6 +2,7 @@ import { Link, useRouterState } from "@tanstack/react-router";
 import { LayoutDashboard, GraduationCap, FolderKanban, CalendarRange, User } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { haptics } from "@/lib/haptics";
+import { sound } from "@/lib/sound";
 import { useKeyboardOpen, useOverlayOpen } from "@/hooks/use-keyboard-inset";
 
 type NavItem = {
@@ -55,7 +56,10 @@ export function BottomNav() {
               )}
               aria-label={item.label}
               onClick={() => {
-                if (!active) haptics.selection();
+                if (!active) {
+                  haptics.selection();
+                  sound.select();
+                }
               }}
             >
               <span
