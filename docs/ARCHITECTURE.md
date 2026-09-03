@@ -138,8 +138,7 @@ add a runtime package, and all three are unit-tested beside their source.
 - **Sound** — `src/lib/sound.ts` is a tiny Web Audio synth (pentatonic palette
   through a master gain → lowpass) with semantic cues: `tap`, `select`,
   `toggle`, `open`/`close`, `lift`/`move`/`drop`, `success`, `complete`, `coin`,
-  `trash`, `error`, `streak`, `achievement`, `levelUp`, `milestone`, `chime`,
-  `tick`. It mirrors `haptics.ts`: SSR-safe, never throws, unlock on first
+  `trash`, `error`, `streak`, `achievement`, `levelUp`, `chime`, `tick`. It mirrors `haptics.ts`: SSR-safe, never throws, unlock on first
   user gesture, per-cue cooldowns so rapid input can't machine-gun. Preferences
   (`sound`, `soundVolume`) persist in the schema and are editable in
   Profile → Sound design, where every cue can be previewed.

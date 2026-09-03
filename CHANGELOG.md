@@ -22,7 +22,7 @@ All notable changes to SkillSync OS are documented here.
 - **Sound design** — a dependency-free Web Audio cue engine
   (`src/lib/sound.ts`) with 18 semantic cues (tap, select, toggle, open/close,
   lift/move/drop, success, complete, coin, trash, error, streak, achievement,
-  level-up, milestone, chime, tick) built from a pentatonic palette through a
+  level-up, chime, tick) built from a pentatonic palette through a
   master gain and lowpass filter. Wired app-wide: navigation, sheets and
   dialogs, toggles, the focus timer (including a 5-second countdown), habit
   check-ins, planner tasks, learning progress, expenses, projects, attendance,
