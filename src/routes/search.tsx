@@ -18,6 +18,7 @@ import {
   Briefcase,
   Circle,
   Trophy,
+  CalendarHeart,
 } from "lucide-react";
 import { useAppStore, useHydrated } from "@/store/useAppStore";
 import { searchAll, type SearchResult } from "@/lib/search";
@@ -236,6 +237,7 @@ function SearchPage() {
               { icon: BookOpen, label: "Learn", to: "/learn" },
               { icon: Flame, label: "Habits", to: "/habits" },
               { icon: Trophy, label: "Trophies", to: "/achievements" },
+              { icon: CalendarHeart, label: "Review", to: "/review" },
               { icon: LayoutDashboard, label: "Dashboard", to: "/" },
             ].map(({ icon: Icon, label, to }) => (
               <Link

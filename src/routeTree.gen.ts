@@ -26,6 +26,7 @@ import { Route as PlannerRouteImport } from './routes/planner'
 import { Route as ProfileRouteImport } from './routes/profile'
 import { Route as ProjectsRouteImport } from './routes/projects'
 import { Route as ResumeRouteImport } from './routes/resume'
+import { Route as ReviewRouteImport } from './routes/review'
 import { Route as SearchRouteImport } from './routes/search'
 import { Route as SitemapDotxmlRouteImport } from './routes/sitemap[.]xml'
 import { Route as AttendanceIndexRouteImport } from './routes/attendance.index'
@@ -130,6 +131,11 @@ const ProjectsRoute = ProjectsRouteImport.update({
 const ResumeRoute = ResumeRouteImport.update({
   id: '/resume',
   path: '/resume',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ReviewRoute = ReviewRouteImport.update({
+  id: '/review',
+  path: '/review',
   getParentRoute: () => rootRouteImport,
 } as any)
 const SearchRoute = SearchRouteImport.update({
@@ -251,6 +257,7 @@ export interface FileRoutesByFullPath {
   '/profile': typeof ProfileRouteWithChildren
   '/projects': typeof ProjectsRoute
   '/resume': typeof ResumeRoute
+  '/review': typeof ReviewRoute
   '/search': typeof SearchRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
   '/attendance/$semester': typeof AttendanceSemesterRoute
@@ -282,6 +289,7 @@ export interface FileRoutesByTo {
   '/planner': typeof PlannerRoute
   '/projects': typeof ProjectsRoute
   '/resume': typeof ResumeRoute
+  '/review': typeof ReviewRoute
   '/search': typeof SearchRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
   '/attendance/$semester': typeof AttendanceSemesterRoute
@@ -322,6 +330,7 @@ export interface FileRoutesById {
   '/profile': typeof ProfileRouteWithChildren
   '/projects': typeof ProjectsRoute
   '/resume': typeof ResumeRoute
+  '/review': typeof ReviewRoute
   '/search': typeof SearchRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
   '/attendance/$semester': typeof AttendanceSemesterRoute
@@ -363,6 +372,7 @@ export interface FileRouteTypes {
     | '/profile'
     | '/projects'
     | '/resume'
+    | '/review'
     | '/search'
     | '/sitemap.xml'
     | '/attendance/$semester'
@@ -394,6 +404,7 @@ export interface FileRouteTypes {
     | '/planner'
     | '/projects'
     | '/resume'
+    | '/review'
     | '/search'
     | '/sitemap.xml'
     | '/attendance/$semester'
@@ -433,6 +444,7 @@ export interface FileRouteTypes {
     | '/profile'
     | '/projects'
     | '/resume'
+    | '/review'
     | '/search'
     | '/sitemap.xml'
     | '/attendance/$semester'
@@ -473,6 +485,7 @@ export interface RootRouteChildren {
   ProfileRoute: typeof ProfileRouteWithChildren
   ProjectsRoute: typeof ProjectsRoute
   ResumeRoute: typeof ResumeRoute
+  ReviewRoute: typeof ReviewRoute
   SearchRoute: typeof SearchRoute
   SitemapDotxmlRoute: typeof SitemapDotxmlRoute
 }
@@ -596,6 +609,13 @@ declare module '@tanstack/react-router' {
       path: '/resume'
       fullPath: '/resume'
       preLoaderRoute: typeof ResumeRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/review': {
+      id: '/review'
+      path: '/review'
+      fullPath: '/review'
+      preLoaderRoute: typeof ReviewRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/search': {
@@ -867,6 +887,7 @@ const rootRouteChildren: RootRouteChildren = {
   ProfileRoute: ProfileRouteWithChildren,
   ProjectsRoute: ProjectsRoute,
   ResumeRoute: ResumeRoute,
+  ReviewRoute: ReviewRoute,
   SearchRoute: SearchRoute,
   SitemapDotxmlRoute: SitemapDotxmlRoute,
 }

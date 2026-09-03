@@ -2,6 +2,26 @@
 
 All notable changes to SkillSync OS are documented here.
 
+## [3.4.0] — 2026-09-02
+
+### Added
+
+- **Week in Review** (`/review`) — a pure, auto-generated weekly report card
+  that turns the workspace into plain-English insights: an **effort score**
+  (weighted activity across habits, focus, topics, tasks & solves), a **grade**
+  (Warming up → Building momentum → Solid → Great → Outstanding), per-day score
+  bars with a best-day highlight, **week-over-week deltas** for every metric,
+  narrative **highlights**, and data-driven **next-up suggestions**.
+- **`R` keyboard shortcut** jumps straight to Review; it's also in the sidebar
+  and the command palette quick-launch.
+- **`src/lib/review.ts`** — pure, deterministic review model with unit tests;
+  regenerates live as the user keeps working.
+
+### Changed
+
+- Test suite expanded to 194 tests (review model + render). `typecheck`, `lint`
+  (0 errors) and `build` all green.
+
 ## [3.3.0] — 2026-09-02
 
 ### Added

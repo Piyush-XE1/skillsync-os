@@ -14,6 +14,7 @@ function isTypingTarget(el: EventTarget | null): boolean {
  *   "f"                → focus timer
  *   "c"                → code / DSA prep
  *   "g"                → trophies / achievements
+ *   "r"                → week in review
  */
 export function useKeyboardShortcuts() {
   const navigate = useNavigate();
@@ -41,6 +42,9 @@ export function useKeyboardShortcuts() {
       }
       if (e.key.toLowerCase() === "g" && !e.altKey && !e.metaKey && !e.ctrlKey) {
         void navigate({ to: "/achievements" });
+      }
+      if (e.key.toLowerCase() === "r" && !e.altKey && !e.metaKey && !e.ctrlKey) {
+        void navigate({ to: "/review" });
       }
     };
     window.addEventListener("keydown", onKey);

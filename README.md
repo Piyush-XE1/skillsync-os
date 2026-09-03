@@ -11,6 +11,7 @@ Built with a **premium futuristic UI**, animated Aurora backgrounds, an offline-
 | Module                     | What it does                                                                                                                                                 |
 | -------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------ |
 | 📊 **Dashboard**           | Streaks, XP, smart "Today" queue, continue-learning, habits, badges, daily insight                                                                           |
+| 📅 **Week in Review**      | An auto-generated weekly report card — effort score, grade, day-by-day bars, week-over-week deltas, highlights & next-up nudges. Press `R`!                     |
 | 🎓 **Learn**               | Structured roadmaps with phases, topics, checklists, resources & progress                                                                                    |
 | ⏱️ **Focus**               | Pomodoro deep-work timer — sessions, sounds, XP and a focus streak                                                                                           |
 | 🎯 **CGPA Tracker**        | Semester-wise SGPA, cumulative CGPA, grade breakdown & target simulator                                                                                      |
@@ -26,7 +27,7 @@ Built with a **premium futuristic UI**, animated Aurora backgrounds, an offline-
 | 🔥 **Habits**              | Check-ins, per-habit streaks (current & best) and consistency heatmaps                                                                                       |
 | 📝 **Notes**               | Local-first notes with autosave                                                                                                                              |
 | 🔔 **Notifications**       | Reminders, alerts, achievement pings & weekly digest                                                                                                         |
-| 📈 **Analytics** | GitHub-style activity heatmap, momentum & deep-work area charts, learning donut, coding bar chart + difficulty/platform donuts, habit trends |
+| 📈 **Analytics**           | GitHub-style activity heatmap, momentum & deep-work area charts, learning donut, coding bar chart + difficulty/platform donuts, habit trends                 |
 | 🧾 **System**              | Workspace diagnostics — schema version, storage, record counts                                                                                               |
 | 📱 **Android App**         | Native Android experience with haptics & system navigation                                                                                                   |
 | 🌌 **Aurora UI**           | Animated futuristic visual environment (plus Light & Atelier themes)                                                                                         |
@@ -38,9 +39,10 @@ Built with a **premium futuristic UI**, animated Aurora backgrounds, an offline-
 | ---------------------- | -------------------------------------------- |
 | `/` or `⌘/Ctrl + K`    | Open command palette (workspace-wide search) |
 | `F`                    | Jump to the Focus timer                      |
-| `C`                    | Jump to the Code (DSA prep) module           |
-| `G`                    | Jump to the Trophies / Achievements page     |
-| `↑↓` / `Enter` / `Esc` | Navigate results inside the palette          |
+| `C` | Jump to the Code (DSA prep) module |
+| `G` | Jump to the Trophies / Achievements page |
+| `R` | Jump to the Week in Review page |
+| `↑↓` / `Enter` / `Esc` | Navigate results inside the palette |
 
 ## 🛠️ Tech Stack
 
