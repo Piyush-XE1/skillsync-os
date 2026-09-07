@@ -1,219 +1,174 @@
 /**
- * SkillSync Backup & Restore System - Main Entry Point
+ * SkillSync backup system — public surface.
  *
- * This file exports all backup-related functionality from both
- * the legacy system and the new advanced system.
+ * Four modules, one job each:
+ * - `advanced-backup`  the envelope format: create / validate / restore /
+ *                      checksum / compress / encrypt + the small bits of
+ *                      backup settings kept in localStorage.
+ * - `vault`            where SkillSync's own copies live (IndexedDB, with an
+ *                      in-memory fallback for private mode).
+ * - `cloud`            real provider clients (GitHub Gist, WebDAV, Google
+ *                      Drive, Dropbox) + OAuth helpers.
+ * - `../store/useBackupStore` the single state + actions + auto scheduler.
  *
- * For new projects, use the advanced backup system:
- * - createAdvancedBackup()
- * - validateAdvancedBackup()
- * - restoreAdvancedBackup()
- * - useAdvancedBackup() hook
- *
- * For backward compatibility, the legacy functions are still available:
- * - serializeBackup()
- * - validateBackup()
- * - backupSummary()
- * - etc.
+ * `backup-legacy` (one level up) stays exported only so the older `Profile →
+ * Export` helper and its tests keep working; new code must not import it.
  */
 
-// ============================================================================
-// LEGACY BACKUP SYSTEM (for backward compatibility)
-// ============================================================================
-
 export {
-  // Constants
+  // ---- constants -----------------------------------------------------------
   BACKUP_VERSION,
-
-  // Types
-  type BackupMeta,
-  type BackupEnvelope,
-  type ValidBackup,
-  type BackupSummary,
-  type BackupStatus,
-  type AutoBackupSettings,
-
-  // Functions
-  serializeBackup,
-  validateBackup,
-  backupSummary,
-  totalRecords,
-  moduleList,
-  getLastBackupMeta,
-  setLastBackupMeta,
-  clearBackupArtifacts,
-  backupStatus,
-  formatBytes,
-  fmtDate,
-  fmtTime,
-  getAutoBackupSettings,
-  setAutoBackupSettings,
-  createAutomaticSnapshot,
-  getAutomaticSnapshotCount,
-  createSafetySnapshot,
-} from "../backup-legacy";
-
-// ============================================================================
-// ADVANCED BACKUP SYSTEM (recommended)
-// ============================================================================
-
-export {
-  // Constants
-  BACKUP_VERSION as ADVANCED_BACKUP_VERSION,
-  LAST_META_KEY as ADVANCED_LAST_META_KEY,
-  AUTO_SETTINGS_KEY as ADVANCED_AUTO_SETTINGS_KEY,
-  AUTO_SNAPSHOTS_KEY as ADVANCED_AUTO_SNAPSHOTS_KEY,
+  MIN_BACKUP_VERSION,
+  MAX_AUTO_SNAPSHOTS,
+  MAX_BACKUP_HISTORY,
+  MAX_BACKUP_BYTES,
+  COMPRESSION_THRESHOLD,
+  LAST_META_KEY,
+  AUTO_SETTINGS_KEY,
   BACKUP_HISTORY_KEY,
-  BACKUP_HEALTH_KEY,
   CLOUD_SYNC_KEY,
   DEVICE_ID_KEY,
   SYNC_STATE_KEY,
-  MAX_AUTO_SNAPSHOTS as ADVANCED_MAX_AUTO_SNAPSHOTS,
-  MAX_BACKUP_HISTORY,
-  MAX_SNAPSHOT_SIZE,
-  COMPRESSION_THRESHOLD,
-
-  // Types
-  type BackupMeta as AdvancedBackupMeta,
-  type BackupEnvelope as AdvancedBackupEnvelope,
-  type ValidBackup as AdvancedValidBackup,
+  // ---- types ---------------------------------------------------------------
+  type BackupEnvelope,
+  type BackupMeta,
   type BackupStrategy,
-  type AutoBackupSettings as AdvancedAutoBackupSettings,
+  type ValidBackup,
+  type DecodedBackup,
+  type ValidateResult,
+  type ValidateOptions,
+  type CreatedBackup,
+  type CreateBackupOptions,
+  type RestoreOptions,
+  type RestoreResult,
+  type AutoBackupSettings,
+  type BackupHealthStatus,
+  type BackupHealthIssue,
+  type BackupHistoryEntry,
+  type ModuleChangeSummary,
   type CloudProvider,
   type CloudBackupConfig,
   type DeviceInfo,
   type SyncState,
-  type SyncConflict,
-  type BackupHealthStatus,
-  type BackupHealthIssue,
-  type BackupHistoryEntry,
-  type ChangeLogEntry,
-  type ModuleChangeSummary,
-
-  // Core backup functions
+  // ---- create / validate / restore ----------------------------------------
   createAdvancedBackup,
   createIncrementalBackup,
   validateAdvancedBackup,
   validateEncryptedBackup,
+  verifyBackupText,
   restoreAdvancedBackup,
-
-  // Data utilities
+  resolveEnvelopeData,
+  backupFilename,
+  // ---- data helpers --------------------------------------------------------
+  countRecords,
+  getBackupSummary,
+  describeBackupData,
   detectChanges,
   extractChangedData,
   applyIncrementalChanges,
-  countRecords,
-  getBackupSummary,
-
-  // Backup management
+  canonicalStringify,
+  // ---- integrity / transforms ---------------------------------------------
+  cryptoAvailable,
+  compressionAvailable,
+  compressText,
+  decompressText,
+  encryptData,
+  decryptData,
+  generateChecksum,
+  checksumOfData,
+  verifyChecksum,
+  // ---- health / status -----------------------------------------------------
+  analyzeBackupHealth,
+  analyzeBackupHealthSync,
+  getBackupStatus,
+  // ---- settings & pointers -------------------------------------------------
+  getLastBackupMeta,
+  setLastBackupMeta,
   getBackupHistory,
   addToBackupHistory,
-  getLastBackupMeta as getAdvancedLastBackupMeta,
-  setLastBackupMeta as setAdvancedLastBackupMeta,
-  getAutoBackupSettings as getAdvancedAutoBackupSettings,
-  setAutoBackupSettings as setAdvancedAutoBackupSettings,
-  createAdvancedAutomaticSnapshot,
-  createAdvancedSafetySnapshot,
-  getAdvancedAutomaticSnapshotCount,
-  getSnapshotByIndex,
+  clearBackupHistory,
+  getAutoBackupSettings,
+  setAutoBackupSettings,
+  isAutoBackupDue,
   clearAdvancedBackupArtifacts,
-
-  // Health monitoring
-  analyzeBackupHealth,
-  getBackupStatus as getAdvancedBackupStatus,
-
-  // Device management
   getDeviceId,
   getDeviceName,
   getSyncState,
   setSyncState,
-
-  // Cloud backup (config helpers; managers/factory come from './cloud-backup' below)
+  defaultCloudConfig,
   getCloudBackupConfig,
   setCloudBackupConfig,
-
-  // Utility functions
-  formatBytes as advancedFormatBytes,
+  listCloudConfigs,
+  // ---- formatting ----------------------------------------------------------
+  formatBytes,
   formatDate,
-  formatTime as advancedFormatTime,
-  generateChecksum,
-  verifyChecksum,
-  encryptData,
-  decryptData,
+  formatTime,
+  formatRelative,
 } from "./advanced-backup";
 
-// Re-export everything from advanced-backup as the primary API
-export * from "./advanced-backup";
-
-// ============================================================================
-// BACKUP STORAGE SYSTEM
-// ============================================================================
+export {
+  type VaultKind,
+  type VaultRecord,
+  type VaultStats,
+  type VaultSummary,
+  type CloudMark,
+  defaultLabel,
+  vaultIsPersistent,
+  vaultBackendName,
+  putVaultRecord,
+  listVaultRecords,
+  getVaultRecord,
+  deleteVaultRecord,
+  markVaultRecord,
+  pruneVaultKind,
+  clearVault,
+  vaultStats,
+  kvGet,
+  kvSet,
+  kvDelete,
+  loadCloudToken,
+  saveCloudToken,
+  migrateLegacyLocalStorageBackups,
+} from "./vault";
 
 export {
-  // IndexedDB Manager
-  indexedDBManager,
-
-  // Backup Storage
-  backupStorage,
-
-  // Backup Queue
-  backupQueue,
-
-  // Backup Cache
-  backupCache,
-
-  // Types
-  type StorageStrategy,
-
-  // Functions
-  determineStorageStrategy,
-  getStorageRecommendation,
-  canStoreBackup,
-} from "./backup-storage";
-
-// ============================================================================
-// CLOUD BACKUP SYSTEM
-// ============================================================================
-
-export {
-  // Cloud Backup Manager
-  CloudBackupManager,
-
-  // Cloud Sync Manager
-  cloudSyncManager,
-
-  // Cloud Provider Factory
-  cloudProviderFactory,
-
-  // Provider Classes
-  GoogleDriveProvider,
-  DropboxProvider,
-  GitHubGistProvider,
-  CustomProvider,
-
-  // Types
-  type CloudProviderInterface,
-  type CloudProvider as CloudProviderType,
-  type CloudBackupConfig as CloudBackupConfigType,
-} from "./cloud-backup";
-
-// ============================================================================
-// REACT HOOKS
-// ============================================================================
+  type CloudDescriptor,
+  type CloudField,
+  type CloudFieldKey,
+  type CloudItem,
+  type CloudResult,
+  type CloudSetup,
+  type CloudVerifyInfo,
+  CLOUD_PROVIDERS,
+  describeCloudProvider,
+  cloudList,
+  cloudUpload,
+  cloudDownload,
+  cloudDelete,
+  cloudVerify,
+  cloudStatus,
+  cloudFilename,
+  backupIdFromCloudName,
+  configureCloud,
+  disconnectCloud,
+  currentToken,
+  requestGoogleToken,
+  startDropboxSignIn,
+  consumeCloudRedirect,
+  cloudRedirectTarget,
+} from "./cloud";
 
 export {
-  useAdvancedBackup,
-  useAutoBackup,
-  useCloudBackup,
-  useBackupHealth,
-  useBackupStorage,
-  type UseBackupOptions,
+  useBackupStore,
+  startAutoScheduler,
+  stopAutoScheduler,
+  getActiveCloudProvider,
+  useBackupStatusLine,
   type BackupState,
   type BackupActions,
-} from "@/hooks/use-advanced-backup";
-
-// ============================================================================
-// PLATFORM FILES (existing)
-// ============================================================================
+  type PendingRestore,
+  type CreateBackupInput,
+} from "@/store/useBackupStore";
 
 export {
   saveBackupFile,

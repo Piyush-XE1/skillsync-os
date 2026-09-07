@@ -1,7 +1,5 @@
-import { useEffect, type ReactNode } from "react";
+import type { ReactNode } from "react";
 import { cn } from "@/lib/utils";
-import { createAutomaticSnapshot } from "@/lib/backup-legacy";
-import { useAppStore } from "@/store/useAppStore";
 import { BottomNav } from "./BottomNav";
 import { SideNav } from "./SideNav";
 import { useHapticPreferences } from "@/hooks/use-haptics";
@@ -19,21 +17,9 @@ export function AppShell({ children }: { children: ReactNode }) {
   useSoundPreferences();
   useKeyboardShortcuts();
   useAchievementEngine();
-  // A debounced subscription means local recovery snapshots happen off the typing path.
-  // It is intentionally local only: browsers may not silently export files to user storage.
-  useEffect(() => {
-    let timer: ReturnType<typeof setTimeout> | undefined;
-    const unsubscribe = useAppStore.subscribe(() => {
-      if (timer) clearTimeout(timer);
-      timer = setTimeout(() => {
-        createAutomaticSnapshot(useAppStore.getState());
-      }, 1500);
-    });
-    return () => {
-      if (timer) clearTimeout(timer);
-      unsubscribe();
-    };
-  }, []);
+  // Automatic copies are handled by the single backup scheduler
+  // (`startAutoScheduler`, mounted once in the root route). Doing it here per
+  // screen meant every route serialised the whole workspace on a 1.5s debounce.
   return (
     <div className="relative flex min-h-[100dvh] w-full">
       <SideNav />

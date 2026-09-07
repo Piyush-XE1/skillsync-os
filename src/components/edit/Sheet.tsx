@@ -38,6 +38,7 @@ export function BottomSheet({
   open,
   onClose,
   title,
+  description,
   children,
   className,
   footer,
@@ -45,6 +46,8 @@ export function BottomSheet({
   open: boolean;
   onClose: () => void;
   title?: string;
+  /** One line under the title — keeps confirm sheets self-explanatory. */
+  description?: string;
   children: ReactNode;
   className?: string;
   /** Sticky action row pinned above the keyboard. */
@@ -98,13 +101,20 @@ export function BottomSheet({
           }}
         >
           <div className="mx-auto mt-3 h-1 w-10 shrink-0 rounded-full bg-white/15 md:hidden" />
-          <div className="flex shrink-0 items-center justify-between gap-3 px-6 pt-3 md:pt-5">
-            <h3
-              id={titleId}
-              className="min-w-0 truncate text-[17px] font-semibold tracking-tight md:text-[19px]"
-            >
-              {title}
-            </h3>
+          <div className="flex shrink-0 items-start gap-3 px-6 pt-3 md:pt-5">
+            <div className="min-w-0 flex-1">
+              <h3
+                id={titleId}
+                className="min-w-0 truncate text-[17px] font-semibold tracking-tight md:text-[19px]"
+              >
+                {title}
+              </h3>
+              {description ? (
+                <p className="mt-1 text-[12.5px] leading-relaxed text-muted-foreground">
+                  {description}
+                </p>
+              ) : null}
+            </div>
             <button
               type="button"
               onClick={onClose}

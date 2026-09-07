@@ -6,7 +6,7 @@ import {
   HeadContent,
   Scripts,
 } from "@tanstack/react-router";
-import { useEffect, type ReactNode } from "react";
+import { useEffect, useMemo, type ReactNode } from "react";
 
 import appCss from "../styles.css?url";
 import { reportLovableError } from "../lib/lovable-error-reporting";
@@ -14,6 +14,7 @@ import { Toaster } from "@/components/ui/sonner";
 import { AppBackground } from "@/components/layout/backgrounds";
 import { AppLaunchScreen } from "@/components/layout/AppLaunchScreen";
 import { NotificationRunner } from "@/components/notifications/NotificationRunner";
+import { BackupRunner } from "@/components/backup/BackupRunner";
 import { ThemeManager, APPEARANCE_INIT_SCRIPT } from "@/hooks/use-theme";
 
 function NotFoundComponent() {
@@ -38,12 +39,17 @@ function NotFoundComponent() {
   );
 }
 
-function ErrorComponent({ error, reset }: { error: Error; reset: () => void }) {
-  console.error(error);
+function ErrorComponent({ error, reset }: { error: unknown; reset: () => void }) {
+  // Memoised: a fresh Error per render would retrigger the report effect below.
+  const normalized = useMemo(
+    () => (error instanceof Error ? error : new Error(String(error))),
+    [error],
+  );
+  console.error(normalized);
   const router = useRouter();
   useEffect(() => {
-    reportLovableError(error, { boundary: "tanstack_root_error_component" });
-  }, [error]);
+    reportLovableError(normalized, { boundary: "tanstack_root_error_component" });
+  }, [normalized]);
 
   return (
     <div className="flex min-h-screen items-center justify-center bg-background px-4">
@@ -168,6 +174,7 @@ function RootComponent() {
       <AppBackground />
       <AppLaunchScreen />
       <NotificationRunner />
+      <BackupRunner />
       {/* Required: nested routes render here. Removing <Outlet /> breaks all child routes. */}
       <Outlet />
       <Toaster />

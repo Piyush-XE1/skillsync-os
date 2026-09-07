@@ -31,7 +31,7 @@ import type {
 import { AppDataSchema } from "@/lib/schema";
 import { createInitialData } from "@/lib/seed";
 import { migrate } from "@/lib/migrations";
-import { clearBackupArtifacts } from "@/lib/backup-legacy";
+import { setLastBackupMeta } from "@/lib/backup/advanced-backup";
 import { newId } from "@/lib/id";
 import { todayISO, addDaysISO } from "@/lib/date";
 import { errorMessage } from "@/lib/utils";
@@ -1290,9 +1290,10 @@ export const useAppStore = create<State>()(
       },
       resetAll: () => {
         set({ ...createInitialData() });
-        // A wipe must not leave the previous workspace's backup status or
-        // recovery snapshots behind.
-        clearBackupArtifacts();
+        // A wipe must not leave the previous workspace's "backed up" badge
+        // behind. Saved copies in the vault and any files stay untouched, so a
+        // reset can still be undone by restoring a backup.
+        setLastBackupMeta(null);
       },
     }),
     {

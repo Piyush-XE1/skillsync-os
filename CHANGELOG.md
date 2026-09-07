@@ -2,6 +2,70 @@
 
 All notable changes to SkillSync OS are documented here.
 
+## [3.6.0] — 2026-09-07
+
+### Changed
+
+- **The backup system is now one system.** The legacy
+  (`src/lib/backup-legacy.ts`) and "advanced" implementations were merged into
+  a single v4 envelope (`src/lib/backup/*`) with one screen
+  (Profile → **Backup & Restore**), one zustand store and one scheduler. The
+  duplicate screens, dead tabs and half-wired options are gone, along with
+  `use-advanced-backup.ts`, `cloud-backup.ts`, `backup-storage.ts` and
+  `BackupSection.advanced.tsx`.
+- **No backup payloads in `localStorage` again.** Copies live in an IndexedDB
+  vault (`skillsync-vault`, with an honest in-memory fallback and a one-time
+  migration of old payloads); only settings and last-backup metadata stay in
+  `localStorage`. The 1.5 s debounced snapshot loop that re-serialised up to
+  three full workspaces after every edit is gone — this was the source of the
+  typing lag on large workspaces.
+- **Cloud backup is reachable and real.** `CloudPanel` lists four providers —
+  GitHub Gist, WebDAV, Google Drive, Dropbox — each with the exact setup steps
+  rendered in-app, a status line, a test connection, a file browser
+  (restore / delete / open) and an auto-upload switch. Tokens are stored in the
+  vault and never written into a backup file.
+- **Restore is a staged flow**: review what is inside (password asked first for
+  encrypted files) → confirm → apply, always with a pre-restore `safety`
+  snapshot and a one-tap **Undo that restore**.
+- **Simplified wording** across the screen ("On this device", "Cloud copies",
+  "Automatic copies", "Options for the next backup"), with empty states and
+  caveats that describe what will actually happen.
+
+### Fixed
+
+- Encrypted backups could not be restored, and compressed ones inside an
+  encrypted envelope failed the same way: only the payload is
+  compressed/encrypted now, and the read path is unwrap → decrypt → decompress
+  → parse → checksum (both are covered by tests).
+- A manual backup pruned **every** rolling copy instead of only the `auto`
+  kind, quietly deleting backup history.
+- Dropbox sign-in could never finish: the PKCE challenge was hashed from a
+  second random verifier, and the token exchange targeted the API host instead
+  of `api.dropbox.com`. Access tokens are now refreshed before they expire
+  (~4 h), so a connection stops dying overnight.
+- **Undo that restore** opened another review dialog and did nothing; it now
+  applies the snapshot and consumes it.
+- Re-uploading the same copy to a gist created a duplicate gist; it now updates
+  the recorded one and recreates it if it was deleted remotely.
+- Health checks no longer parse and hash payloads on a timer — they read backup
+  metadata, so opening the profile screens stays smooth.
+- `formatRelative` rounded 30 s to "1 min ago"; the router and root error
+  boundaries now type-check (`npx tsc --noEmit` is clean repo-wide).
+
+### Tests
+
+- 124 tests around the backup system across 8 files (envelope, vault with and
+  without IndexedDB, every provider's HTTP requests, the store's create →
+  restore → undo → auto → cloud loop, and the screen driven by its labels).
+  Full suite: 371 passing.
+
+### Documentation
+
+- `BACKUP_SYSTEM.md` rewritten as the format/architecture reference, including
+  per-provider setup guides (GitHub PAT + `gist` scope, WebDAV CORS,
+  Google OAuth JS origins, Dropbox PKCE + redirect URI) and `ADVANCED_BACKUP_SUMMARY.md`
+  replaced with the record of this rebuild.
+
 ## [3.5.0] — 2026-09-03
 
 ### Added

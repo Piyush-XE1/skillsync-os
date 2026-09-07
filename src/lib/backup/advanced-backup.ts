@@ -1,18 +1,22 @@
 /**
- * SkillSync Advanced Backup & Restore System
+ * SkillSync backup engine — the format, not the UI and not the storage.
  *
- * MAX LEVEL FEATURES:
- * - Compression (LZ-String)
- * - Encryption (AES-256-GCM)
- * - Checksum Verification (SHA-256)
- * - Incremental Backups
- * - Backup Versioning & History
- * - Cloud Integration Ready
- * - Multi-device Sync Support
- * - Backup Health Monitoring
- * - Safety & Integrity Checks
- * - Conflict Resolution
- * - Performance Optimization
+ * Responsibilities:
+ * - Build a portable backup envelope from AppData (optionally compressed and
+ *   password-encrypted).
+ * - Validate + decode an envelope back into AppData, verifying integrity.
+ * - Hold the small pieces of backup *state* that belong in localStorage
+ *   (last-backup pointer, auto-backup settings, device id, cloud config).
+ *
+ * Deliberate design rules, learned the hard way:
+ * - The payload is always encoded as `data` on the envelope. Compression
+ *   happens first, encryption second, and validation reverses exactly that
+ *   order, so an encrypted backup can genuinely be restored.
+ * - The checksum covers a *canonical* (key-sorted) serialization of the data,
+ *   so a JSON round trip can never produce a false "corrupted" verdict.
+ * - No encryption, hashing or full-data scan happens during render. Anything
+ *   expensive lives behind an explicit user action or the idle scheduler in
+ *   `@/store/useBackupStore`.
  */
 
 import { AppDataSchema, type AppData } from "../schema";
@@ -22,30 +26,39 @@ import { APP_VERSION } from "../version";
 import { newId } from "../id";
 
 // ============================================================================
-// CONSTANTS & TYPES
+// CONSTANTS
 // ============================================================================
 
-/** Increment when the envelope structure changes incompatibly */
-export const BACKUP_VERSION = 3;
+/** Envelope format version. Bump only on an incompatible envelope change. */
+export const BACKUP_VERSION = 4;
 
-// Storage keys
+/** Accepted for reading: v1/v2 came from the legacy app, v3 from the first advanced build. */
+export const MIN_BACKUP_VERSION = 1;
+
+// localStorage keys. Small metadata only — never backup payloads.
 export const LAST_META_KEY = "skillsync:backup:lastMeta";
 export const AUTO_SETTINGS_KEY = "skillsync:backup:autoSettings";
-export const AUTO_SNAPSHOTS_KEY = "skillsync:backup:autoSnapshots";
 export const BACKUP_HISTORY_KEY = "skillsync:backup:history";
 export const BACKUP_HEALTH_KEY = "skillsync:backup:health";
 export const CLOUD_SYNC_KEY = "skillsync:backup:cloudSync";
 export const DEVICE_ID_KEY = "skillsync:backup:deviceId";
 export const SYNC_STATE_KEY = "skillsync:backup:syncState";
+/** Legacy key, no longer written; still cleared so old builds stop eating quota. */
+export const AUTO_SNAPSHOTS_KEY = "skillsync:backup:autoSnapshots";
 
-// Limits
+/** Snapshots kept by the auto-backup scheduler (in the IndexedDB vault). */
 export const MAX_AUTO_SNAPSHOTS = 10;
+/** Entries in the local activity log. */
 export const MAX_BACKUP_HISTORY = 50;
-export const MAX_SNAPSHOT_SIZE = 50 * 1024 * 1024; // 50MB
-export const COMPRESSION_THRESHOLD = 1024 * 1024; // Compress if >1MB
+/** Below this size compression is pointless (gzip + base64 would inflate it). */
+export const COMPRESSION_THRESHOLD = 96 * 1024;
+/** Hard ceiling so a runaway export can never hang the tab. */
+export const MAX_BACKUP_BYTES = 64 * 1024 * 1024;
+
+const PBKDF2_ITERATIONS = 120_000;
 
 // ============================================================================
-// CORE TYPES
+// TYPES
 // ============================================================================
 
 export type BackupMeta = {
@@ -71,7 +84,7 @@ export type BackupEnvelope = {
   appVersion: string;
   backupId: string;
   createdAt: string;
-  // Partial<AppData> for incremental envelopes; string when encrypted/compressed
+  /** AppData for plain envelopes, encoded string when compressed/encrypted. */
   data: AppData | Partial<AppData> | string;
   checksum?: string;
   algorithm?: string;
@@ -81,9 +94,12 @@ export type BackupEnvelope = {
   baseBackupId?: string;
   encryptionInfo?: {
     algorithm: string;
+    kdf?: string;
     salt: string;
     iv: string;
-    iterationCount: number;
+    iterations?: number;
+    /** Older envelopes spelled this out; accepted on read. */
+    iterationCount?: number;
   };
   compressionInfo?: {
     algorithm: string;
@@ -94,9 +110,13 @@ export type BackupEnvelope = {
 export type ValidBackup = BackupEnvelope & {
   sizeBytes: number;
   meta: BackupMeta;
+  /**
+   * Exact text this backup was decoded from. Kept so re-export / re-upload is
+   * byte-identical to the file the user already has.
+   */
+  envelopeText?: string;
 };
 
-// Backup strategy types
 export type BackupStrategy = {
   type: "full" | "incremental" | "smart";
   compression: boolean;
@@ -106,38 +126,39 @@ export type BackupStrategy = {
   excludeModules: string[];
 };
 
-// Auto-backup settings
 export type AutoBackupSettings = {
   enabled: boolean;
-  intervalHours: number; // 1, 6, 12, 24, 48, 168
+  intervalHours: number;
   lastCreatedAt?: number;
-  maxSnapshots: number; // 3-20
+  maxSnapshots: number;
   strategy: BackupStrategy["type"];
   compression: boolean;
-  minChangesForIncremental: number; // Minimum changes to trigger incremental
-  smartBackup: boolean; // Auto-detect best strategy
-  backupOnClose: boolean; // Backup when app closes
-  backupOnChanges: boolean; // Backup after significant changes
+  minChangesForIncremental: number;
+  smartBackup: boolean;
+  backupOnOpen: boolean;
+  backupOnChanges: boolean;
 };
 
-// Cloud sync types
-export type CloudProvider = "google-drive" | "dropbox" | "github-gist" | "custom" | "none";
+export type CloudProvider = "github-gist" | "webdav" | "google-drive" | "dropbox" | "none";
 
 export type CloudBackupConfig = {
   provider: CloudProvider;
   enabled: boolean;
   lastSyncAt?: number;
-  authToken?: string;
+  /** Manual access token / PAT. Preferred for self-hosted setups. */
+  token?: string;
+  /** OAuth client id (Google) or app key (Dropbox). */
+  clientId?: string;
   refreshToken?: string;
   tokenExpiresAt?: number;
+  /** Remote folder / base path / gist description. */
   folderId?: string;
-  syncFrequency: "manual" | "hourly" | "daily" | "weekly" | "realtime";
+  syncFrequency: "manual" | "hourly" | "daily" | "weekly";
   autoUpload: boolean;
   autoDownload: boolean;
-  conflictResolution: "local-wins" | "remote-wins" | "manual" | "merge";
+  conflictResolution: "local-wins" | "remote-wins" | "manual";
 };
 
-// Device sync types
 export type DeviceInfo = {
   deviceId: string;
   deviceName: string;
@@ -149,29 +170,16 @@ export type DeviceInfo = {
 export type SyncState = {
   deviceId: string;
   lastSyncAt: number;
-  syncStatus: "idle" | "syncing" | "conflict" | "error" | "offline";
-  pendingChanges: string[];
-  conflicts: SyncConflict[];
-  peerDevices: DeviceInfo[];
+  syncStatus: "idle" | "syncing" | "error" | "offline";
+  provider?: CloudProvider;
+  uploaded?: number;
+  downloaded?: number;
+  error?: string;
 };
 
-export type SyncConflict = {
-  conflictId: string;
-  module: string;
-  recordId: string;
-  localData: unknown;
-  remoteData: unknown;
-  localTimestamp: number;
-  remoteTimestamp: number;
-  detectedAt: number;
-  resolution?: "local" | "remote" | "merged";
-  resolvedAt?: number;
-};
-
-// Backup health types
 export type BackupHealthStatus = {
   status: "healthy" | "warning" | "critical" | "unknown";
-  score: number; // 0-100
+  score: number;
   issues: BackupHealthIssue[];
   recommendations: string[];
   lastCheckedAt: number;
@@ -179,7 +187,7 @@ export type BackupHealthStatus = {
 
 export type BackupHealthIssue = {
   id: string;
-  type: "age" | "size" | "integrity" | "completeness" | "performance";
+  type: "age" | "size" | "integrity" | "completeness";
   severity: "low" | "medium" | "high" | "critical";
   message: string;
   details?: Record<string, unknown>;
@@ -187,7 +195,6 @@ export type BackupHealthIssue = {
   fixAction?: string;
 };
 
-// Backup history types
 export type BackupHistoryEntry = {
   backupId: string;
   createdAt: number;
@@ -196,20 +203,9 @@ export type BackupHistoryEntry = {
   sizeBytes: number;
   compressed: boolean;
   encrypted: boolean;
-  status: "complete" | "partial" | "corrupted" | "restored";
+  status: "complete" | "partial" | "corrupted" | "restored" | "failed";
   notes: string;
   tags: string[];
-};
-
-// Change tracking types
-export type ChangeLogEntry = {
-  timestamp: number;
-  module: string;
-  recordId: string;
-  action: "create" | "update" | "delete";
-  oldData?: unknown;
-  newData?: unknown;
-  sizeDelta: number;
 };
 
 export type ModuleChangeSummary = {
@@ -222,90 +218,145 @@ export type ModuleChangeSummary = {
 };
 
 // ============================================================================
-// COMPRESSION UTILITIES
+// SMALL ENV HELPERS
 // ============================================================================
 
-/**
- * Simple compression using built-in browser APIs
- * For larger data, we'll use a more efficient algorithm
- */
-async function simpleCompress(text: string): Promise<{ compressed: string; originalSize: number }> {
-  try {
-    // Use browser compression if available. The payload must stay a string
-    // (it is embedded in a JSON envelope), so gzip bytes are base64-encoded
-    // and tagged with a `gz:` marker.
-    if (typeof CompressionStream !== "undefined") {
-      const stream = new Blob([text]).stream().pipeThrough(new CompressionStream("gzip"));
-      const buffer = await new Response(stream).arrayBuffer();
-      const bytes = new Uint8Array(buffer);
-      let binary = "";
-      const chunkSize = 0x8000;
-      for (let i = 0; i < bytes.length; i += chunkSize) {
-        binary += String.fromCharCode(...bytes.subarray(i, i + chunkSize));
-      }
-      const base64 = btoa(binary);
-      if (base64.length < text.length) {
-        return { compressed: `gz:${base64}`, originalSize: text.length };
-      }
-    }
-  } catch {
-    // Fall through to uncompressed storage
-  }
-  return { compressed: text, originalSize: text.length };
-}
+const enc = /* @__PURE__ */ new TextEncoder();
+const dec = /* @__PURE__ */ new TextDecoder();
 
-async function simpleDecompress(compressed: string | Blob): Promise<string> {
+/**
+ * Resolved lazily and defensively: SSR has no `localStorage`, private mode
+ * throws on access, and Vitest (node environment) stubs it as a global.
+ */
+function localStore(): Storage | null {
   try {
-    if (typeof compressed === "string" && compressed.startsWith("gz:")) {
-      const binary = atob(compressed.slice(3));
-      const bytes = new Uint8Array(binary.length);
-      for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
-      const stream = new Blob([bytes]).stream().pipeThrough(new DecompressionStream("gzip"));
-      return await new Response(stream).text();
-    }
-    if (typeof Blob !== "undefined" && compressed instanceof Blob) {
-      const stream = compressed.stream();
-      const decompressedStream = stream.pipeThrough(new DecompressionStream("gzip"));
-      return await new Response(decompressedStream).text();
-    }
-    return compressed as string;
+    const candidate = (globalThis as { localStorage?: Storage }).localStorage;
+    return candidate && typeof candidate.getItem === "function" ? candidate : null;
   } catch {
-    return compressed as string;
+    return null;
   }
 }
 
-// ============================================================================
-// ENCRYPTION UTILITIES
-// ============================================================================
+function readLocal(key: string): string | null {
+  try {
+    return localStore()?.getItem(key) ?? null;
+  } catch {
+    return null;
+  }
+}
+
+function writeLocal(key: string, value: string): boolean {
+  try {
+    const store = localStore();
+    if (!store) return false;
+    store.setItem(key, value);
+    return true;
+  } catch {
+    // Quota exceeded or storage disabled: never break a backup for a pointer.
+    return false;
+  }
+}
+
+function dropLocal(key: string): void {
+  try {
+    localStore()?.removeItem(key);
+  } catch {
+    /* storage unavailable */
+  }
+}
+
+/** True when WebCrypto is usable. Over http://localhost and https it always is. */
+export function cryptoAvailable(): boolean {
+  return typeof crypto !== "undefined" && !!crypto.subtle;
+}
+
+/** Bytes always backed by a real ArrayBuffer (SharedArrayBuffer is not a BufferSource). */
+type Bytes = Uint8Array<ArrayBuffer>;
+
+function bytes(len: number): Bytes {
+  return new Uint8Array(new ArrayBuffer(len));
+}
+
+function toBase64(bytes: Bytes): string {
+  let binary = "";
+  // Chunked: a single String.fromCharCode(...bytes) blows the argument limit
+  // on multi-megabyte payloads.
+  const step = 0x4000;
+  for (let i = 0; i < bytes.length; i += step) {
+    binary += String.fromCharCode(...bytes.subarray(i, i + step));
+  }
+  return btoa(binary);
+}
+
+function fromBase64(b64: string): Bytes {
+  const binary = atob(b64);
+  const out = bytes(binary.length);
+  for (let i = 0; i < binary.length; i++) out[i] = binary.charCodeAt(i);
+  return out;
+}
+
+function bytesOf(text: string): number {
+  if (typeof Blob !== "undefined") return new Blob([text]).size;
+  return enc.encode(text).length;
+}
 
 /**
- * Web Crypto API based encryption
- * Uses AES-GCM for authenticated encryption
+ * Key-sorted JSON. Used for checksums and change detection so that two
+ * structurally identical payloads always compare equal.
  */
-async function deriveKey(
-  password: string,
-  salt: string,
-  iterations: number = 100000,
-): Promise<CryptoKey> {
-  const encoder = new TextEncoder();
-  const passwordBuffer = encoder.encode(password);
-  const saltBuffer = encoder.encode(salt);
+export function canonicalStringify(value: unknown): string {
+  if (value === null || typeof value !== "object") return JSON.stringify(value) ?? "null";
+  if (Array.isArray(value)) return `[${value.map(canonicalStringify).join(",")}]`;
+  const entries = Object.entries(value as Record<string, unknown>)
+    .filter(([, v]) => v !== undefined)
+    .sort(([a], [b]) => (a < b ? -1 : a > b ? 1 : 0));
+  return `{${entries.map(([k, v]) => `${JSON.stringify(k)}:${canonicalStringify(v)}`).join(",")}}`;
+}
 
-  const keyMaterial = await crypto.subtle.importKey(
-    "raw",
-    passwordBuffer,
-    { name: "PBKDF2" },
-    false,
-    ["deriveKey"],
-  );
+// ============================================================================
+// COMPRESSION (gzip + base64, tagged with a "gz:" prefix)
+// ============================================================================
 
+export function compressionAvailable(): boolean {
+  return typeof CompressionStream !== "undefined";
+}
+
+export async function compressText(text: string): Promise<string | null> {
+  if (!compressionAvailable()) return null;
+  try {
+    const stream = new Blob([text]).stream().pipeThrough(new CompressionStream("gzip"));
+    const bytes = new Uint8Array(await new Response(stream).arrayBuffer());
+    const packed = `gz:${toBase64(bytes)}`;
+    return packed.length < text.length ? packed : null;
+  } catch {
+    return null;
+  }
+}
+
+export async function decompressText(value: string): Promise<string> {
+  if (!value.startsWith("gz:")) return value;
+  if (typeof DecompressionStream === "undefined") {
+    throw new Error(
+      "This browser cannot read compressed backups (DecompressionStream is missing).",
+    );
+  }
+  const bytes = fromBase64(value.slice(3));
+  const stream = new Blob([bytes]).stream().pipeThrough(new DecompressionStream("gzip"));
+  return await new Response(stream).text();
+}
+
+// ============================================================================
+// ENCRYPTION (AES-256-GCM, PBKDF2 key derivation)
+// ============================================================================
+
+type EncryptionInfo = NonNullable<BackupEnvelope["encryptionInfo"]>;
+
+async function deriveKey(password: string, salt: Bytes, iterations: number): Promise<CryptoKey> {
+  const keyMaterial = await crypto.subtle.importKey("raw", enc.encode(password), "PBKDF2", false, [
+    "deriveKey",
+  ]);
   return crypto.subtle.deriveKey(
-    {
-      name: "PBKDF2",
-      salt: saltBuffer,
-      iterations,
-      hash: "SHA-256",
-    },
+    { name: "PBKDF2", salt, iterations, hash: "SHA-256" },
     keyMaterial,
     { name: "AES-GCM", length: 256 },
     false,
@@ -313,255 +364,186 @@ async function deriveKey(
   );
 }
 
-async function generateRandomBytes(length: number): Promise<string> {
-  const array = new Uint8Array(length);
-  crypto.getRandomValues(array);
-  return Array.from(array)
-    .map((b) => b.toString(16).padStart(2, "0"))
-    .join("");
-}
-
 export async function encryptData(
   data: string,
   password: string,
-): Promise<{
-  encryptedData: string;
-  info: { algorithm: string; salt: string; iv: string; iterationCount: number };
-}> {
-  try {
-    const salt = await generateRandomBytes(16);
-    const iv = await generateRandomBytes(12);
-    const key = await deriveKey(password, salt, 100000);
+): Promise<{ encryptedData: string; info: EncryptionInfo }> {
+  if (!cryptoAvailable())
+    throw new Error("WebCrypto is unavailable — encryption needs https or localhost.");
+  if (!password) throw new Error("A password is required to encrypt a backup.");
 
-    const encoder = new TextEncoder();
-    const dataBuffer = encoder.encode(data);
-    const ivBuffer = new TextEncoder().encode(iv);
+  const salt = crypto.getRandomValues(bytes(16));
+  const iv = crypto.getRandomValues(bytes(12));
+  const key = await deriveKey(password, salt, PBKDF2_ITERATIONS);
+  const cipher = await crypto.subtle.encrypt({ name: "AES-GCM", iv }, key, enc.encode(data));
 
-    const encryptedBuffer = await crypto.subtle.encrypt(
-      { name: "AES-GCM", iv: ivBuffer },
-      key,
-      dataBuffer,
-    );
-
-    // Convert to base64 for storage
-    const encryptedBase64 = arrayBufferToBase64(encryptedBuffer);
-
-    return {
-      encryptedData: encryptedBase64,
-      info: {
-        algorithm: "AES-256-GCM",
-        salt,
-        iv,
-        iterationCount: 100000,
-      },
-    };
-  } catch (error) {
-    throw new Error(`Encryption failed: ${error}`);
-  }
+  return {
+    encryptedData: toBase64(new Uint8Array(cipher)),
+    info: {
+      algorithm: "AES-256-GCM",
+      kdf: "PBKDF2-SHA256",
+      salt: toBase64(salt),
+      iv: toBase64(iv),
+      iterations: PBKDF2_ITERATIONS,
+    },
+  };
 }
 
 export async function decryptData(
   encryptedData: string,
   password: string,
-  info: { algorithm: string; salt: string; iv: string; iterationCount: number },
+  info: EncryptionInfo,
 ): Promise<string> {
+  if (!cryptoAvailable())
+    throw new Error("WebCrypto is unavailable — decryption needs https or localhost.");
+  const iterations = info.iterations ?? info.iterationCount ?? PBKDF2_ITERATIONS;
+  const key = await deriveKey(password, fromBase64(info.salt), iterations);
   try {
-    const key = await deriveKey(password, info.salt, info.iterationCount);
-    const encryptedBuffer = base64ToArrayBuffer(encryptedData);
-    const ivBuffer = new TextEncoder().encode(info.iv);
-
-    const decryptedBuffer = await crypto.subtle.decrypt(
-      { name: "AES-GCM", iv: ivBuffer },
+    const plain = await crypto.subtle.decrypt(
+      { name: "AES-GCM", iv: fromBase64(info.iv) },
       key,
-      encryptedBuffer,
+      fromBase64(encryptedData),
     );
-
-    const decoder = new TextDecoder();
-    return decoder.decode(decryptedBuffer);
-  } catch (error) {
-    throw new Error(`Decryption failed: ${error}. Check your password.`);
+    return dec.decode(plain);
+  } catch {
+    // AES-GCM authenticates; any failure here means the wrong password or a
+    // tampered file. Never leak the underlying crypto message.
+    throw new Error("Wrong password (or the file was modified after it was encrypted).");
   }
 }
 
 // ============================================================================
-// CHECKSUM UTILITIES
+// CHECKSUM
 // ============================================================================
 
-/**
- * Generate SHA-256 checksum for data integrity verification
- */
 export async function generateChecksum(data: string): Promise<string> {
-  try {
-    const encoder = new TextEncoder();
-    const dataBuffer = encoder.encode(data);
-    const hashBuffer = await crypto.subtle.digest("SHA-256", dataBuffer);
-    return arrayBufferToHex(hashBuffer);
-  } catch {
-    // Fallback to simple hash
-    let hash = 0;
-    for (let i = 0; i < data.length; i++) {
-      const char = data.charCodeAt(i);
-      hash = (hash << 5) - hash + char;
-      hash = hash & hash; // Convert to 32bit integer
-    }
-    return hash.toString(16);
+  if (!cryptoAvailable()) return `fnv1a:${fnv1a(data)}`;
+  const hash = await crypto.subtle.digest("SHA-256", enc.encode(data));
+  return Array.from(new Uint8Array(hash))
+    .map((b) => b.toString(16).padStart(2, "0"))
+    .join("");
+}
+
+function fnv1a(text: string): string {
+  let hash = 0x811c9dc5;
+  for (let i = 0; i < text.length; i++) {
+    hash ^= text.charCodeAt(i);
+    hash = Math.imul(hash, 0x01000193);
   }
+  return (hash >>> 0).toString(16);
+}
+
+/** Checksum of the *canonical* form — order-independent, stable across round trips. */
+export async function checksumOfData(data: unknown): Promise<string> {
+  return generateChecksum(canonicalStringify(data));
 }
 
 export async function verifyChecksum(data: string, expectedChecksum: string): Promise<boolean> {
-  const actualChecksum = await generateChecksum(data);
-  return actualChecksum === expectedChecksum;
+  const actual = await generateChecksum(data);
+  if (actual === expectedChecksum) return true;
+  // v3 envelopes hashed with "fnv1a:" absent and with a different encoder; try
+  // the legacy 32-bit fallback before declaring corruption.
+  return `fnv1a:${fnv1a(data)}` === expectedChecksum;
 }
 
 // ============================================================================
-// DATA DETECTION & CHANGE TRACKING
+// CHANGE DETECTION (incremental backups)
 // ============================================================================
 
-/**
- * Detect changes between two datasets for incremental backups
- */
+type ModuleRecord = { id?: unknown; createdAt?: unknown; updatedAt?: unknown };
+
+const CHANGE_MODULES: Array<{ key: keyof AppData; hasId: boolean }> = [
+  { key: "roadmaps", hasId: true },
+  { key: "notes", hasId: true },
+  { key: "projects", hasId: true },
+  { key: "planner", hasId: true },
+  { key: "habits", hasId: true },
+  { key: "habitLogs", hasId: false },
+  { key: "profile", hasId: false },
+  { key: "preferences", hasId: false },
+  { key: "widgets", hasId: false },
+  { key: "stats", hasId: false },
+  { key: "attendance", hasId: false },
+  { key: "expenses", hasId: false },
+  { key: "focus", hasId: false },
+  { key: "cgpa", hasId: false },
+  { key: "resume", hasId: false },
+  { key: "notifications", hasId: false },
+  { key: "coding", hasId: false },
+  { key: "career", hasId: false },
+];
+
 export function detectChanges(oldData: AppData, newData: AppData): ModuleChangeSummary[] {
   const summaries: ModuleChangeSummary[] = [];
 
-  // Compare each module
-  /** Loose record shape used for cross-module change comparisons. */
-  type ModuleRecord = { id?: unknown; createdAt?: unknown; updatedAt?: unknown };
-
-  const modules: Array<{ key: keyof AppData; getId?: (item: ModuleRecord) => string }> = [
-    { key: "roadmaps", getId: (r) => String(r.id) },
-    { key: "notes", getId: (n) => String(n.id) },
-    { key: "projects", getId: (p) => String(p.id) },
-    { key: "planner", getId: (t) => String(t.id) },
-    { key: "habits", getId: (h) => String(h.id) },
-    { key: "habitLogs" },
-    { key: "profile" },
-    { key: "preferences" },
-    { key: "widgets" },
-    { key: "stats" },
-    { key: "attendance" },
-    { key: "expenses" },
-    { key: "focus" },
-    { key: "cgpa" },
-    { key: "resume" },
-    { key: "notifications" },
-    { key: "coding" },
-    { key: "career" },
-  ];
-
-  for (const module of modules) {
-    // A union-keyed index access yields the full union of property types, and
-    // Array.isArray narrowing does not stick across repeated element access,
-    // so normalize through `unknown` first.
-    const rawOld: unknown = oldData[module.key];
-    const rawNew: unknown = newData[module.key];
+  for (const module of CHANGE_MODULES) {
+    const rawOld: unknown = oldData?.[module.key];
+    const rawNew: unknown = newData?.[module.key];
     const oldArray = (Array.isArray(rawOld) ? rawOld : rawOld ? [rawOld] : []) as ModuleRecord[];
     const newArray = (Array.isArray(rawNew) ? rawNew : rawNew ? [rawNew] : []) as ModuleRecord[];
 
-    // Fall back to the record's `id` (or its canonical form for id-less
-    // modules) instead of a constant — a constant would compare every item
-    // against the first one and produce phantom updates.
-    const getId =
-      module.getId ??
-      ((item: ModuleRecord) => {
-        if (item && typeof item === "object" && "id" in item) return String(item.id);
-        return stableStringify(item);
-      });
+    const getId = (item: ModuleRecord) =>
+      module.hasId && item && typeof item === "object" && "id" in item
+        ? String(item.id)
+        : canonicalStringify(item);
 
-    const oldIds = new Set(oldArray.map((item) => getId(item)));
-    const newIds = new Set(newArray.map((item) => getId(item)));
+    const oldIds = new Set(oldArray.map(getId));
+    const newIds = new Set(newArray.map(getId));
 
-    const created = newArray.filter((item) => !oldIds.has(getId(item)));
-    const deleted = oldArray.filter((item) => !newIds.has(getId(item)));
-    const updated = newArray.filter((item) => {
-      const id = getId(item);
-      const oldItem = oldArray.find((old) => getId(old) === id);
-      return oldItem && stableStringify(oldItem) !== stableStringify(item);
+    const created = newArray.filter((i) => !oldIds.has(getId(i)));
+    const deleted = oldArray.filter((i) => !newIds.has(getId(i)));
+
+    const oldById = new Map(oldArray.map((i) => [getId(i), i]));
+    const updated = newArray.filter((i) => {
+      const prev = oldById.get(getId(i));
+      return prev !== undefined && canonicalStringify(prev) !== canonicalStringify(i);
     });
 
-    if (created.length > 0 || deleted.length > 0 || updated.length > 0) {
-      const lastChangeAt = Math.max(
-        ...created.map((c) => (typeof c.createdAt === "number" ? c.createdAt : 0)),
-        ...updated.map((u) =>
-          typeof u.updatedAt === "number"
-            ? u.updatedAt
-            : typeof u.createdAt === "number"
-              ? u.createdAt
-              : 0,
-        ),
-        Date.now(),
-      );
+    if (created.length === 0 && deleted.length === 0 && updated.length === 0) continue;
 
-      summaries.push({
-        module: module.key,
-        created: created.length,
-        updated: updated.length,
-        deleted: deleted.length,
-        totalChanges: created.length + updated.length + deleted.length,
-        lastChangeAt,
-      });
-    }
+    const stamps = [...created, ...updated].map((i) =>
+      typeof i.createdAt === "number"
+        ? i.createdAt
+        : typeof i.updatedAt === "number"
+          ? i.updatedAt
+          : 0,
+    );
+
+    summaries.push({
+      module: module.key,
+      created: created.length,
+      updated: updated.length,
+      deleted: deleted.length,
+      totalChanges: created.length + updated.length + deleted.length,
+      lastChangeAt: Math.max(Date.now(), ...stamps),
+    });
   }
 
   return summaries;
 }
 
-/**
- * Extract only changed data for incremental backup
- */
+/** Only the modules that actually changed — unchanged keys are dropped. */
 export function extractChangedData(
   newData: AppData,
-  oldData: AppData,
+  _oldData: AppData,
   changes: ModuleChangeSummary[],
 ): Partial<AppData> {
-  const changedData: Partial<AppData> = { ...newData };
-
-  // Remove unchanged modules
-  const allModules = Object.keys(newData) as Array<keyof AppData>;
-  const changedModuleKeys = new Set(changes.map((c) => c.module));
-
-  for (const moduleKey of allModules) {
-    if (!changedModuleKeys.has(moduleKey)) {
-      delete (changedData as Record<string, unknown>)[moduleKey as string];
-    }
+  const changed = new Set(changes.map((c) => c.module));
+  const out: Partial<AppData> = {};
+  for (const key of Object.keys(newData) as Array<keyof AppData>) {
+    if (changed.has(key)) (out as Record<string, unknown>)[key] = newData[key];
   }
-
-  return changedData;
+  return out;
 }
 
-/**
- * Apply incremental changes to base data
- */
 export function applyIncrementalChanges(baseData: AppData, changes: Partial<AppData>): AppData {
-  return {
-    ...baseData,
-    ...changes,
-  };
-}
-
-// ============================================================================
-// ENVELOPE HELPERS
-// ============================================================================
-
-/**
- * Deterministic JSON stringify (object keys sorted). JSON.stringify output
- * depends on key insertion order, which zod's parse() legitimately changes,
- * so change detection compares canonical forms instead.
- */
-function stableStringify(value: unknown): string {
-  if (value === null || typeof value !== "object") return JSON.stringify(value) ?? "null";
-  if (Array.isArray(value)) {
-    return `[${value.map((item) => stableStringify(item)).join(",")}]`;
-  }
-  const entries = Object.entries(value as Record<string, unknown>)
-    .filter(([, v]) => v !== undefined)
-    .sort(([a], [b]) => (a < b ? -1 : a > b ? 1 : 0));
-  return `{${entries.map(([k, v]) => `${JSON.stringify(k)}:${stableStringify(v)}`).join(",")}}`;
+  return { ...baseData, ...changes };
 }
 
 /**
- * Resolve the `data` field of a backup envelope into full AppData.
- * Returns null when the payload is a string that cannot be decoded
- * (e.g. still encrypted or compressed).
+ * Envelope `data` → AppData when it is already decoded. Returns null when the
+ * payload is still an encoded string (compressed/encrypted) that this helper
+ * cannot decode on its own.
  */
 export function resolveEnvelopeData(value: AppData | Partial<AppData> | string): AppData | null {
   if (typeof value === "string") {
@@ -571,25 +553,40 @@ export function resolveEnvelopeData(value: AppData | Partial<AppData> | string):
       return null;
     }
   }
+  if (!value || typeof value !== "object") return null;
   return value as AppData;
 }
 
 // ============================================================================
-// BACKUP CREATION
+// CREATION
 // ============================================================================
 
-/**
- * Create a full backup with advanced options
- */
-export async function createAdvancedBackup(
-  data: AppData,
-  options: Partial<BackupStrategy> = {},
-): Promise<{
+export type CreateBackupOptions = Partial<BackupStrategy> & {
+  /** Force compression even for small payloads. */
+  forceCompression?: boolean;
+};
+
+export type CreatedBackup = {
   text: string;
   meta: BackupMeta;
   createdAtISO: string;
   checksum: string;
-}> {
+  filename: string;
+};
+
+export function backupFilename(createdAtISO: string, backupId: string): string {
+  const stamp = createdAtISO.replace(/[-:]/g, "").slice(0, 13).replace("T", "-");
+  return `SkillSync-Backup-${stamp}-${backupId.slice(0, 6)}.json`;
+}
+
+/**
+ * Build a backup. `data` is validated first so an invalid in-memory state can
+ * never be written to a file that would then refuse to restore.
+ */
+export async function createAdvancedBackup(
+  data: AppData,
+  options: CreateBackupOptions = {},
+): Promise<CreatedBackup> {
   const strategy: BackupStrategy = {
     type: "full",
     compression: true,
@@ -599,16 +596,12 @@ export async function createAdvancedBackup(
     ...options,
   };
 
-  // Parse and validate data
   const safeData = AppDataSchema.parse(data);
   const createdAtISO = new Date().toISOString();
   const backupId = newId();
 
-  // Generate checksum for original data
-  const originalDataString = JSON.stringify(safeData);
-  const checksum = await generateChecksum(originalDataString);
+  const checksum = await checksumOfData(safeData);
 
-  // Create base envelope
   const env: BackupEnvelope = {
     kind: "skillsync-backup",
     backupVersion: BACKUP_VERSION,
@@ -620,122 +613,92 @@ export async function createAdvancedBackup(
     algorithm: "SHA-256",
   };
 
-  // Apply strategy
-  let finalText = JSON.stringify(env, null, 2);
-  const processedData = safeData;
-  const metaBase: Omit<BackupMeta, "sizeBytes"> = {
+  const payload = JSON.stringify(safeData);
+
+  // 1. compression (before encryption, so gzip sees real JSON text)
+  if (strategy.compression) {
+    const worthTrying = options.forceCompression === true || payload.length > COMPRESSION_THRESHOLD;
+    if (worthTrying) {
+      const packed = await compressText(payload);
+      if (packed) {
+        env.data = packed;
+        env.compressed = true;
+        env.compressionInfo = { algorithm: "gzip", originalSize: payload.length };
+      }
+    }
+  }
+
+  // 2. encryption, wrapping whatever `data` currently holds
+  if (strategy.encryption) {
+    if (!strategy.password)
+      throw new Error("Choose a password before creating an encrypted backup.");
+    const plain = typeof env.data === "string" ? env.data : payload;
+    const { encryptedData, info } = await encryptData(plain, strategy.password);
+    env.data = encryptedData;
+    env.encrypted = true;
+    env.encryptionInfo = info;
+  }
+
+  const text = JSON.stringify(env);
+  const sizeBytes = bytesOf(text);
+  if (sizeBytes > MAX_BACKUP_BYTES) {
+    throw new Error(
+      `This workspace is too large to back up in one file (${Math.round(sizeBytes / 1048576)} MB).`,
+    );
+  }
+
+  const recordCounts = countRecords(safeData);
+  const meta: BackupMeta = {
     backupVersion: BACKUP_VERSION,
     appVersion: APP_VERSION,
     backupId,
     createdAt: Date.now(),
-    compressed: false,
-    encrypted: false,
+    sizeBytes,
+    compressed: env.compressed === true,
+    encrypted: env.encrypted === true,
     checksum,
     algorithm: "SHA-256",
     incremental: false,
     modules: Object.keys(safeData),
-    recordCounts: countRecords(safeData),
+    recordCounts,
   };
-
-  // Handle compression
-  if (strategy.compression && originalDataString.length > COMPRESSION_THRESHOLD) {
-    try {
-      const compressed = await simpleCompress(originalDataString);
-      if (compressed.compressed !== originalDataString) {
-        env.data = compressed.compressed as string;
-        env.compressed = true;
-        env.compressionInfo = {
-          algorithm: "gzip",
-          originalSize: compressed.originalSize,
-        };
-        finalText = JSON.stringify(env, null, 2);
-        metaBase.compressed = true;
-        metaBase.compressionRatio = compressed.originalSize / finalText.length;
-      }
-    } catch {
-      // Compression failed, continue without it
-    }
+  if (env.compressed && env.compressionInfo) {
+    meta.compressionRatio = env.compressionInfo.originalSize / sizeBytes;
   }
 
-  // Handle encryption
-  if (strategy.encryption && strategy.password) {
-    try {
-      const encrypted = await encryptData(finalText, strategy.password);
-      finalText = JSON.stringify(
-        {
-          ...JSON.parse(finalText),
-          data: encrypted.encryptedData,
-          encrypted: true,
-          encryptionInfo: encrypted.info,
-        },
-        null,
-        2,
-      );
-      metaBase.encrypted = true;
-    } catch {
-      // Encryption failed, continue without it
-    }
-  }
-
-  // Calculate final size
-  const sizeBytes = new Blob([finalText]).size;
-
-  const meta: BackupMeta = {
-    ...metaBase,
-    sizeBytes,
-  };
-
-  return {
-    text: finalText,
-    meta,
-    createdAtISO,
-    checksum,
-  };
+  return { text, meta, createdAtISO, checksum, filename: backupFilename(createdAtISO, backupId) };
 }
 
-/**
- * Create an incremental backup based on previous backup
- */
+/** Incremental backup: only changed modules, restorable against `baseBackup`. */
 export async function createIncrementalBackup(
   data: AppData,
   previousBackup: ValidBackup,
-  options: Partial<BackupStrategy> = {},
-): Promise<{
-  text: string;
-  meta: BackupMeta;
-  createdAtISO: string;
-  checksum: string;
-} | null> {
+  options: CreateBackupOptions = {},
+): Promise<CreatedBackup | null> {
   const safeData = AppDataSchema.parse(data);
-
-  // Detect changes — normalize the previous payload through the same schema
-  // pipeline as the new data so defaults/ordering don't register as changes.
   const previousData = resolveEnvelopeData(previousBackup.data);
   if (!previousData) {
-    throw new Error("Previous backup payload could not be decoded (encrypted or corrupted).");
+    throw new Error(
+      "The previous backup is encrypted or unreadable, so an incremental backup needs a full one.",
+    );
   }
+
   let previousSafe: AppData;
   try {
     previousSafe = AppDataSchema.parse(previousData);
   } catch {
     previousSafe = previousData;
   }
+
   const changes = detectChanges(previousSafe, safeData);
+  if (changes.reduce((sum, c) => sum + c.totalChanges, 0) === 0) return null;
 
-  // If no significant changes, return null
-  const totalChanges = changes.reduce((sum, c) => sum + c.totalChanges, 0);
-  if (totalChanges === 0) {
-    return null;
-  }
-
+  const changedData = extractChangedData(safeData, previousSafe, changes);
   const createdAtISO = new Date().toISOString();
   const backupId = newId();
-  const previousBackupId = previousBackup.backupId ?? previousBackup.meta?.backupId;
+  const baseBackupId = previousBackup.backupId ?? previousBackup.meta?.backupId;
 
-  // Extract changed data
-  const changedData = extractChangedData(safeData, previousData, changes);
-
-  // Create incremental envelope
+  const checksum = await checksumOfData(changedData);
   const env: BackupEnvelope = {
     kind: "skillsync-backup",
     backupVersion: BACKUP_VERSION,
@@ -743,147 +706,175 @@ export async function createIncrementalBackup(
     backupId,
     createdAt: createdAtISO,
     data: changedData,
+    checksum,
+    algorithm: "SHA-256",
     incremental: true,
-    baseBackupId: previousBackupId,
+    baseBackupId,
   };
 
-  // Generate checksum
-  const dataString = JSON.stringify(changedData);
-  const checksum = await generateChecksum(dataString);
-  env.checksum = checksum;
-  env.algorithm = "SHA-256";
-
-  // Apply compression if beneficial
-  let finalText = JSON.stringify(env, null, 2);
-  if (dataString.length > COMPRESSION_THRESHOLD) {
-    try {
-      const compressed = await simpleCompress(dataString);
-      if (compressed.compressed !== dataString) {
-        env.data = compressed.compressed as string;
-        env.compressed = true;
-        env.compressionInfo = {
-          algorithm: "gzip",
-          originalSize: compressed.originalSize,
-        };
-        finalText = JSON.stringify(env, null, 2);
-      }
-    } catch {
-      // Compression failed
+  const payload = JSON.stringify(changedData);
+  if (options.compression !== false && payload.length > COMPRESSION_THRESHOLD) {
+    const packed = await compressText(payload);
+    if (packed) {
+      env.data = packed;
+      env.compressed = true;
+      env.compressionInfo = { algorithm: "gzip", originalSize: payload.length };
     }
   }
 
-  // Apply encryption if requested
-  if (options.encryption && options.password) {
-    try {
-      const encrypted = await encryptData(finalText, options.password);
-      finalText = JSON.stringify(
-        {
-          ...JSON.parse(finalText),
-          data: encrypted.encryptedData,
-          encrypted: true,
-          encryptionInfo: encrypted.info,
-        },
-        null,
-        2,
-      );
-    } catch {
-      // Encryption failed
-    }
-  }
-
-  const sizeBytes = new Blob([finalText]).size;
-
+  const text = JSON.stringify(env);
   const meta: BackupMeta = {
     backupVersion: BACKUP_VERSION,
     appVersion: APP_VERSION,
     backupId,
     createdAt: Date.now(),
-    sizeBytes,
-    compressed: env.compressed,
-    encrypted: env.encrypted,
+    sizeBytes: bytesOf(text),
+    compressed: env.compressed === true,
+    encrypted: false,
     checksum,
     algorithm: "SHA-256",
     incremental: true,
-    baseBackupId: previousBackupId,
+    baseBackupId,
     modules: changes.map((c) => c.module),
-    recordCounts: countRecords(changedData as AppData),
+    recordCounts: countRecords(safeData),
   };
 
-  return {
-    text: finalText,
-    meta,
-    createdAtISO,
-    checksum,
-  };
+  return { text, meta, createdAtISO, checksum, filename: backupFilename(createdAtISO, backupId) };
 }
 
 // ============================================================================
-// BACKUP VALIDATION & RESTORATION
+// VALIDATION / DECODING
 // ============================================================================
 
+/** A backup that has been decoded, decompressed and decrypted. */
+export type DecodedBackup = ValidBackup & { data: AppData };
+
+export type ValidateResult =
+  | { ok: true; backup: DecodedBackup; warnings: string[] }
+  | { ok: false; error: string; recoverable?: boolean; needsPassword?: boolean };
+
+export type ValidateOptions = { password?: string };
+
 /**
- * Enhanced backup validation with integrity checks
+ * Decode a payload string (or object) into AppData, undoing encryption then
+ * compression, and verify the checksum when one is present.
  */
-export async function validateAdvancedBackup(input: string): Promise<
-  | {
-      ok: true;
-      backup: ValidBackup;
-      warnings: string[];
-    }
-  | {
-      ok: false;
-      error: string;
-      recoverable?: boolean;
-    }
+async function decodePayload(
+  env: BackupEnvelope,
+  password: string | undefined,
+  warnings: string[],
+): Promise<
+  | { ok: true; data: unknown }
+  | { ok: false; error: string; needsPassword?: boolean; recoverable?: boolean }
 > {
+  let raw: unknown = env.data;
+
+  if (env.encrypted) {
+    if (typeof raw !== "string")
+      return { ok: false, error: "Encrypted backup payload is malformed." };
+    if (!env.encryptionInfo?.salt || !env.encryptionInfo?.iv) {
+      return { ok: false, error: "Encrypted backup is missing its encryption parameters." };
+    }
+    if (!password) {
+      return {
+        ok: false,
+        needsPassword: true,
+        error: "This backup is encrypted and password-protected. Enter the password to open it.",
+      };
+    }
+    try {
+      raw = await decryptData(raw, password, env.encryptionInfo);
+    } catch (e) {
+      return { ok: false, error: errorMessage(e, "Could not decrypt this backup.") };
+    }
+    warnings.push("Decrypted with the password you provided.");
+  }
+
+  if (typeof raw === "string") {
+    const text = env.compressed ? await decompressText(raw) : raw;
+    try {
+      raw = JSON.parse(text);
+    } catch {
+      return { ok: false, error: "Backup payload could not be decoded." };
+    }
+  }
+
+  if (!raw || typeof raw !== "object") return { ok: false, error: "Backup payload is empty." };
+
+  if (env.checksum) {
+    const expected = env.checksum;
+    const canonical = canonicalStringify(raw);
+    let ok = (await generateChecksum(canonical)) === expected;
+    if (!ok) ok = await verifyChecksum(canonical, expected);
+    // v3 files hashed the raw serialization instead of the canonical one.
+    if (!ok && typeof env.data === "object") {
+      ok = (await generateChecksum(JSON.stringify(raw))) === expected;
+    }
+    if (!ok) {
+      return {
+        ok: false,
+        recoverable: true,
+        error: "Integrity check failed — this file was altered or is truncated.",
+      };
+    }
+  } else {
+    warnings.push("No checksum in this file, so its integrity could not be verified.");
+  }
+
+  return { ok: true, data: raw };
+}
+
+function metaFromEnvelope(env: BackupEnvelope, data: AppData, sizeBytes: number): BackupMeta {
+  return {
+    backupVersion: env.backupVersion,
+    appVersion: String(env.appVersion ?? "unknown"),
+    backupId: env.backupId,
+    createdAt: Date.parse(env.createdAt) || Date.now(),
+    sizeBytes,
+    compressed: env.compressed === true,
+    encrypted: env.encrypted === true,
+    checksum: env.checksum,
+    algorithm: env.algorithm,
+    incremental: env.incremental === true,
+    baseBackupId: env.baseBackupId,
+    modules: Object.keys(data),
+    recordCounts: countRecords(data),
+  };
+}
+
+/**
+ * Accepts a SkillSync backup file **or** a raw AppData export (the format the
+ * older Profile → Export button produced), returning fully decoded data.
+ */
+export async function validateAdvancedBackup(
+  input: string,
+  options: ValidateOptions = {},
+): Promise<ValidateResult> {
   const warnings: string[] = [];
   const sanitized = typeof input === "string" ? input.trim().replace(/^\uFEFF/, "") : "";
-
-  // Check if empty
-  if (!sanitized || sanitized.length === 0) {
-    return { ok: false, error: "Backup file is empty." };
-  }
+  if (!sanitized) return { ok: false, error: "This file is empty." };
 
   let parsed: unknown;
   try {
     parsed = JSON.parse(sanitized);
   } catch {
-    return { ok: false, error: "File is not valid JSON." };
+    return { ok: false, error: "This file is not valid JSON." };
   }
-
   if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) {
-    return { ok: false, error: "Backup file is empty or malformed." };
+    return { ok: false, error: "Not a SkillSync backup file (expected a JSON object)." };
   }
 
-  const obj = parsed as Record<string, unknown>;
+  const env = parsed as BackupEnvelope;
 
-  // Check for encrypted backup
-  if (obj.encrypted === true) {
-    return {
-      ok: false,
-      error: "Backup is encrypted. Please provide the password to decrypt.",
-      recoverable: true,
-    };
-  }
-
-  // Check for compressed backup
-  if (obj.compressed === true) {
-    // Handle decompression
+  // Direct AppData export (no envelope) — supported for compatibility.
+  if (
+    env.kind !== "skillsync-backup" &&
+    typeof (parsed as { schemaVersion?: unknown }).schemaVersion === "number"
+  ) {
     try {
-      const decompressed = await simpleDecompress(obj.data as string);
-      obj.data = JSON.parse(decompressed);
-    } catch {
-      warnings.push("Could not decompress backup data, attempting raw parse");
-    }
-  }
-
-  // Support direct AppData exports (from dev tools or store exportJSON)
-  if (typeof obj.schemaVersion === "number" && obj.kind !== "skillsync-backup") {
-    try {
-      const data = AppDataSchema.parse(migrate(obj));
-      const nowISO = new Date().toISOString();
-      const text = JSON.stringify(obj);
-
+      const data = AppDataSchema.parse(migrate(parsed));
+      const backupId = `export-${Date.now()}`;
+      const createdAt = new Date().toISOString();
       return {
         ok: true,
         warnings,
@@ -891,1029 +882,689 @@ export async function validateAdvancedBackup(input: string): Promise<
           kind: "skillsync-backup",
           backupVersion: 1,
           appVersion: APP_VERSION,
-          backupId: `export-${Date.now()}`,
-          createdAt: nowISO,
+          backupId,
+          createdAt,
           data,
-          sizeBytes: new Blob([sanitized]).size,
+          sizeBytes: bytesOf(sanitized),
+          envelopeText: sanitized,
           meta: {
-            backupVersion: 1,
-            appVersion: APP_VERSION,
-            backupId: `export-${Date.now()}`,
-            createdAt: Date.now(),
-            sizeBytes: new Blob([sanitized]).size,
-            modules: Object.keys(data),
-            recordCounts: countRecords(data),
+            ...metaFromEnvelope(
+              { ...env, backupVersion: 1, appVersion: APP_VERSION, backupId, createdAt },
+              data,
+              bytesOf(sanitized),
+            ),
           },
         },
       };
     } catch (e) {
-      return { ok: false, error: errorMessage(e, "Export structure is invalid.") };
+      return { ok: false, error: errorMessage(e, "That export is missing required fields.") };
     }
   }
 
-  // Validate backup kind
-  if (obj.kind !== "skillsync-backup") {
-    return { ok: false, error: "Not a SkillSync backup file." };
-  }
+  if (env.kind !== "skillsync-backup") return { ok: false, error: "Not a SkillSync backup file." };
 
-  // Validate required fields
-  const backupVersion = obj.backupVersion;
-  if (
-    typeof backupVersion !== "number" ||
-    !Number.isInteger(backupVersion) ||
-    (typeof obj.appVersion !== "string" && typeof obj.appVersion !== "number") ||
-    (typeof obj.createdAt !== "string" && typeof obj.createdAt !== "number") ||
-    !obj.data
-  ) {
-    return { ok: false, error: "Backup is missing required metadata or data." };
+  if (typeof env.backupVersion !== "number" || !Number.isInteger(env.backupVersion)) {
+    return { ok: false, error: "This file is missing its backup version." };
   }
-
-  // Validate backup version
-  if (backupVersion > BACKUP_VERSION) {
+  if (env.backupVersion > BACKUP_VERSION) {
     return {
       ok: false,
-      error: `Backup was made with newer SkillSync (v${String(obj.appVersion)}). Please update SkillSync.`,
+      error: `This file came from a newer SkillSync (v${String(env.appVersion)}). Update the app, then restore.`,
     };
   }
-
-  if (backupVersion < 1) {
-    return { ok: false, error: "Unsupported backup version." };
+  if (env.backupVersion < MIN_BACKUP_VERSION) {
+    return { ok: false, error: `Backup format v${env.backupVersion} is no longer readable.` };
+  }
+  if (!env.data) return { ok: false, error: "This file has no data in it." };
+  if (typeof env.backupId !== "string" || !env.backupId) {
+    return { ok: false, error: "This file is missing its backup id." };
+  }
+  if (env.backupVersion >= 2 && !env.createdAt) {
+    return { ok: false, error: "This file is missing its creation date." };
+  }
+  if (env.createdAt && Number.isNaN(Date.parse(env.createdAt))) {
+    return { ok: false, error: "This file has an invalid creation date." };
   }
 
-  // Handle incremental backups
-  if (obj.incremental === true) {
-    warnings.push("This is an incremental backup. For full restore, the base backup is required.");
-  }
+  if (env.incremental) warnings.push("Incremental backup: restoring it needs its base backup too.");
 
-  // Validate checksum if present
-  if (obj.checksum && obj.data) {
-    try {
-      const dataString = typeof obj.data === "string" ? obj.data : JSON.stringify(obj.data);
-      const isValid = await verifyChecksum(dataString, obj.checksum as string);
-      if (!isValid) {
-        return {
-          ok: false,
-          error: "Backup integrity check failed. The file may be corrupted.",
-          recoverable: true,
-        };
-      }
-    } catch {
-      warnings.push("Could not verify backup checksum");
-    }
-  }
-
-  // Parse and validate data
-  try {
-    let finalData = obj.data as AppData;
-
-    // If data is string (from compression/encryption), try to parse
-    if (typeof finalData === "string") {
-      try {
-        finalData = JSON.parse(finalData);
-      } catch {
-        // Could be compressed or encrypted
-        warnings.push("Backup data appears to be in raw format");
-      }
-    }
-
-    const data = AppDataSchema.parse(migrate(finalData));
-
-    // Handle date conversion
-    let createdAtISO: string;
-    if (typeof obj.createdAt === "number") {
-      if (Number.isNaN(obj.createdAt)) {
-        return { ok: false, error: "Backup creation date is invalid." };
-      }
-      createdAtISO = new Date(obj.createdAt).toISOString();
-    } else {
-      if (Number.isNaN(Date.parse(obj.createdAt as string))) {
-        return { ok: false, error: "Backup creation date is invalid." };
-      }
-      createdAtISO = obj.createdAt as string;
-    }
-
-    // Handle backup ID
-    if (backupVersion >= 2 && (typeof obj.backupId !== "string" || !obj.backupId)) {
-      return { ok: false, error: "Backup is missing its backup ID." };
-    }
-
-    const text = JSON.stringify(parsed);
-    const sizeBytes = new Blob([text]).size;
-
-    const meta: BackupMeta = {
-      backupVersion,
-      appVersion: String(obj.appVersion),
-      backupId:
-        typeof obj.backupId === "string"
-          ? obj.backupId
-          : `legacy-${Date.parse(createdAtISO) || Date.now()}`,
-      createdAt: Date.parse(createdAtISO),
-      sizeBytes,
-      compressed: obj.compressed as boolean,
-      encrypted: obj.encrypted as boolean,
-      checksum: obj.checksum as string,
-      algorithm: obj.algorithm as string,
-      incremental: obj.incremental as boolean,
-      baseBackupId: obj.baseBackupId as string,
-      modules: (obj.modules as string[]) || Object.keys(data),
-      recordCounts: (obj.recordCounts as Record<string, number>) || countRecords(data),
-    };
-
+  const decoded = await decodePayload(env, options.password, warnings);
+  if (!decoded.ok) {
     return {
-      ok: true,
-      warnings,
-      backup: {
-        kind: "skillsync-backup",
-        backupVersion,
-        appVersion: String(obj.appVersion),
-        backupId: meta.backupId,
-        createdAt: createdAtISO,
-        data,
-        sizeBytes,
-        meta,
-      },
+      ok: false,
+      error: decoded.error,
+      needsPassword: decoded.needsPassword,
+      recoverable: decoded.needsPassword || undefined,
     };
+  }
+
+  let data: AppData;
+  try {
+    data = AppDataSchema.parse(migrate(decoded.data));
   } catch (e) {
     return { ok: false, error: errorMessage(e, "Backup structure is invalid.") };
   }
+
+  return {
+    ok: true,
+    warnings,
+    backup: {
+      ...env,
+      data,
+      sizeBytes: bytesOf(sanitized),
+      envelopeText: sanitized,
+      meta: metaFromEnvelope(env, data, bytesOf(sanitized)),
+    },
+  };
 }
 
-/**
- * Validate and decrypt encrypted backup
- */
+/** Validate an encrypted envelope with its password. */
 export async function validateEncryptedBackup(
   input: string,
   password: string,
-): Promise<
-  | {
-      ok: true;
-      backup: ValidBackup;
-      warnings: string[];
-    }
-  | {
-      ok: false;
-      error: string;
-      recoverable?: boolean;
-    }
-> {
-  const sanitized = typeof input === "string" ? input.trim().replace(/^\uFEFF/, "") : "";
-
-  let parsed: unknown;
-  try {
-    parsed = JSON.parse(sanitized);
-  } catch {
-    return { ok: false, error: "File is not valid JSON." };
-  }
-
-  const obj = parsed as Record<string, unknown>;
-
-  if (obj.kind !== "skillsync-backup") {
-    return { ok: false, error: "Not a SkillSync backup file." };
-  }
-
-  if (obj.encrypted !== true) {
-    return { ok: false, error: "Backup is not encrypted. Use regular validation." };
-  }
-
-  if (!obj.encryptionInfo || !obj.data) {
-    return { ok: false, error: "Encrypted backup is missing required encryption information." };
-  }
-
-  try {
-    const decryptedText = await decryptData(
-      obj.data as string,
-      password,
-      obj.encryptionInfo as { algorithm: string; salt: string; iv: string; iterationCount: number },
-    );
-
-    // Parse decrypted data
-    const decryptedObj = JSON.parse(decryptedText);
-
-    // Replace data in original object
-    obj.data = decryptedObj;
-    obj.encrypted = false;
-    delete obj.encryptionInfo;
-
-    // Now validate as normal backup
-    const validation = await validateAdvancedBackup(JSON.stringify(obj));
-
-    if (validation.ok) {
-      // Update warnings
-      validation.warnings.unshift("Backup was successfully decrypted");
-    }
-
-    return validation;
-  } catch (error) {
-    return {
-      ok: false,
-      error: `Decryption failed: ${error}`,
-      recoverable: true,
-    };
-  }
+): Promise<ValidateResult> {
+  return validateAdvancedBackup(input, { password });
 }
 
-/**
- * Restore backup with enhanced features
- */
-export async function restoreAdvancedBackup(
-  backup: ValidBackup,
-  options: {
-    baseBackup?: ValidBackup; // For incremental restores
-    mergeStrategy?: "replace" | "merge" | "selective";
-    modulesToRestore?: string[];
-    onProgress?: (progress: number, message: string) => void;
-  } = {},
-): Promise<
+/** Quick "is this file readable and intact" check, without importing it. */
+export async function verifyBackupText(
+  input: string,
+  password?: string,
+): Promise<{ ok: boolean; message: string; meta?: BackupMeta }> {
+  const result = await validateAdvancedBackup(input, { password });
+  if (!result.ok) return { ok: false, message: result.error };
+  const count = Object.values(result.backup.meta.recordCounts).reduce((a, b) => a + b, 0);
+  return {
+    ok: true,
+    message: `Intact — ${count} record${count === 1 ? "" : "s"} across ${result.backup.meta.modules.length} modules.`,
+    meta: result.backup.meta,
+  };
+}
+
+// ============================================================================
+// RESTORE
+// ============================================================================
+
+export type RestoreOptions = {
+  baseBackup?: ValidBackup;
+  modulesToRestore?: string[];
+  password?: string;
+  onProgress?: (progress: number, message: string) => void;
+};
+
+export type RestoreResult =
   | {
       ok: true;
       data: AppData;
       warnings: string[];
-      stats: {
-        recordsRestored: number;
-        recordsSkipped: number;
-        modulesRestored: string[];
-      };
+      stats: { recordsRestored: number; modulesRestored: string[] };
     }
-  | {
-      ok: false;
-      error: string;
-    }
-> {
+  | { ok: false; error: string };
+
+/**
+ * Turn a backup into AppData that can be pushed into the store. Never touches
+ * the store itself — the caller decides when to apply it.
+ */
+export async function restoreAdvancedBackup(
+  backup: ValidBackup,
+  options: RestoreOptions = {},
+): Promise<RestoreResult> {
   const warnings: string[] = [];
-  const stats = {
-    recordsRestored: 0,
-    recordsSkipped: 0,
-    modulesRestored: [] as string[],
-  };
+  const stats = { recordsRestored: 0, modulesRestored: [] as string[] };
 
   try {
-    const resolvedData = resolveEnvelopeData(backup.data);
-    if (!resolvedData) {
-      return { ok: false, error: "Backup payload is missing, encrypted, or unreadable." };
-    }
-    let dataToRestore: AppData = resolvedData;
+    let dataToRestore = resolveEnvelopeData(backup.data);
 
-    // Handle incremental backup
-    if (backup.meta.incremental && backup.meta.baseBackupId) {
+    // Still encoded (loaded straight from a vault record or a file).
+    if (!dataToRestore) {
+      const decoded = await decodePayload(
+        { ...backup, data: backup.data } as BackupEnvelope,
+        options.password,
+        warnings,
+      );
+      if (!decoded.ok) {
+        return { ok: false, error: decoded.error };
+      }
+      dataToRestore = decoded.data as AppData;
+    }
+
+    if (backup.incremental && backup.baseBackupId) {
       if (!options.baseBackup) {
         return {
           ok: false,
-          error: "Cannot restore incremental backup without base backup.",
+          error: "This is an incremental backup — its base backup is needed to restore it.",
         };
       }
-
-      // Apply incremental changes to base
       const baseData = resolveEnvelopeData(options.baseBackup.data);
-      if (!baseData) {
-        return { ok: false, error: "Base backup payload could not be decoded." };
-      }
-      dataToRestore = applyIncrementalChanges(baseData, backup.data as Partial<AppData>);
-      warnings.push("Restored from incremental backup using base backup");
+      if (!baseData)
+        return {
+          ok: false,
+          error: "The base backup for this incremental file could not be decoded.",
+        };
+      dataToRestore = applyIncrementalChanges(baseData, dataToRestore as Partial<AppData>);
+      warnings.push("Merged onto its base backup.");
     }
 
-    // Handle selective module restore
     if (options.modulesToRestore && options.modulesToRestore.length > 0) {
-      const selectiveData: Partial<AppData> = {};
-      for (const module of options.modulesToRestore) {
-        if (module in dataToRestore) {
-          (selectiveData as Record<string, unknown>)[module] = (
-            dataToRestore as unknown as Record<string, unknown>
-          )[module];
-          stats.modulesRestored.push(module);
+      const selective: Partial<AppData> = {};
+      for (const key of options.modulesToRestore) {
+        if (key in dataToRestore) {
+          (selective as Record<string, unknown>)[key] = (dataToRestore as Record<string, unknown>)[
+            key
+          ];
+          stats.modulesRestored.push(key);
         }
       }
-      dataToRestore = selectiveData as AppData;
-      warnings.push(`Restored only selected modules: ${options.modulesToRestore.join(", ")}`);
+      dataToRestore = selective as AppData;
+      warnings.push(
+        `Only these modules will be restored: ${stats.modulesRestored.join(", ") || "none"}.`,
+      );
     }
 
-    // Validate final data
+    options.onProgress?.(0.6, "Validating");
     const finalData = AppDataSchema.parse(migrate(dataToRestore));
+    stats.recordsRestored = Object.values(countRecords(finalData)).reduce((sum, n) => sum + n, 0);
 
-    // Count records
-    const recordCounts = countRecords(finalData);
-    stats.recordsRestored = Object.values(recordCounts).reduce((sum, count) => sum + count, 0);
-
-    return {
-      ok: true,
-      data: finalData,
-      warnings,
-      stats,
-    };
+    return { ok: true, data: finalData, warnings, stats };
   } catch (error) {
-    return {
-      ok: false,
-      error: errorMessage(error, "Restore failed"),
-    };
+    return { ok: false, error: errorMessage(error, "Restore failed.") };
   }
 }
 
 // ============================================================================
-// BACKUP MANAGEMENT
+// SUMMARIES
 // ============================================================================
 
-/**
- * Count records in each module
- */
 export function countRecords(data: AppData): Record<string, number> {
   const counts: Record<string, number> = {};
+  const roadmaps = data?.roadmaps ?? [];
 
-  // Roadmaps
-  const roadmaps = data.roadmaps ?? [];
   counts.roadmaps = roadmaps.length;
-  counts.phases = roadmaps.reduce((sum, r) => sum + (r.phases?.length ?? 0), 0);
+  counts.phases = roadmaps.reduce((s, r) => s + (r.phases?.length ?? 0), 0);
   counts.topics = roadmaps.reduce(
-    (sum, r) => sum + r.phases.reduce((s, p) => s + (p.topics?.length ?? 0), 0),
+    (s, r) => s + r.phases.reduce((t, p) => t + (p.topics?.length ?? 0), 0),
     0,
   );
   counts.subtopics = roadmaps.reduce(
-    (sum, r) =>
-      sum +
+    (s, r) =>
+      s +
       r.phases.reduce(
-        (s, p) => s + p.topics.reduce((t, topic) => t + (topic.subtopics?.length ?? 0), 0),
+        (t, p) => t + p.topics.reduce((u, x) => u + (x.subtopics?.length ?? 0), 0),
         0,
       ),
     0,
   );
-
-  // Other modules
-  counts.notes = data.notes?.length ?? 0;
-  counts.projects = data.projects?.length ?? 0;
-  counts.plannerTasks = data.planner?.length ?? 0;
-  counts.habits = data.habits?.length ?? 0;
-  counts.habitLogs = data.habitLogs?.length ?? 0;
-  counts.subjects = data.attendance?.subjects?.length ?? 0;
-  counts.transactions = data.expenses?.transactions?.length ?? 0;
-  counts.focusSessions = data.focus?.sessions?.length ?? 0;
-  counts.cgpaSubjects = data.cgpa?.semesters?.reduce((s, sem) => s + sem.subjects.length, 0) ?? 0;
-  counts.codingProblems = data.coding?.problems?.length ?? 0;
-  counts.careerApplications = data.career?.applications?.length ?? 0;
-  counts.notifications = data.notifications?.items?.length ?? 0;
+  counts.notes = data?.notes?.length ?? 0;
+  counts.projects = data?.projects?.length ?? 0;
+  counts.plannerTasks = data?.planner?.length ?? 0;
+  counts.habits = data?.habits?.length ?? 0;
+  counts.habitLogs = data?.habitLogs?.length ?? 0;
+  counts.subjects = data?.attendance?.subjects?.length ?? 0;
+  counts.transactions = data?.expenses?.transactions?.length ?? 0;
+  counts.focusSessions = data?.focus?.sessions?.length ?? 0;
+  counts.cgpaSubjects =
+    data?.cgpa?.semesters?.reduce((s, sem) => s + (sem.subjects?.length ?? 0), 0) ?? 0;
+  counts.codingProblems = data?.coding?.problems?.length ?? 0;
+  counts.careerApplications = data?.career?.applications?.length ?? 0;
+  counts.notifications = data?.notifications?.items?.length ?? 0;
   counts.resumeItems =
-    (data.resume?.education?.length ?? 0) +
-    (data.resume?.experience?.length ?? 0) +
-    (data.resume?.projects?.length ?? 0) +
-    (data.resume?.certifications?.length ?? 0);
+    (data?.resume?.education?.length ?? 0) +
+    (data?.resume?.experience?.length ?? 0) +
+    (data?.resume?.projects?.length ?? 0) +
+    (data?.resume?.certifications?.length ?? 0);
 
   return counts;
 }
 
-/**
- * Get backup summary for display
- */
+const SUMMARY_LABELS: Array<[keyof AppData | string, string]> = [
+  ["roadmaps", "Roadmaps"],
+  ["notes", "Notes"],
+  ["projects", "Projects"],
+  ["planner", "Planner tasks"],
+  ["habits", "Habits"],
+  ["attendance", "Attendance"],
+  ["expenses", "Expenses"],
+  ["focus", "Focus"],
+  ["cgpa", "CGPA"],
+  ["coding", "Coding"],
+  ["career", "Career"],
+  ["resume", "Resume"],
+  ["profile", "Profile"],
+  ["preferences", "Preferences"],
+];
+
 export function getBackupSummary(data: AppData): {
   modules: Array<{ key: string; label: string; count: number }>;
   totalRecords: number;
   sizeBytes: number;
 } {
-  const recordCounts = countRecords(data);
-  const sizeBytes = JSON.stringify(data).length;
+  const counts = countRecords(data);
+  const pick = (keys: string[]) => keys.reduce((sum, k) => sum + (counts[k] ?? 0), 0);
 
   const modules = [
-    { key: "roadmaps", label: "Roadmaps", count: recordCounts.roadmaps },
-    { key: "phases", label: "Phases", count: recordCounts.phases },
-    { key: "topics", label: "Topics", count: recordCounts.topics },
-    { key: "subtopics", label: "Subtopics", count: recordCounts.subtopics },
-    { key: "notes", label: "Notes", count: recordCounts.notes },
-    { key: "projects", label: "Projects", count: recordCounts.projects },
-    { key: "plannerTasks", label: "Planner Tasks", count: recordCounts.plannerTasks },
-    { key: "habits", label: "Habits", count: recordCounts.habits },
-    { key: "habitLogs", label: "Habit Logs", count: recordCounts.habitLogs },
-    { key: "attendance", label: "Attendance Subjects", count: recordCounts.subjects },
-    { key: "expenses", label: "Expense Transactions", count: recordCounts.transactions },
-    { key: "focus", label: "Focus Sessions", count: recordCounts.focusSessions },
-    { key: "cgpa", label: "CGPA Subjects", count: recordCounts.cgpaSubjects },
-    { key: "coding", label: "Coding Problems", count: recordCounts.codingProblems },
-    { key: "career", label: "Career Applications", count: recordCounts.careerApplications },
-    { key: "resume", label: "Resume Items", count: recordCounts.resumeItems },
+    {
+      key: "roadmaps",
+      label: "Roadmaps",
+      count: pick(["roadmaps", "phases", "topics", "subtopics"]),
+    },
+    { key: "notes", label: "Notes", count: counts.notes },
+    { key: "projects", label: "Projects", count: counts.projects },
+    { key: "planner", label: "Planner", count: counts.plannerTasks },
+    { key: "habits", label: "Habits", count: counts.habits + counts.habitLogs },
+    { key: "attendance", label: "Attendance", count: counts.subjects },
+    { key: "expenses", label: "Expenses", count: counts.transactions },
+    { key: "focus", label: "Focus", count: counts.focusSessions },
+    { key: "cgpa", label: "CGPA", count: counts.cgpaSubjects },
+    { key: "coding", label: "Coding", count: counts.codingProblems },
+    { key: "career", label: "Career", count: counts.careerApplications },
+    { key: "resume", label: "Resume", count: counts.resumeItems },
   ];
 
-  const totalRecords = Object.values(recordCounts).reduce((sum, count) => sum + count, 0);
+  return {
+    modules: modules.filter((m) => SUMMARY_LABELS.some(([key]) => key === m.key)),
+    totalRecords: Object.values(counts).reduce((sum, n) => sum + n, 0),
+    sizeBytes: JSON.stringify(data).length,
+  };
+}
 
-  return { modules, totalRecords, sizeBytes };
+/** Human one-liner: "3 roadmaps · 12 notes · 8 tasks". */
+export function describeBackupData(data: AppData, max = 3): string {
+  const counts = countRecords(data);
+  const parts: string[] = [];
+  if (counts.roadmaps) parts.push(`${counts.roadmaps} roadmap${counts.roadmaps === 1 ? "" : "s"}`);
+  if (counts.notes) parts.push(`${counts.notes} note${counts.notes === 1 ? "" : "s"}`);
+  if (counts.plannerTasks)
+    parts.push(`${counts.plannerTasks} task${counts.plannerTasks === 1 ? "" : "s"}`);
+  if (counts.projects) parts.push(`${counts.projects} project${counts.projects === 1 ? "" : "s"}`);
+  if (counts.habits) parts.push(`${counts.habits} habit${counts.habits === 1 ? "" : "s"}`);
+  if (counts.focusSessions)
+    parts.push(`${counts.focusSessions} focus session${counts.focusSessions === 1 ? "" : "s"}`);
+  return parts.slice(0, max).join(" · ") || "empty workspace";
 }
 
 // ============================================================================
-// BACKUP HEALTH MONITORING
+// HEALTH (cheap by design — safe to run after a backup, never during render)
 // ============================================================================
 
-/**
- * Analyze backup health
- */
-export async function analyzeBackupHealth(
-  backup: ValidBackup,
+export function analyzeBackupHealthSync(
+  backup: Pick<ValidBackup, "meta"> | { meta?: BackupMeta },
   currentData: AppData,
-): Promise<BackupHealthStatus> {
+): BackupHealthStatus {
   const issues: BackupHealthIssue[] = [];
   const recommendations: string[] = [];
+  const meta = backup.meta;
+  if (!meta) {
+    return {
+      status: "unknown",
+      score: 0,
+      issues: [
+        {
+          id: "no-meta",
+          type: "integrity",
+          severity: "medium",
+          message: "This copy has no readable metadata",
+          fixable: true,
+          fixAction: "backup_now",
+        },
+      ],
+      recommendations: ["Create a new backup."],
+      lastCheckedAt: Date.now(),
+    };
+  }
+  const id = meta.backupId ?? "unknown";
 
-  // Check age
-  const ageHours = (Date.now() - backup.meta.createdAt) / 3600000;
-  const ageDays = ageHours / 24;
-
+  const ageDays = (Date.now() - (meta.createdAt ?? 0)) / 86_400_000;
   if (ageDays > 30) {
     issues.push({
-      id: `age-${backup.meta.backupId}`,
+      id: `age-${id}`,
       type: "age",
       severity: ageDays > 90 ? "critical" : ageDays > 60 ? "high" : "medium",
-      message: `Backup is ${Math.round(ageDays)} days old`,
+      message: `The newest backup is ${Math.round(ageDays)} days old`,
       fixable: true,
-      fixAction: "create_new_backup",
+      fixAction: "backup_now",
     });
-    recommendations.push(`Create a fresh backup (current is ${Math.round(ageDays)} days old)`);
+    recommendations.push("Create a fresh backup now.");
   }
 
-  // Check data completeness
-  const backupData = resolveEnvelopeData(backup.data);
-  const backupCounts = backup.meta.recordCounts || (backupData ? countRecords(backupData) : {});
-  const currentCounts = countRecords(currentData);
-
-  const missingModules: string[] = [];
-  const incompleteModules: string[] = [];
-
-  for (const [module, currentCount] of Object.entries(currentCounts)) {
-    const backupCount = backupCounts[module] || 0;
-    if (backupCount === 0 && currentCount > 0) {
-      missingModules.push(module);
-    } else if (backupCount < currentCount) {
-      incompleteModules.push(module);
-    }
-  }
-
-  if (missingModules.length > 0) {
+  const sizeBytes = meta.sizeBytes ?? 0;
+  if (sizeBytes > 25 * 1024 * 1024) {
     issues.push({
-      id: `completeness-missing-${backup.meta.backupId}`,
-      type: "completeness",
-      severity: "high",
-      message: `Missing modules: ${missingModules.join(", ")}`,
-      details: { missingModules },
-      fixable: true,
-      fixAction: "create_new_backup",
-    });
-    recommendations.push(
-      `Create a new backup to include missing modules: ${missingModules.join(", ")}`,
-    );
-  }
-
-  if (incompleteModules.length > 0) {
-    issues.push({
-      id: `completeness-incomplete-${backup.meta.backupId}`,
-      type: "completeness",
-      severity: "medium",
-      message: `Incomplete modules: ${incompleteModules.join(", ")}`,
-      details: { incompleteModules },
-      fixable: true,
-      fixAction: "create_new_backup",
-    });
-    recommendations.push(
-      `Create a new backup to include recent changes in: ${incompleteModules.join(", ")}`,
-    );
-  }
-
-  // Check size
-  if (backup.meta.sizeBytes > 50 * 1024 * 1024) {
-    // >50MB
-    issues.push({
-      id: `size-${backup.meta.backupId}`,
+      id: `size-${id}`,
       type: "size",
-      severity: backup.meta.sizeBytes > 100 * 1024 * 1024 ? "high" : "medium",
-      message: `Backup is very large (${formatBytes(backup.meta.sizeBytes)})`,
-      details: { sizeBytes: backup.meta.sizeBytes },
+      severity: sizeBytes > 50 * 1024 * 1024 ? "high" : "medium",
+      message: `This backup is large (${formatBytes(sizeBytes)})`,
       fixable: true,
       fixAction: "enable_compression",
     });
-    recommendations.push("Enable compression to reduce backup size");
+    recommendations.push("Turn on compression for a smaller file.");
   }
 
-  // Check integrity
-  if (backup.meta.checksum) {
-    try {
-      const dataString = JSON.stringify(backupData ?? backup.data);
-      const isValid = await verifyChecksum(dataString, backup.meta.checksum);
-      if (!isValid) {
-        issues.push({
-          id: `integrity-${backup.meta.backupId}`,
-          type: "integrity",
-          severity: "critical",
-          message: "Backup integrity check failed - data may be corrupted",
-          fixable: false,
-          fixAction: "verify_backup_source",
-        });
-        recommendations.push("Verify backup file integrity or restore from another backup");
-      }
-    } catch {
-      recommendations.push("Could not verify backup integrity");
-    }
-  } else {
-    recommendations.push("Enable checksum verification for better data integrity");
+  const backupCounts = meta.recordCounts ?? {};
+  const currentCounts = countRecords(currentData);
+  const drifted = Object.entries(currentCounts).filter(([key, count]) => {
+    const inBackup = backupCounts[key] ?? 0;
+    return count > 0 && inBackup === 0;
+  });
+  if (drifted.length > 0) {
+    issues.push({
+      id: `completeness-${id}`,
+      type: "completeness",
+      severity: "high",
+      message: `Not covered by this backup: ${drifted.map(([k]) => k).join(", ")}`,
+      fixable: true,
+      fixAction: "backup_now",
+    });
+    recommendations.push("Back up again to capture the newer modules.");
   }
 
-  // Check encryption
-  if (!backup.meta.encrypted) {
-    recommendations.push("Consider encrypting sensitive backups for better security");
+  if (!meta.checksum) {
+    recommendations.push("Newer backups carry a checksum so damage is detected before a restore.");
   }
 
-  // Calculate health score
   let score = 100;
-  for (const issue of issues) {
-    const severityScore = { low: 5, medium: 15, high: 30, critical: 60 }[issue.severity];
-    score -= severityScore;
-  }
+  for (const issue of issues)
+    score -= { low: 5, medium: 15, high: 30, critical: 60 }[issue.severity];
   score = Math.max(0, Math.min(100, score));
 
-  // Determine status — any critical issue means the backup cannot be trusted
-  const hasCritical = issues.some((issue) => issue.severity === "critical");
-  let status: BackupHealthStatus["status"] = "healthy";
-  if (hasCritical || score < 30) status = "critical";
-  else if (score < 70) status = "warning";
-  else if (score === 100 && issues.length === 0) status = "healthy";
-  else status = "warning";
+  const status: BackupHealthStatus["status"] = issues.some((i) => i.severity === "critical")
+    ? "critical"
+    : issues.length > 0 || score < 100
+      ? "warning"
+      : "healthy";
 
+  return { status, score, issues, recommendations, lastCheckedAt: Date.now() };
+}
+
+/** Async name kept for compatibility with existing callers. */
+export async function analyzeBackupHealth(
+  backup: Pick<ValidBackup, "meta"> | { meta?: BackupMeta },
+  currentData: AppData,
+): Promise<BackupHealthStatus> {
+  return analyzeBackupHealthSync(backup, currentData);
+}
+
+export function getBackupStatus(meta: BackupMeta | null): {
+  tone: "none" | "green" | "yellow" | "red";
+  label: string;
+  description: string;
+} {
+  if (!meta) {
+    return {
+      tone: "none",
+      label: "No backup yet",
+      description: "Create one now, then keep the file somewhere safe.",
+    };
+  }
+  const ageDays = (Date.now() - meta.createdAt) / 86_400_000;
+  if (ageDays < 7) {
+    return {
+      tone: "green",
+      label: "Up to date",
+      description: `${formatDate(meta.createdAt)} · ${formatTime(meta.createdAt)} · ${formatBytes(meta.sizeBytes)}`,
+    };
+  }
+  if (ageDays < 30) {
+    return {
+      tone: "yellow",
+      label: `${Math.round(ageDays)} days since your last backup`,
+      description: "Worth refreshing.",
+    };
+  }
   return {
-    status,
-    score,
-    issues,
-    recommendations,
-    lastCheckedAt: Date.now(),
+    tone: "red",
+    label: `${Math.round(ageDays / 7)} weeks without a backup`,
+    description: "Anything on this device is at risk until you back up.",
   };
 }
 
 // ============================================================================
-// STORAGE & PERSISTENCE
+// LOCAL PERSISTENCE (small metadata only)
 // ============================================================================
 
-/**
- * Get all backup metadata from history
- */
-export function getBackupHistory(): BackupHistoryEntry[] {
+export function getLastBackupMeta(): BackupMeta | null {
+  const raw = readLocal(LAST_META_KEY);
+  if (!raw) return null;
   try {
-    const raw = localStorage.getItem(BACKUP_HISTORY_KEY);
-    return raw ? JSON.parse(raw) : [];
+    const parsed = JSON.parse(raw) as BackupMeta;
+    return parsed && typeof parsed.backupId === "string" ? parsed : null;
+  } catch {
+    return null;
+  }
+}
+
+export function setLastBackupMeta(meta: BackupMeta | null): void {
+  if (meta) {
+    writeLocal(LAST_META_KEY, JSON.stringify(meta));
+    addToBackupHistory({
+      backupId: meta.backupId,
+      createdAt: meta.createdAt,
+      type: "manual",
+      source: "local",
+      sizeBytes: meta.sizeBytes,
+      compressed: meta.compressed === true,
+      encrypted: meta.encrypted === true,
+      status: "complete",
+      notes: `Backup created (v${meta.backupVersion})`,
+      tags: [
+        meta.compressed ? "compressed" : "uncompressed",
+        meta.encrypted ? "encrypted" : "plain",
+      ]
+        .filter(Boolean)
+        .map(String),
+    });
+    return;
+  }
+  dropLocal(LAST_META_KEY);
+}
+
+export function getBackupHistory(): BackupHistoryEntry[] {
+  const raw = readLocal(BACKUP_HISTORY_KEY);
+  if (!raw) return [];
+  try {
+    const parsed = JSON.parse(raw);
+    return Array.isArray(parsed) ? (parsed as BackupHistoryEntry[]) : [];
   } catch {
     return [];
   }
 }
 
-/**
- * Add backup to history
- */
 export function addToBackupHistory(entry: BackupHistoryEntry): void {
-  try {
-    const history = getBackupHistory();
-    history.unshift(entry);
-    const trimmed = history.slice(0, MAX_BACKUP_HISTORY);
-    localStorage.setItem(BACKUP_HISTORY_KEY, JSON.stringify(trimmed));
-  } catch {
-    // Storage full or unavailable
-  }
+  const next = [entry, ...getBackupHistory()].slice(0, MAX_BACKUP_HISTORY);
+  writeLocal(BACKUP_HISTORY_KEY, JSON.stringify(next));
 }
 
-/**
- * Get last backup metadata
- */
-export function getLastBackupMeta(): BackupMeta | null {
-  try {
-    const raw = window.localStorage.getItem(LAST_META_KEY);
-    return raw ? JSON.parse(raw) : null;
-  } catch {
-    return null;
-  }
+export function clearBackupHistory(): void {
+  dropLocal(BACKUP_HISTORY_KEY);
 }
 
-/**
- * Set last backup metadata
- */
-export function setLastBackupMeta(meta: BackupMeta | null) {
-  try {
-    if (meta) {
-      localStorage.setItem(LAST_META_KEY, JSON.stringify(meta));
-
-      // Also add to history
-      addToBackupHistory({
-        backupId: meta.backupId,
-        createdAt: meta.createdAt,
-        type: "manual",
-        source: "local",
-        sizeBytes: meta.sizeBytes,
-        compressed: meta.compressed || false,
-        encrypted: meta.encrypted || false,
-        status: "complete",
-        notes: `Backup created - v${meta.backupVersion}`,
-        tags: [`version-${meta.backupVersion}`, meta.compressed ? "compressed" : "uncompressed"],
-      });
-    } else {
-      localStorage.removeItem(LAST_META_KEY);
-    }
-  } catch {
-    /* quota/storage unavailable */
-  }
-}
-
-/**
- * Get auto-backup settings
- */
 export function getAutoBackupSettings(): AutoBackupSettings {
+  const fallback: AutoBackupSettings = {
+    enabled: false,
+    intervalHours: 24,
+    maxSnapshots: 5,
+    strategy: "full",
+    compression: true,
+    minChangesForIncremental: 1,
+    smartBackup: true,
+    backupOnOpen: true,
+    backupOnChanges: false,
+  };
+  const raw = readLocal(AUTO_SETTINGS_KEY);
+  if (!raw) return fallback;
   try {
-    const raw = JSON.parse(
-      localStorage.getItem(AUTO_SETTINGS_KEY) ?? "{}",
-    ) as Partial<AutoBackupSettings>;
+    const parsed = JSON.parse(raw) as Partial<AutoBackupSettings>;
+    const intervals = [1, 6, 12, 24, 48, 168];
     return {
-      enabled: raw.enabled === true,
-      intervalHours: raw.intervalHours ?? 24,
-      lastCreatedAt: typeof raw.lastCreatedAt === "number" ? raw.lastCreatedAt : undefined,
-      maxSnapshots: raw.maxSnapshots ?? 5,
-      strategy: raw.strategy ?? "smart",
-      compression: raw.compression !== false,
-      minChangesForIncremental: raw.minChangesForIncremental ?? 1,
-      smartBackup: raw.smartBackup !== false,
-      backupOnClose: raw.backupOnClose ?? false,
-      backupOnChanges: raw.backupOnChanges ?? false,
+      ...fallback,
+      ...parsed,
+      enabled: parsed.enabled === true,
+      intervalHours: intervals.includes(Number(parsed.intervalHours))
+        ? Number(parsed.intervalHours)
+        : 24,
+      maxSnapshots: Math.min(20, Math.max(1, Number(parsed.maxSnapshots) || fallback.maxSnapshots)),
+      strategy: (["full", "incremental", "smart"] as const).includes(parsed.strategy as never)
+        ? (parsed.strategy as AutoBackupSettings["strategy"])
+        : "full",
     };
   } catch {
-    return {
-      enabled: false,
-      intervalHours: 24,
-      maxSnapshots: 5,
-      strategy: "smart",
-      compression: true,
-      minChangesForIncremental: 1,
-      smartBackup: true,
-      backupOnClose: false,
-      backupOnChanges: false,
-    };
+    return fallback;
   }
 }
 
-/**
- * Set auto-backup settings
- */
-export function setAutoBackupSettings(settings: Partial<AutoBackupSettings>) {
-  try {
-    const current = getAutoBackupSettings();
-    const newSettings = { ...current, ...settings };
-    localStorage.setItem(AUTO_SETTINGS_KEY, JSON.stringify(newSettings));
-  } catch {
-    /* quota/storage unavailable */
+export function setAutoBackupSettings(settings: Partial<AutoBackupSettings>): AutoBackupSettings {
+  const next = { ...getAutoBackupSettings(), ...settings };
+  writeLocal(AUTO_SETTINGS_KEY, JSON.stringify(next));
+  return next;
+}
+
+export function isAutoBackupDue(
+  settings: AutoBackupSettings = getAutoBackupSettings(),
+  now = Date.now(),
+): boolean {
+  if (!settings.enabled) return false;
+  if (!settings.lastCreatedAt) return true;
+  return now - settings.lastCreatedAt >= settings.intervalHours * 3_600_000;
+}
+
+/** Removes every backup-owned localStorage key, including legacy leftovers. */
+export function clearAdvancedBackupArtifacts(): void {
+  for (const key of [
+    LAST_META_KEY,
+    AUTO_SNAPSHOTS_KEY,
+    AUTO_SETTINGS_KEY,
+    BACKUP_HISTORY_KEY,
+    BACKUP_HEALTH_KEY,
+    CLOUD_SYNC_KEY,
+    DEVICE_ID_KEY,
+    SYNC_STATE_KEY,
+  ]) {
+    dropLocal(key);
+  }
+  // Older builds parked full payloads here; make sure they are gone too.
+  for (const provider of ["github-gist", "webdav", "google-drive", "dropbox", "custom"]) {
+    dropLocal(`skillsync:backup:token:${provider}`);
   }
 }
 
-/**
- * Create automatic snapshot with advanced features
- */
-export async function createAdvancedAutomaticSnapshot(
-  data: AppData,
-  force = false,
-): Promise<BackupMeta | null> {
-  const settings = getAutoBackupSettings();
-  if (!settings.enabled && !force) return null;
-
-  // Check interval
-  if (!force && settings.lastCreatedAt) {
-    const timeSinceLast = Date.now() - settings.lastCreatedAt;
-    if (timeSinceLast < settings.intervalHours * 3600000) {
-      return null;
-    }
-  }
-
-  try {
-    // Determine strategy
-    let strategy: BackupStrategy["type"] = settings.strategy;
-    if (settings.smartBackup) {
-      // Compare against the most recent snapshot payload (BackupMeta alone
-      // does not carry the data envelope).
-      const lastSnapshot = getLastSnapshot();
-      if (lastSnapshot) {
-        try {
-          const previousData = resolveEnvelopeData(JSON.parse(lastSnapshot.text)?.data);
-          if (previousData) {
-            const changes = detectChanges(previousData, data);
-            const totalChanges = changes.reduce((sum, c) => sum + c.totalChanges, 0);
-
-            if (totalChanges >= settings.minChangesForIncremental) {
-              strategy = "incremental";
-            }
-          }
-        } catch {
-          // Snapshot unreadable: fall through to full backup
-        }
-      }
-    }
-
-    // Create backup based on strategy
-    let result;
-    if (strategy === "incremental") {
-      const lastBackup = getLastBackupMeta();
-      if (lastBackup) {
-        // This is a simplified version - in practice, we'd need the full backup data
-        result = await createAdvancedBackup(data, {
-          type: strategy,
-          compression: settings.compression,
-        });
-      } else {
-        // Fall back to full backup
-        result = await createAdvancedBackup(data, {
-          type: "full",
-          compression: settings.compression,
-        });
-      }
-    } else {
-      result = await createAdvancedBackup(data, {
-        type: strategy,
-        compression: settings.compression,
-      });
-    }
-
-    // Store snapshot
-    const snapshots: Array<{ text: string; meta: BackupMeta }> = JSON.parse(
-      localStorage.getItem(AUTO_SNAPSHOTS_KEY) ?? "[]",
-    );
-
-    snapshots.unshift({ text: result.text, meta: result.meta });
-
-    // Trim to max count
-    const trimmed = snapshots.slice(0, settings.maxSnapshots);
-
-    try {
-      localStorage.setItem(AUTO_SNAPSHOTS_KEY, JSON.stringify(trimmed));
-    } catch {
-      // Storage full: attempt storing only the single newest snapshot
-      try {
-        localStorage.setItem(
-          AUTO_SNAPSHOTS_KEY,
-          JSON.stringify([{ text: result.text, meta: result.meta }]),
-        );
-      } catch {
-        /* storage totally unavailable */
-      }
-    }
-
-    // Update settings
-    setAutoBackupSettings({ lastCreatedAt: result.meta.createdAt });
-
-    // Update last backup meta
-    setLastBackupMeta(result.meta);
-
-    // Add to history
-    addToBackupHistory({
-      backupId: result.meta.backupId,
-      createdAt: result.meta.createdAt,
-      type: "auto",
-      source: "local",
-      sizeBytes: result.meta.sizeBytes,
-      compressed: result.meta.compressed || false,
-      encrypted: result.meta.encrypted || false,
-      status: "complete",
-      notes: `Auto backup - ${strategy} strategy`,
-      tags: ["auto", strategy],
-    });
-
-    return result.meta;
-  } catch {
-    return null;
-  }
-}
-
-/**
- * Create safety snapshot before destructive operations
- */
-export async function createAdvancedSafetySnapshot(data: AppData): Promise<BackupMeta | null> {
-  try {
-    const result = await createAdvancedBackup(data, {
-      type: "full",
-      compression: true,
-    });
-
-    // Store as safety snapshot
-    const snapshots: Array<{ text: string; meta: BackupMeta }> = JSON.parse(
-      localStorage.getItem(AUTO_SNAPSHOTS_KEY) ?? "[]",
-    );
-
-    snapshots.unshift({ text: result.text, meta: result.meta });
-
-    try {
-      localStorage.setItem(
-        AUTO_SNAPSHOTS_KEY,
-        JSON.stringify(snapshots.slice(0, MAX_AUTO_SNAPSHOTS)),
-      );
-    } catch {
-      try {
-        localStorage.setItem(
-          AUTO_SNAPSHOTS_KEY,
-          JSON.stringify([{ text: result.text, meta: result.meta }]),
-        );
-      } catch {
-        /* storage totally unavailable */
-      }
-    }
-
-    // Add to history with special tag
-    addToBackupHistory({
-      backupId: result.meta.backupId,
-      createdAt: result.meta.createdAt,
-      type: "auto",
-      source: "local",
-      sizeBytes: result.meta.sizeBytes,
-      compressed: true,
-      encrypted: false,
-      status: "complete",
-      notes: "Safety snapshot before restore operation",
-      tags: ["safety", "pre-restore"],
-    });
-
-    return result.meta;
-  } catch {
-    return null;
-  }
-}
-
-/**
- * Get automatic snapshot count
- */
-export function getAdvancedAutomaticSnapshotCount(): number {
-  try {
-    return (JSON.parse(localStorage.getItem(AUTO_SNAPSHOTS_KEY) ?? "[]") as unknown[]).length;
-  } catch {
-    return 0;
-  }
-}
-
-/**
- * Get snapshot by index
- */
-export function getSnapshotByIndex(index: number): { text: string; meta: BackupMeta } | null {
-  try {
-    const snapshots: Array<{ text: string; meta: BackupMeta }> = JSON.parse(
-      localStorage.getItem(AUTO_SNAPSHOTS_KEY) ?? "[]",
-    );
-    return snapshots[index] || null;
-  } catch {
-    return null;
-  }
-}
-
-/**
- * Get the most recent automatic snapshot (index 0)
- */
-export function getLastSnapshot(): { text: string; meta: BackupMeta } | null {
-  return getSnapshotByIndex(0);
-}
-
-/**
- * Clear all backup artifacts
- */
-export function clearAdvancedBackupArtifacts() {
-  try {
-    localStorage.removeItem(LAST_META_KEY);
-    localStorage.removeItem(AUTO_SNAPSHOTS_KEY);
-    localStorage.removeItem(AUTO_SETTINGS_KEY);
-    localStorage.removeItem(BACKUP_HISTORY_KEY);
-    localStorage.removeItem(BACKUP_HEALTH_KEY);
-    localStorage.removeItem(CLOUD_SYNC_KEY);
-    localStorage.removeItem(DEVICE_ID_KEY);
-    localStorage.removeItem(SYNC_STATE_KEY);
-  } catch {
-    /* storage unavailable */
-  }
-}
+/** Alias kept so callers written against v3 keep compiling. */
+export const clearBackupArtifactsAdvanced = clearAdvancedBackupArtifacts;
 
 // ============================================================================
-// CLOUD SYNC (STUB - READY FOR IMPLEMENTATION)
+// CLOUD CONFIG + DEVICE
 // ============================================================================
 
-/**
- * Cloud sync configuration
- */
-export function getCloudBackupConfig(provider: CloudProvider = "google-drive"): CloudBackupConfig {
+function allCloudConfigs(): Record<string, CloudBackupConfig> {
+  const raw = readLocal(CLOUD_SYNC_KEY);
+  if (!raw) return {};
   try {
-    const allConfigs: Record<CloudProvider, CloudBackupConfig> = JSON.parse(
-      localStorage.getItem(CLOUD_SYNC_KEY) ?? "{}",
-    );
-    return (
-      allConfigs[provider] || {
-        provider,
-        enabled: false,
-        syncFrequency: "manual",
-        autoUpload: false,
-        autoDownload: false,
-        conflictResolution: "manual",
-      }
-    );
+    const parsed = JSON.parse(raw);
+    return parsed && typeof parsed === "object"
+      ? (parsed as Record<string, CloudBackupConfig>)
+      : {};
   } catch {
-    return {
-      provider,
-      enabled: false,
-      syncFrequency: "manual",
-      autoUpload: false,
-      autoDownload: false,
-      conflictResolution: "manual",
-    };
+    return {};
   }
 }
 
+export function defaultCloudConfig(provider: CloudProvider): CloudBackupConfig {
+  return {
+    provider,
+    enabled: false,
+    syncFrequency: "manual",
+    autoUpload: false,
+    autoDownload: false,
+    conflictResolution: "local-wins",
+  };
+}
+
 /**
- * Set cloud backup configuration
+ * Read a provider config. Tokens are NOT kept here — see `loadCloudToken` in
+ * cloud.ts, which stores them in IndexedDB instead of localStorage.
  */
+export function getCloudBackupConfig(provider: CloudProvider = "github-gist"): CloudBackupConfig {
+  const stored = allCloudConfigs()[provider];
+  if (!stored) return defaultCloudConfig(provider);
+  return { ...defaultCloudConfig(provider), ...stored, token: undefined };
+}
+
 export function setCloudBackupConfig(
-  config: Partial<CloudBackupConfig> & { provider: CloudBackupConfig["provider"] },
+  config: Partial<CloudBackupConfig> & { provider: CloudProvider },
 ): void {
-  try {
-    const allConfigs: Record<CloudProvider, CloudBackupConfig> = JSON.parse(
-      localStorage.getItem(CLOUD_SYNC_KEY) ?? "{}",
-    );
-    allConfigs[config.provider] = { ...getCloudBackupConfig(config.provider), ...config };
-    localStorage.setItem(CLOUD_SYNC_KEY, JSON.stringify(allConfigs));
-  } catch {
-    /* storage unavailable */
-  }
+  const all = allCloudConfigs();
+  const merged = { ...getCloudBackupConfig(config.provider), ...config };
+  // Strip the secret: it has its own (IndexedDB) home.
+  const { token: _token, ...persisted } = merged;
+  all[config.provider] = { ...persisted, token: undefined };
+  writeLocal(CLOUD_SYNC_KEY, JSON.stringify(all));
 }
 
-// ============================================================================
-// DEVICE MANAGEMENT
-// ============================================================================
+export function listCloudConfigs(): CloudBackupConfig[] {
+  const all = allCloudConfigs();
+  return (["github-gist", "webdav", "google-drive", "dropbox"] as CloudProvider[]).map(
+    (provider) => ({
+      ...getCloudBackupConfig(provider),
+      ...((all[provider] ?? {}) as CloudBackupConfig),
+    }),
+  );
+}
 
-/**
- * Get or create device ID
- */
 export function getDeviceId(): string {
-  try {
-    let deviceId = localStorage.getItem(DEVICE_ID_KEY);
-    if (!deviceId) {
-      deviceId = `device-${newId()}-${Date.now()}`;
-      localStorage.setItem(DEVICE_ID_KEY, deviceId);
-    }
-    return deviceId;
-  } catch {
-    return `device-${newId()}-${Date.now()}`;
-  }
+  const existing = readLocal(DEVICE_ID_KEY);
+  if (existing) return existing;
+  const created = `device-${newId()}`;
+  writeLocal(DEVICE_ID_KEY, created);
+  return created;
 }
 
-/**
- * Get device name
- */
 export function getDeviceName(): string {
-  if (typeof navigator !== "undefined") {
-    return navigator.userAgent || "Unknown Device";
-  }
-  return "Unknown Device";
+  if (typeof navigator === "undefined") return "Unknown device";
+  const ua = navigator.userAgent ?? "";
+  const match =
+    /Android\s([\d.]+)/.exec(ua) ??
+    /(?:iPhone|iPad|iPod).*?OS\s([\d_]+)/.exec(ua) ??
+    /(Windows NT [\d.]+)/.exec(ua) ??
+    /(Mac OS X)/.exec(ua) ??
+    /((?:X11|Linux).*)/.exec(ua);
+  if (match?.[1]) return match[1].replace(/_/g, ".").slice(0, 40);
+  return "This device";
 }
 
-/**
- * Get sync state
- */
 export function getSyncState(): SyncState {
+  const raw = readLocal(SYNC_STATE_KEY);
+  const base: SyncState = {
+    deviceId: getDeviceId(),
+    lastSyncAt: 0,
+    syncStatus: "idle",
+    provider: "none",
+    uploaded: 0,
+    downloaded: 0,
+  };
+  if (!raw) return base;
   try {
-    const raw = localStorage.getItem(SYNC_STATE_KEY);
-    return raw
-      ? JSON.parse(raw)
-      : {
-          deviceId: getDeviceId(),
-          lastSyncAt: 0,
-          syncStatus: "idle",
-          pendingChanges: [],
-          conflicts: [],
-          peerDevices: [],
-        };
+    return { ...base, ...(JSON.parse(raw) as Partial<SyncState>), deviceId: base.deviceId };
   } catch {
-    return {
-      deviceId: getDeviceId(),
-      lastSyncAt: 0,
-      syncStatus: "idle",
-      pendingChanges: [],
-      conflicts: [],
-      peerDevices: [],
-    };
+    return base;
   }
 }
 
-/**
- * Set sync state
- */
-export function setSyncState(state: Partial<SyncState>): void {
-  try {
-    const current = getSyncState();
-    const newState = { ...current, ...state };
-    localStorage.setItem(SYNC_STATE_KEY, JSON.stringify(newState));
-  } catch {
-    /* storage unavailable */
-  }
+export function setSyncState(state: Partial<SyncState>): SyncState {
+  const next = { ...getSyncState(), ...state };
+  writeLocal(SYNC_STATE_KEY, JSON.stringify(next));
+  return next;
 }
 
 // ============================================================================
-// UTILITY FUNCTIONS
+// FORMATTING
 // ============================================================================
 
-/**
- * Format bytes to human-readable string
- */
 export function formatBytes(n: number): string {
+  if (!Number.isFinite(n) || n <= 0) return "0 B";
   if (n < 1024) return `${n} B`;
   if (n < 1048576) return `${(n / 1024).toFixed(1)} KB`;
   if (n < 1073741824) return `${(n / 1048576).toFixed(2)} MB`;
   return `${(n / 1073741824).toFixed(2)} GB`;
 }
 
-/**
- * Format date
- */
 export function formatDate(ms: number): string {
   return new Date(ms).toLocaleDateString(undefined, {
     year: "numeric",
@@ -1922,86 +1573,19 @@ export function formatDate(ms: number): string {
   });
 }
 
-/**
- * Format time
- */
 export function formatTime(ms: number): string {
   return new Date(ms).toLocaleTimeString(undefined, { hour: "2-digit", minute: "2-digit" });
 }
 
-/**
- * Convert array buffer to base64
- */
-function arrayBufferToBase64(buffer: ArrayBuffer): string {
-  return btoa(new Uint8Array(buffer).reduce((data, byte) => data + String.fromCharCode(byte), ""));
-}
-
-/**
- * Convert base64 to array buffer
- */
-function base64ToArrayBuffer(base64: string): ArrayBuffer {
-  const binaryString = atob(base64);
-  const bytes = new Uint8Array(binaryString.length);
-  for (let i = 0; i < binaryString.length; i++) {
-    bytes[i] = binaryString.charCodeAt(i);
-  }
-  return bytes.buffer;
-}
-
-/**
- * Convert array buffer to hex
- */
-function arrayBufferToHex(buffer: ArrayBuffer): string {
-  return new Uint8Array(buffer).reduce((hex, byte) => hex + byte.toString(16).padStart(2, "0"), "");
-}
-
-/**
- * Get backup status based on age
- */
-export function getBackupStatus(meta: BackupMeta | null): {
-  tone: "none" | "green" | "yellow" | "red" | "critical";
-  label: string;
-  description: string;
-} {
-  if (!meta)
-    return {
-      tone: "none",
-      label: "No backup available",
-      description: "Create your first backup to protect your data",
-    };
-
-  const ageHours = (Date.now() - meta.createdAt) / 3600000;
-  const ageDays = ageHours / 24;
-
-  if (ageDays < 1) {
-    return {
-      tone: "green",
-      label: "Backup is up to date",
-      description: `Created ${formatDate(meta.createdAt)} at ${formatTime(meta.createdAt)}`,
-    };
-  } else if (ageDays < 7) {
-    return {
-      tone: "green",
-      label: "Backup is recent",
-      description: `${Math.round(ageDays)} days old`,
-    };
-  } else if (ageDays < 30) {
-    return {
-      tone: "yellow",
-      label: "Backup is getting old",
-      description: `${Math.round(ageDays)} days old`,
-    };
-  } else if (ageDays < 90) {
-    return {
-      tone: "red",
-      label: "Backup is old",
-      description: `${Math.round(ageDays)} days old`,
-    };
-  } else {
-    return {
-      tone: "critical",
-      label: "Backup is very old",
-      description: `${Math.round(ageDays)} days old - at risk!`,
-    };
-  }
+/** "just now" / "14 min ago" / "3 h ago" / "Mar 4" — one helper for every list. */
+export function formatRelative(ms: number, now = Date.now()): string {
+  const diff = Math.max(0, now - ms);
+  const mins = Math.floor(diff / 60_000);
+  if (mins < 1) return "just now";
+  if (mins < 60) return `${mins} min ago`;
+  const hours = Math.round(mins / 60);
+  if (hours < 24) return `${hours} h ago`;
+  const days = Math.round(hours / 24);
+  if (days < 7) return `${days} d ago`;
+  return formatDate(ms);
 }
