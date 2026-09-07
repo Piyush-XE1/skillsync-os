@@ -1,6 +1,6 @@
 /**
  * Advanced Backup Section Component
- * 
+ *
  * Features:
  * - Enhanced backup creation with compression & encryption
  * - Cloud backup integration
@@ -11,21 +11,18 @@
  * - Storage optimization
  */
 
-import { useMemo, useRef, useState, useEffect } from "react";
+import { useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
 import { haptics } from "@/lib/haptics";
 import { sound } from "@/lib/sound";
 import {
   Download,
   Upload,
-  Info,
   RotateCcw,
   ShieldCheck,
   ShieldAlert,
   ShieldX,
   Share2,
-  Save,
-  Package,
   Clock,
   AlertTriangle,
   ChevronRight,
@@ -34,45 +31,45 @@ import {
   Settings,
   Cloud,
   Database,
-  Heart,
   Trash2,
   RefreshCw,
   Search,
-  Filter,
   MoreVertical,
-  Lock,
   Zap,
-  Users,
-  Sync,
-  Wifi,
-  HardDrive,
-  GitFork,
   FileText,
-  Folder,
   X,
-  Plus,
-  Edit3,
-  Eye,
-  BarChart3,
-  Activity,
   AlertCircle,
-  Check,
-  XCircle
 } from "lucide-react";
 import { Card, Chip, SectionHeader, Button } from "@/components/ui/primitives";
 import { errorMessage } from "@/lib/utils";
 import { BottomSheet } from "@/components/edit/Sheet";
 import { Switch } from "@/components/ui/switch";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Progress } from "@/components/ui/progress";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 
-import { useAdvancedBackup, useAutoBackup, useCloudBackup, useBackupHealth, useBackupStorage } from "@/hooks/use-advanced-backup";
-import { AppDataSchema, type AppData } from "@/lib/schema";
-import { APP_VERSION } from "@/lib/version";
+import {
+  useAdvancedBackup,
+  useAutoBackup,
+  useCloudBackup,
+  useBackupHealth,
+  useBackupStorage,
+} from "@/hooks/use-advanced-backup";
+import {
+  type ValidBackup,
+  type CloudBackupConfig,
+  type CloudProvider,
+} from "@/lib/backup/advanced-backup";
+import { type CloudProviderInterface } from "@/lib/backup/cloud-backup";
 import { saveBackupFile, shareBackupFile } from "@/lib/platform-files";
 
 // ============================================================================
@@ -80,21 +77,21 @@ import { saveBackupFile, shareBackupFile } from "@/lib/platform-files";
 // ============================================================================
 
 type BackupCardProps = {
-  backup: any;
-  onRestore: (backup: any) => void;
+  backup: ValidBackup;
+  onRestore: (backup: ValidBackup) => void;
   onDelete: (backupId: string) => void;
-  onShare: (backup: any) => void;
-  onDownload: (backup: any) => void;
+  onShare: (backup: ValidBackup) => void;
+  onDownload: (backup: ValidBackup) => void;
 };
 
 type HealthIndicatorProps = {
-  status: 'healthy' | 'warning' | 'critical' | 'unknown';
+  status: "healthy" | "warning" | "critical" | "unknown";
   score: number;
 };
 
 type CloudProviderCardProps = {
-  provider: any;
-  config: any;
+  provider: CloudProviderInterface;
+  config: CloudBackupConfig;
   onToggle: (provider: string, enabled: boolean) => void;
   onAuthenticate: (provider: string) => void;
 };
@@ -123,7 +120,7 @@ export function AdvancedBackupSection({ onRequestReset }: { onRequestReset: () =
   const [backupOptions, setBackupOptions] = useState({
     compression: true,
     encryption: false,
-    strategy: 'full' as 'full' | 'incremental' | 'smart'
+    strategy: "full" as "full" | "incremental" | "smart",
   });
 
   const restoreFileRef = useRef<HTMLInputElement>(null);
@@ -138,18 +135,18 @@ export function AdvancedBackupSection({ onRequestReset }: { onRequestReset: () =
         compression: backupOptions.compression,
         encryption: backupOptions.encryption,
         password: backupOptions.encryption ? encryptionPassword : undefined,
-        strategy: backupOptions.strategy
+        strategy: backupOptions.strategy,
       });
-      
+
       haptics.success();
       sound.success();
       toast.success("Backup created successfully");
-      
+
       // Reset options
       setBackupOptions({
         compression: true,
         encryption: false,
-        strategy: 'full'
+        strategy: "full",
       });
       setEncryptionPassword("");
       setConfirmPassword("");
@@ -162,7 +159,7 @@ export function AdvancedBackupSection({ onRequestReset }: { onRequestReset: () =
     }
   };
 
-  const handleSaveBackup = async (destination: 'download' | 'share' | 'cloud') => {
+  const handleSaveBackup = async (destination: "download" | "share" | "cloud") => {
     await backup.saveCreatedBackup(destination);
   };
 
@@ -180,14 +177,14 @@ export function AdvancedBackupSection({ onRequestReset }: { onRequestReset: () =
   };
 
   const handleCloudToggle = async (provider: string, enabled: boolean) => {
-    await backup.toggleCloudBackup(provider as any, enabled);
+    await backup.toggleCloudBackup(provider as CloudProvider, enabled);
   };
 
   const handleCloudAuthenticate = async (provider: string) => {
-    await backup.authenticateCloud(provider as any);
+    await backup.authenticateCloud(provider as CloudProvider);
   };
 
-  const handleSync = async (direction?: 'upload' | 'download' | 'both') => {
+  const handleSync = async (direction?: "upload" | "download" | "both") => {
     await backup.syncWithCloud(direction);
   };
 
@@ -205,9 +202,10 @@ export function AdvancedBackupSection({ onRequestReset }: { onRequestReset: () =
 
   const filteredBackups = useMemo(() => {
     if (!searchQuery) return backup.backups;
-    return backup.backups.filter(b => 
-      b.backupId.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      new Date(b.meta.createdAt).toLocaleDateString().includes(searchQuery)
+    return backup.backups.filter(
+      (b) =>
+        b.backupId.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        new Date(b.meta.createdAt).toLocaleDateString().includes(searchQuery),
     );
   }, [backup.backups, searchQuery]);
 
@@ -264,24 +262,44 @@ export function AdvancedBackupSection({ onRequestReset }: { onRequestReset: () =
         <div className="flex items-start gap-3">
           <HealthIndicator status={health.healthStatus} score={health.healthScore} />
           <div className="min-w-0 flex-1">
-            <div className="text-[13.5px] font-semibold tracking-tight">{backup.backupStatus.label}</div>
+            <div className="text-[13.5px] font-semibold tracking-tight">
+              {backup.backupStatus.label}
+            </div>
             <div className="mt-2 grid grid-cols-2 gap-x-3 gap-y-1.5 text-[11.5px] text-muted-foreground">
               <MetaLine k="Date" v={new Date(lastBackup.meta.createdAt).toLocaleDateString()} />
               <MetaLine k="Time" v={new Date(lastBackup.meta.createdAt).toLocaleTimeString()} />
               <MetaLine k="Size" v={formatBytes(lastBackup.meta.sizeBytes)} />
-              <MetaLine k="Records" v={String(lastBackup.meta.recordCounts ? Object.values(lastBackup.meta.recordCounts).reduce((a: number, b: number) => a + b, 0) : 0)} />
+              <MetaLine
+                k="Records"
+                v={String(
+                  lastBackup.meta.recordCounts
+                    ? Object.values(lastBackup.meta.recordCounts).reduce(
+                        (a: number, b: number) => a + b,
+                        0,
+                      )
+                    : 0,
+                )}
+              />
               <MetaLine k="Version" v={`v${lastBackup.meta.backupVersion}`} />
               <MetaLine k="Compressed" v={lastBackup.meta.compressed ? "Yes" : "No"} />
             </div>
           </div>
         </div>
-        
+
         {health.healthIssues.length > 0 && (
           <div className="mt-3 flex flex-wrap gap-1">
-            {health.healthIssues.map(issue => (
+            {health.healthIssues.map((issue) => (
               <Tooltip key={issue.id}>
                 <TooltipTrigger asChild>
-                  <Chip variant={issue.severity === 'critical' ? 'danger' : issue.severity === 'high' ? 'warning' : 'secondary'}>
+                  <Chip
+                    tone={
+                      issue.severity === "critical"
+                        ? "danger"
+                        : issue.severity === "high"
+                          ? "warning"
+                          : "default"
+                    }
+                  >
                     {issue.message}
                   </Chip>
                 </TooltipTrigger>
@@ -289,7 +307,9 @@ export function AdvancedBackupSection({ onRequestReset }: { onRequestReset: () =
                   <div className="text-[12px]">
                     <div className="font-semibold">{issue.type}</div>
                     <div>{issue.message}</div>
-                    {issue.fixable && <div className="text-muted-foreground">Fix: {issue.fixAction}</div>}
+                    {issue.fixable && (
+                      <div className="text-muted-foreground">Fix: {issue.fixAction}</div>
+                    )}
                   </div>
                 </TooltipContent>
               </Tooltip>
@@ -359,17 +379,37 @@ export function AdvancedBackupSection({ onRequestReset }: { onRequestReset: () =
         </Card>
       ) : (
         <div className="space-y-2">
-          {filteredBackups.map((backup) => (
+          {filteredBackups.map((entry) => (
             <BackupCard
-              key={backup.backupId}
-              backup={backup}
-              onRestore={handleRestoreFromHistory}
+              key={entry.backupId}
+              backup={entry}
+              onRestore={(b) => handleRestoreFromHistory(b.backupId)}
               onDelete={(id) => setShowDeleteConfirm(id)}
               onShare={async (b) => {
-                await backup.saveCreatedBackup('share');
+                const result = await shareBackupFile({
+                  filename: `SkillSync-Backup-${b.backupId.slice(0, 8)}.json`,
+                  text: JSON.stringify(b, null, 2),
+                  mimeType: "application/json",
+                });
+                if (result.status === "shared") {
+                  toast.success("Backup shared");
+                } else if (result.status === "fallback-download") {
+                  toast("File sharing unavailable - backup downloaded");
+                } else if (result.status !== "cancelled") {
+                  toast.error(result.message || "Failed to share backup");
+                }
               }}
               onDownload={async (b) => {
-                await backup.saveCreatedBackup('download');
+                const result = await saveBackupFile({
+                  filename: `SkillSync-Backup-${b.backupId.slice(0, 8)}.json`,
+                  text: JSON.stringify(b, null, 2),
+                  mimeType: "application/json",
+                });
+                if (result.status === "saved" || result.status === "fallback-download") {
+                  toast.success(`Backup saved: SkillSync-Backup-${b.backupId.slice(0, 8)}.json`);
+                } else if (result.status !== "cancelled") {
+                  toast.error(result.message || "Failed to save backup");
+                }
               }}
             />
           ))}
@@ -393,9 +433,9 @@ export function AdvancedBackupSection({ onRequestReset }: { onRequestReset: () =
             <HealthIndicator status={health.healthStatus} score={health.healthScore} small />
           </div>
         </div>
-        
+
         <Progress value={health.healthScore} max={100} className="mt-3 h-2" />
-        
+
         <div className="mt-4 grid grid-cols-2 gap-3">
           <div className="rounded-xl border border-white/[0.05] bg-white/[0.02] p-3">
             <div className="text-[11px] uppercase tracking-wider text-muted-foreground">Status</div>
@@ -405,9 +445,7 @@ export function AdvancedBackupSection({ onRequestReset }: { onRequestReset: () =
           </div>
           <div className="rounded-xl border border-white/[0.05] bg-white/[0.02] p-3">
             <div className="text-[11px] uppercase tracking-wider text-muted-foreground">Issues</div>
-            <div className="mt-1 text-[13px] font-semibold">
-              {health.healthIssues.length}
-            </div>
+            <div className="mt-1 text-[13px] font-semibold">{health.healthIssues.length}</div>
           </div>
         </div>
       </div>
@@ -418,10 +456,18 @@ export function AdvancedBackupSection({ onRequestReset }: { onRequestReset: () =
           {health.healthIssues.map((issue, index) => (
             <div
               key={issue.id}
-              className={`rounded-xl border border-${issue.severity === 'critical' ? 'red' : issue.severity === 'high' ? 'amber' : 'white'}-500/20 bg-${issue.severity === 'critical' ? 'red' : issue.severity === 'high' ? 'amber' : 'white'}/[0.05] p-3`}
+              className={
+                issue.severity === "critical"
+                  ? "rounded-xl border border-red-500/20 bg-red-500/[0.05] p-3"
+                  : issue.severity === "high"
+                    ? "rounded-xl border border-amber-500/20 bg-amber-500/[0.05] p-3"
+                    : "rounded-xl border border-white/[0.05] bg-white/[0.05] p-3"
+              }
             >
               <div className="flex items-start gap-2">
-                <span className={`text-[10px] font-bold uppercase ${issue.severity === 'critical' ? 'text-red-400' : issue.severity === 'high' ? 'text-amber-400' : 'text-yellow-400'}`}>
+                <span
+                  className={`text-[10px] font-bold uppercase ${issue.severity === "critical" ? "text-red-400" : issue.severity === "high" ? "text-amber-400" : "text-yellow-400"}`}
+                >
                   {issue.severity}
                 </span>
                 <div className="min-w-0 flex-1">
@@ -462,22 +508,24 @@ export function AdvancedBackupSection({ onRequestReset }: { onRequestReset: () =
             </p>
           </div>
           <div className="text-right">
-            <div className="text-[14px] font-semibold">
-              {storage.quotaUsed}%
-            </div>
-            <div className="text-[11px] text-muted-foreground">
-              of quota
-            </div>
+            <div className="text-[14px] font-semibold">{storage.quotaUsed}%</div>
+            <div className="text-[11px] text-muted-foreground">of quota</div>
           </div>
         </div>
-        
-        <Progress 
-          value={storage.quotaUsed} 
-          max={100} 
+
+        <Progress
+          value={storage.quotaUsed}
+          max={100}
           className="mt-3 h-2"
-          indicatorClassName={`bg-${storage.quotaUsed > 80 ? 'red' : storage.quotaUsed > 60 ? 'amber' : 'emerald'}-500`}
+          indicatorClassName={
+            storage.quotaUsed > 80
+              ? "bg-red-500"
+              : storage.quotaUsed > 60
+                ? "bg-amber-500"
+                : "bg-emerald-500"
+          }
         />
-        
+
         <div className="mt-4 flex gap-2">
           <Button
             variant="outline"
@@ -506,7 +554,8 @@ export function AdvancedBackupSection({ onRequestReset }: { onRequestReset: () =
           <div>
             <div className="text-[13px] font-semibold text-[var(--danger)]">Storage Over Quota</div>
             <p className="text-[12px] text-muted-foreground mt-1">
-              Your backup storage is {storage.quotaUsed}% full. Consider cleaning up old backups or enabling cloud storage.
+              Your backup storage is {storage.quotaUsed}% full. Consider cleaning up old backups or
+              enabling cloud storage.
             </p>
           </div>
         </div>
@@ -528,7 +577,7 @@ export function AdvancedBackupSection({ onRequestReset }: { onRequestReset: () =
             <SelectValue placeholder="Select provider" />
           </SelectTrigger>
           <SelectContent>
-            {cloudBackup.cloudProviders.map(provider => (
+            {cloudBackup.cloudProviders.map((provider) => (
               <SelectItem key={provider.name} value={provider.name}>
                 <div className="flex items-center gap-2">
                   <span className={`h-5 w-5 rounded-full bg-[${provider.color}]`} />
@@ -541,7 +590,7 @@ export function AdvancedBackupSection({ onRequestReset }: { onRequestReset: () =
       </div>
 
       <div className="grid gap-3">
-        {cloudBackup.cloudProviders.map(provider => {
+        {cloudBackup.cloudProviders.map((provider) => {
           const config = cloudBackup.getProviderConfig(provider.name);
           return (
             <CloudProviderCard
@@ -561,33 +610,31 @@ export function AdvancedBackupSection({ onRequestReset }: { onRequestReset: () =
             <div>
               <div className="text-[13.5px] font-semibold">Sync Status</div>
               <p className="text-[12px] text-muted-foreground mt-1">
-                {cloudBackup.isSyncing ? 'Syncing...' : 'Idle'}
+                {cloudBackup.isSyncing ? "Syncing..." : "Idle"}
               </p>
             </div>
-            <Button
-              size="sm"
-              onClick={() => handleSync()}
-              disabled={cloudBackup.isSyncing}
-            >
+            <Button size="sm" onClick={() => handleSync()} disabled={cloudBackup.isSyncing}>
               {cloudBackup.isSyncing ? (
                 <Loader2 className="h-3.5 w-3.5 animate-spin" />
               ) : (
-                <Sync className="h-3.5 w-3.5 mr-1" />
+                <RefreshCw className="h-3.5 w-3.5 mr-1" />
               )}
               Sync Now
             </Button>
           </div>
-          
+
           {cloudBackup.isSyncing && (
             <div className="mt-3">
               <Progress value={cloudBackup.syncProgress} max={100} className="h-2" />
             </div>
           )}
-          
+
           {cloudBackup.syncErrors.length > 0 && (
             <div className="mt-3 flex flex-wrap gap-1">
               {cloudBackup.syncErrors.map((error, index) => (
-                <Chip key={index} variant="danger">{error}</Chip>
+                <Chip key={index} tone="danger">
+                  {error}
+                </Chip>
               ))}
             </div>
           )}
@@ -612,7 +659,7 @@ export function AdvancedBackupSection({ onRequestReset }: { onRequestReset: () =
             onCheckedChange={autoBackup.toggleAutoBackup}
           />
         </div>
-        
+
         {autoBackup.settings.enabled && (
           <div className="mt-4 space-y-3">
             <div className="grid grid-cols-2 gap-3">
@@ -655,7 +702,7 @@ export function AdvancedBackupSection({ onRequestReset }: { onRequestReset: () =
                 </Select>
               </div>
             </div>
-            
+
             <div className="flex gap-2">
               <Button variant="outline" size="sm" onClick={autoBackup.testBackup}>
                 <Zap className="h-3.5 w-3.5 mr-1" />
@@ -673,38 +720,38 @@ export function AdvancedBackupSection({ onRequestReset }: { onRequestReset: () =
       {/* Backup strategy settings */}
       <div className="rounded-2xl border border-white/[0.06] bg-white/[0.02] p-4">
         <div className="text-[13.5px] font-semibold mb-3">Backup Strategy</div>
-        
+
         <div className="space-y-2">
           <Label className="flex items-center gap-2 cursor-pointer">
             <input
               type="radio"
               name="strategy"
-              checked={backupOptions.strategy === 'full'}
-              onChange={() => setBackupOptions({...backupOptions, strategy: 'full'})}
+              checked={backupOptions.strategy === "full"}
+              onChange={() => setBackupOptions({ ...backupOptions, strategy: "full" })}
               className="accent-violet-500"
             />
             <span className="text-[12.5px]">Full Backup</span>
             <span className="text-[11px] text-muted-foreground">Complete snapshot of all data</span>
           </Label>
-          
+
           <Label className="flex items-center gap-2 cursor-pointer">
             <input
               type="radio"
               name="strategy"
-              checked={backupOptions.strategy === 'incremental'}
-              onChange={() => setBackupOptions({...backupOptions, strategy: 'incremental'})}
+              checked={backupOptions.strategy === "incremental"}
+              onChange={() => setBackupOptions({ ...backupOptions, strategy: "incremental" })}
               className="accent-violet-500"
             />
             <span className="text-[12.5px]">Incremental Backup</span>
             <span className="text-[11px] text-muted-foreground">Only changed data</span>
           </Label>
-          
+
           <Label className="flex items-center gap-2 cursor-pointer">
             <input
               type="radio"
               name="strategy"
-              checked={backupOptions.strategy === 'smart'}
-              onChange={() => setBackupOptions({...backupOptions, strategy: 'smart'})}
+              checked={backupOptions.strategy === "smart"}
+              onChange={() => setBackupOptions({ ...backupOptions, strategy: "smart" })}
               className="accent-violet-500"
             />
             <span className="text-[12.5px]">Smart Backup</span>
@@ -716,22 +763,24 @@ export function AdvancedBackupSection({ onRequestReset }: { onRequestReset: () =
       {/* Compression & Encryption */}
       <div className="rounded-2xl border border-white/[0.06] bg-white/[0.02] p-4">
         <div className="text-[13.5px] font-semibold mb-3">Advanced Options</div>
-        
+
         <div className="space-y-3">
           <Label className="flex items-center justify-between cursor-pointer">
             <span className="text-[12.5px]">Enable Compression</span>
             <Switch
               checked={backupOptions.compression}
-              onCheckedChange={(checked) => setBackupOptions({...backupOptions, compression: checked})}
+              onCheckedChange={(checked) =>
+                setBackupOptions({ ...backupOptions, compression: checked })
+              }
             />
           </Label>
-          
+
           <Label className="flex items-center justify-between cursor-pointer">
             <span className="text-[12.5px]">Enable Encryption</span>
             <Switch
               checked={backupOptions.encryption}
               onCheckedChange={(checked) => {
-                setBackupOptions({...backupOptions, encryption: checked});
+                setBackupOptions({ ...backupOptions, encryption: checked });
                 if (checked) {
                   setShowEncryptionDialog(true);
                 }
@@ -746,7 +795,7 @@ export function AdvancedBackupSection({ onRequestReset }: { onRequestReset: () =
         <button
           onClick={() => {
             backup.clearBackupArtifacts();
-            toast.success('Backup artifacts cleared');
+            toast.success("Backup artifacts cleared");
           }}
           className="flex w-full items-center gap-3 rounded-2xl border border-[var(--danger)]/20 bg-[var(--danger)]/[0.05] px-4 py-3.5 text-left transition-colors active:scale-[0.98]"
         >
@@ -857,17 +906,23 @@ export function AdvancedBackupSection({ onRequestReset }: { onRequestReset: () =
               <input
                 type="checkbox"
                 checked={backupOptions.compression}
-                onChange={(e) => setBackupOptions({...backupOptions, compression: e.target.checked})}
+                onChange={(e) =>
+                  setBackupOptions({ ...backupOptions, compression: e.target.checked })
+                }
                 className="accent-violet-500"
               />
-              <span className="text-[12.5px]">Compress backup (recommended for large datasets)</span>
+              <span className="text-[12.5px]">
+                Compress backup (recommended for large datasets)
+              </span>
             </Label>
 
             <Label className="flex items-center gap-2 cursor-pointer">
               <input
                 type="checkbox"
                 checked={backupOptions.encryption}
-                onChange={(e) => setBackupOptions({...backupOptions, encryption: e.target.checked})}
+                onChange={(e) =>
+                  setBackupOptions({ ...backupOptions, encryption: e.target.checked })
+                }
                 className="accent-violet-500"
               />
               <span className="text-[12.5px]">Encrypt backup with password</span>
@@ -888,16 +943,23 @@ export function AdvancedBackupSection({ onRequestReset }: { onRequestReset: () =
                   onChange={(e) => setConfirmPassword(e.target.value)}
                   placeholder="Confirm password"
                 />
-                {encryptionPassword && confirmPassword && encryptionPassword !== confirmPassword && (
-                  <p className="text-[11px] text-[var(--danger)]">Passwords do not match</p>
-                )}
+                {encryptionPassword &&
+                  confirmPassword &&
+                  encryptionPassword !== confirmPassword && (
+                    <p className="text-[11px] text-[var(--danger)]">Passwords do not match</p>
+                  )}
               </div>
             )}
 
             <Label className="text-[12px] font-medium mt-4">Backup Strategy</Label>
             <Select
               value={backupOptions.strategy}
-              onValueChange={(v) => setBackupOptions({...backupOptions, strategy: v as 'full' | 'incremental' | 'smart'})}
+              onValueChange={(v) =>
+                setBackupOptions({
+                  ...backupOptions,
+                  strategy: v as "full" | "incremental" | "smart",
+                })
+              }
             >
               <SelectTrigger>
                 <SelectValue placeholder="Select strategy" />
@@ -920,7 +982,11 @@ export function AdvancedBackupSection({ onRequestReset }: { onRequestReset: () =
             </Button>
             <Button
               onClick={handleCreateBackup}
-              disabled={backup.isCreating || (backupOptions.encryption && (!encryptionPassword || encryptionPassword !== confirmPassword))}
+              disabled={
+                backup.isCreating ||
+                (backupOptions.encryption &&
+                  (!encryptionPassword || encryptionPassword !== confirmPassword))
+              }
               className="flex-1 gradient-primary"
             >
               {backup.isCreating ? (
@@ -939,7 +1005,7 @@ export function AdvancedBackupSection({ onRequestReset }: { onRequestReset: () =
       {/* Save Backup Sheet */}
       <BottomSheet
         open={backup.createdBackup !== null}
-        onClose={() => backup.saveCreatedBackup('download')}
+        onClose={() => backup.saveCreatedBackup("download")}
         title="Backup Ready"
       >
         {backup.createdBackup && (
@@ -955,27 +1021,27 @@ export function AdvancedBackupSection({ onRequestReset }: { onRequestReset: () =
 
             <div className="grid grid-cols-3 gap-2">
               <StatBox k="Size" v={formatBytes(backup.createdBackup.meta.sizeBytes)} />
-              <StatBox k="Date" v={new Date(backup.createdBackup.meta.createdAt).toLocaleDateString()} />
+              <StatBox
+                k="Date"
+                v={new Date(backup.createdBackup.meta.createdAt).toLocaleDateString()}
+              />
               <StatBox k="Version" v={`v${backup.createdBackup.meta.backupVersion}`} />
             </div>
 
             <div className="grid grid-cols-3 gap-2">
               <Button
-                onClick={() => backup.saveCreatedBackup('download')}
+                onClick={() => backup.saveCreatedBackup("download")}
                 className="gradient-primary"
               >
                 <Download className="h-4 w-4 mr-1" />
                 Download
               </Button>
-              <Button
-                onClick={() => backup.saveCreatedBackup('share')}
-                variant="outline"
-              >
+              <Button onClick={() => backup.saveCreatedBackup("share")} variant="outline">
                 <Share2 className="h-4 w-4 mr-1" />
                 Share
               </Button>
               <Button
-                onClick={() => backup.saveCreatedBackup('cloud')}
+                onClick={() => backup.saveCreatedBackup("cloud")}
                 variant="outline"
                 disabled={!cloudBackup.activeProvider}
               >
@@ -1022,17 +1088,10 @@ export function AdvancedBackupSection({ onRequestReset }: { onRequestReset: () =
             )}
 
             <div className="flex gap-2">
-              <Button
-                onClick={backup.cancelRestore}
-                variant="outline"
-                className="flex-1"
-              >
+              <Button onClick={backup.cancelRestore} variant="outline" className="flex-1">
                 Cancel
               </Button>
-              <Button
-                onClick={() => setState(prev => ({ ...prev, restoreStep: 2 }))}
-                className="flex-1 gradient-primary"
-              >
+              <Button onClick={() => backup.setRestoreStep(2)} className="flex-1 gradient-primary">
                 Continue
               </Button>
             </div>
@@ -1050,17 +1109,13 @@ export function AdvancedBackupSection({ onRequestReset }: { onRequestReset: () =
           <div className="flex items-start gap-3 rounded-2xl border border-[var(--danger)]/20 bg-[var(--danger)]/[0.06] p-3">
             <AlertTriangle className="h-4 w-4 text-[var(--danger)] shrink-0" />
             <p className="text-[12.5px] leading-relaxed text-muted-foreground">
-              Are you sure you want to restore this backup? Your current workspace will be
-              replaced with the backup data. A safety snapshot will be created before restore.
+              Are you sure you want to restore this backup? Your current workspace will be replaced
+              with the backup data. A safety snapshot will be created before restore.
             </p>
           </div>
 
           <div className="flex gap-2">
-            <Button
-              onClick={backup.cancelRestore}
-              variant="outline"
-              className="flex-1"
-            >
+            <Button onClick={backup.cancelRestore} variant="outline" className="flex-1">
               Cancel
             </Button>
             <Button
@@ -1096,11 +1151,7 @@ export function AdvancedBackupSection({ onRequestReset }: { onRequestReset: () =
           </div>
 
           <div className="flex gap-2">
-            <Button
-              onClick={() => setShowDeleteConfirm(null)}
-              variant="outline"
-              className="flex-1"
-            >
+            <Button onClick={() => setShowDeleteConfirm(null)} variant="outline" className="flex-1">
               Cancel
             </Button>
             <Button
@@ -1125,7 +1176,7 @@ export function AdvancedBackupSection({ onRequestReset }: { onRequestReset: () =
           </p>
 
           <div className="space-y-2">
-            {cloudBackup.cloudProviders.map(provider => {
+            {cloudBackup.cloudProviders.map((provider) => {
               const config = cloudBackup.getProviderConfig(provider.name);
               return (
                 <CloudProviderCard
@@ -1156,33 +1207,45 @@ export function AdvancedBackupSection({ onRequestReset }: { onRequestReset: () =
 // HELPER COMPONENTS
 // ============================================================================
 
-function HealthIndicator({ status, score, small = false }: HealthIndicatorProps & { small?: boolean }) {
+function HealthIndicator({
+  status,
+  score,
+  small = false,
+}: HealthIndicatorProps & { small?: boolean }) {
   const size = small ? "h-6 w-6" : "h-11 w-11";
   const iconSize = small ? "h-3 w-3" : "h-5 w-5";
-  
+
   if (status === "healthy") {
     return (
-      <span className={`flex ${size} shrink-0 items-center justify-center rounded-2xl bg-emerald-400/15 text-emerald-300`}>
+      <span
+        className={`flex ${size} shrink-0 items-center justify-center rounded-2xl bg-emerald-400/15 text-emerald-300`}
+      >
         <ShieldCheck className={iconSize} strokeWidth={1.75} />
       </span>
     );
   }
   if (status === "warning") {
     return (
-      <span className={`flex ${size} shrink-0 items-center justify-center rounded-2xl bg-amber-400/15 text-amber-300`}>
+      <span
+        className={`flex ${size} shrink-0 items-center justify-center rounded-2xl bg-amber-400/15 text-amber-300`}
+      >
         <ShieldAlert className={iconSize} strokeWidth={1.75} />
       </span>
     );
   }
   if (status === "critical") {
     return (
-      <span className={`flex ${size} shrink-0 items-center justify-center rounded-2xl bg-[var(--danger)]/15 text-[var(--danger)]`}>
+      <span
+        className={`flex ${size} shrink-0 items-center justify-center rounded-2xl bg-[var(--danger)]/15 text-[var(--danger)]`}
+      >
         <ShieldX className={iconSize} strokeWidth={1.75} />
       </span>
     );
   }
   return (
-    <span className={`flex ${size} shrink-0 items-center justify-center rounded-2xl bg-white/[0.04] text-muted-foreground`}>
+    <span
+      className={`flex ${size} shrink-0 items-center justify-center rounded-2xl bg-white/[0.04] text-muted-foreground`}
+    >
       <Clock className={iconSize} strokeWidth={1.75} />
     </span>
   );
@@ -1242,7 +1305,7 @@ function ActionCard({
 
 function BackupCard({ backup, onRestore, onDelete, onShare, onDownload }: BackupCardProps) {
   const [showActions, setShowActions] = useState(false);
-  
+
   return (
     <Card className="relative p-3">
       <div className="flex items-start gap-3">
@@ -1251,13 +1314,11 @@ function BackupCard({ backup, onRestore, onDelete, onShare, onDownload }: Backup
             <FileText className="h-5 w-5 text-muted-foreground" />
           </div>
         </div>
-        
+
         <div className="min-w-0 flex-1">
           <div className="flex items-center justify-between">
             <div>
-              <div className="text-[13px] font-semibold">
-                SkillSync Backup
-              </div>
+              <div className="text-[13px] font-semibold">SkillSync Backup</div>
               <div className="text-[11px] text-muted-foreground">
                 {backup.meta.backupId.slice(0, 8)}...
               </div>
@@ -1266,26 +1327,17 @@ function BackupCard({ backup, onRestore, onDelete, onShare, onDownload }: Backup
               {new Date(backup.meta.createdAt).toLocaleDateString()}
             </div>
           </div>
-          
+
           <div className="mt-2 flex flex-wrap gap-1">
-            <Chip variant="secondary">
-              {formatBytes(backup.meta.sizeBytes)}
-            </Chip>
-            <Chip variant="secondary">
-              {backup.meta.compressed ? "Compressed" : "Uncompressed"}
-            </Chip>
-            {backup.meta.encrypted && <Chip variant="secondary">Encrypted</Chip>}
-            {backup.meta.incremental && <Chip variant="secondary">Incremental</Chip>}
+            <Chip tone="default">{formatBytes(backup.meta.sizeBytes)}</Chip>
+            <Chip tone="default">{backup.meta.compressed ? "Compressed" : "Uncompressed"}</Chip>
+            {backup.meta.encrypted && <Chip tone="default">Encrypted</Chip>}
+            {backup.meta.incremental && <Chip tone="default">Incremental</Chip>}
           </div>
         </div>
-        
+
         <div className="flex items-center gap-1">
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={() => onRestore(backup)}
-            className="h-8 w-8"
-          >
+          <Button variant="ghost" size="icon" onClick={() => onRestore(backup)} className="h-8 w-8">
             <Upload className="h-4 w-4" />
           </Button>
           <Button
@@ -1296,10 +1348,10 @@ function BackupCard({ backup, onRestore, onDelete, onShare, onDownload }: Backup
           >
             <MoreVertical className="h-4 w-4" />
           </Button>
-          
+
           {showActions && (
             <>
-              <div 
+              <div
                 className="absolute right-0 top-full mt-1 w-40 rounded-xl border border-white/[0.08] bg-white/[0.04] p-2 shadow-lg backdrop-blur-lg"
                 onClick={(e) => e.stopPropagation()}
               >
@@ -1351,24 +1403,24 @@ function BackupCard({ backup, onRestore, onDelete, onShare, onDownload }: Backup
 function CloudProviderCard({ provider, config, onToggle, onAuthenticate }: CloudProviderCardProps) {
   const isEnabled = config.enabled;
   const isAuthenticated = false; // Would check auth status in real implementation
-  
+
   return (
     <Card className="p-3">
       <div className="flex items-center gap-3">
-        <div 
+        <div
           className="flex h-10 w-10 items-center justify-center rounded-xl"
           style={{ backgroundColor: provider.color }}
         >
           <span className="text-white text-[14px] font-bold">{provider.icon}</span>
         </div>
-        
+
         <div className="min-w-0 flex-1">
           <div className="text-[13px] font-semibold">{provider.displayName}</div>
           <div className="text-[11px] text-muted-foreground">
             {isAuthenticated ? "Connected" : "Not connected"}
           </div>
         </div>
-        
+
         <div className="flex items-center gap-2">
           {isAuthenticated ? (
             <Switch
@@ -1376,10 +1428,7 @@ function CloudProviderCard({ provider, config, onToggle, onAuthenticate }: Cloud
               onCheckedChange={(checked) => onToggle(provider.name, checked)}
             />
           ) : (
-            <Button
-              size="sm"
-              onClick={() => onAuthenticate(provider.name)}
-            >
+            <Button size="sm" onClick={() => onAuthenticate(provider.name)}>
               Connect
             </Button>
           )}
@@ -1399,9 +1448,3 @@ function formatBytes(n: number): string {
   if (n < 1073741824) return `${(n / 1048576).toFixed(2)} MB`;
   return `${(n / 1073741824).toFixed(2)} GB`;
 }
-
-// ============================================================================
-// EXPORT
-// ============================================================================
-
-export { AdvancedBackupSection };

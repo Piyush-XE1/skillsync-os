@@ -1,6 +1,6 @@
 import { useEffect, type ReactNode } from "react";
 import { cn } from "@/lib/utils";
-import { createAutomaticSnapshot } from "@/lib/backup";
+import { createAutomaticSnapshot } from "@/lib/backup-legacy";
 import { useAppStore } from "@/store/useAppStore";
 import { BottomNav } from "./BottomNav";
 import { SideNav } from "./SideNav";

@@ -1,15 +1,15 @@
 /**
  * SkillSync Backup & Restore System - Main Entry Point
- * 
+ *
  * This file exports all backup-related functionality from both
  * the legacy system and the new advanced system.
- * 
+ *
  * For new projects, use the advanced backup system:
  * - createAdvancedBackup()
  * - validateAdvancedBackup()
  * - restoreAdvancedBackup()
  * - useAdvancedBackup() hook
- * 
+ *
  * For backward compatibility, the legacy functions are still available:
  * - serializeBackup()
  * - validateBackup()
@@ -24,11 +24,7 @@
 export {
   // Constants
   BACKUP_VERSION,
-  LAST_META_KEY,
-  AUTO_SETTINGS_KEY,
-  AUTO_SNAPSHOTS_KEY,
-  MAX_AUTO_SNAPSHOTS,
-  
+
   // Types
   type BackupMeta,
   type BackupEnvelope,
@@ -36,8 +32,7 @@ export {
   type BackupSummary,
   type BackupStatus,
   type AutoBackupSettings,
-  type BackupHealth,
-  
+
   // Functions
   serializeBackup,
   validateBackup,
@@ -56,7 +51,7 @@ export {
   createAutomaticSnapshot,
   getAutomaticSnapshotCount,
   createSafetySnapshot,
-} from './backup';
+} from "../backup-legacy";
 
 // ============================================================================
 // ADVANCED BACKUP SYSTEM (recommended)
@@ -77,7 +72,7 @@ export {
   MAX_BACKUP_HISTORY,
   MAX_SNAPSHOT_SIZE,
   COMPRESSION_THRESHOLD,
-  
+
   // Types
   type BackupMeta as AdvancedBackupMeta,
   type BackupEnvelope as AdvancedBackupEnvelope,
@@ -94,21 +89,21 @@ export {
   type BackupHistoryEntry,
   type ChangeLogEntry,
   type ModuleChangeSummary,
-  
+
   // Core backup functions
   createAdvancedBackup,
   createIncrementalBackup,
   validateAdvancedBackup,
   validateEncryptedBackup,
   restoreAdvancedBackup,
-  
+
   // Data utilities
   detectChanges,
   extractChangedData,
   applyIncrementalChanges,
   countRecords,
   getBackupSummary,
-  
+
   // Backup management
   getBackupHistory,
   addToBackupHistory,
@@ -121,32 +116,21 @@ export {
   getAdvancedAutomaticSnapshotCount,
   getSnapshotByIndex,
   clearAdvancedBackupArtifacts,
-  
+
   // Health monitoring
   analyzeBackupHealth,
   getBackupStatus as getAdvancedBackupStatus,
-  
+
   // Device management
   getDeviceId,
   getDeviceName,
   getSyncState,
   setSyncState,
-  
-  // Cloud backup
+
+  // Cloud backup (config helpers; managers/factory come from './cloud-backup' below)
   getCloudBackupConfig,
   setCloudBackupConfig,
-  cloudProviderFactory,
-  cloudSyncManager,
-  
-  // Storage
-  indexedDBManager,
-  backupStorage,
-  backupQueue,
-  backupCache,
-  determineStorageStrategy,
-  getStorageRecommendation,
-  canStoreBackup,
-  
+
   // Utility functions
   formatBytes as advancedFormatBytes,
   formatDate,
@@ -155,10 +139,10 @@ export {
   verifyChecksum,
   encryptData,
   decryptData,
-} from './advanced-backup';
+} from "./advanced-backup";
 
 // Re-export everything from advanced-backup as the primary API
-export * from './advanced-backup';
+export * from "./advanced-backup";
 
 // ============================================================================
 // BACKUP STORAGE SYSTEM
@@ -167,24 +151,24 @@ export * from './advanced-backup';
 export {
   // IndexedDB Manager
   indexedDBManager,
-  
+
   // Backup Storage
   backupStorage,
-  
+
   // Backup Queue
   backupQueue,
-  
+
   // Backup Cache
   backupCache,
-  
+
   // Types
   type StorageStrategy,
-  
+
   // Functions
   determineStorageStrategy,
   getStorageRecommendation,
   canStoreBackup,
-} from './backup-storage';
+} from "./backup-storage";
 
 // ============================================================================
 // CLOUD BACKUP SYSTEM
@@ -193,24 +177,24 @@ export {
 export {
   // Cloud Backup Manager
   CloudBackupManager,
-  
+
   // Cloud Sync Manager
   cloudSyncManager,
-  
+
   // Cloud Provider Factory
   cloudProviderFactory,
-  
+
   // Provider Classes
   GoogleDriveProvider,
   DropboxProvider,
   GitHubGistProvider,
   CustomProvider,
-  
+
   // Types
   type CloudProviderInterface,
   type CloudProvider as CloudProviderType,
   type CloudBackupConfig as CloudBackupConfigType,
-} from './cloud-backup';
+} from "./cloud-backup";
 
 // ============================================================================
 // REACT HOOKS
@@ -222,11 +206,10 @@ export {
   useCloudBackup,
   useBackupHealth,
   useBackupStorage,
-  
   type UseBackupOptions,
   type BackupState,
   type BackupActions,
-} from '@/hooks/use-advanced-backup';
+} from "@/hooks/use-advanced-backup";
 
 // ============================================================================
 // PLATFORM FILES (existing)
@@ -237,4 +220,4 @@ export {
   shareBackupFile,
   platformCapabilities,
   type FileOperation,
-} from './platform-files';
+} from "../platform-files";

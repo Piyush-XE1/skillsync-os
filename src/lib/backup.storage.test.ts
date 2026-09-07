@@ -6,7 +6,7 @@ import {
   clearBackupArtifacts,
   createAutomaticSnapshot,
   getAutomaticSnapshotCount,
-} from "@/lib/backup";
+} from "@/lib/backup-legacy";
 import { createInitialData } from "@/lib/seed";
 
 const LAST_META_KEY = "skillsync:backup:lastMeta";
