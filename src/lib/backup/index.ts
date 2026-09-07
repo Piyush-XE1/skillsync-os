@@ -11,8 +11,10 @@
  *                      Drive, Dropbox) + OAuth helpers.
  * - `../store/useBackupStore` the single state + actions + auto scheduler.
  *
- * `backup-legacy` (one level up) stays exported only so the older `Profile →
- * Export` helper and its tests keep working; new code must not import it.
+ * There is deliberately no second entry point: `src/lib/backup-legacy.ts` and
+ * the other older copies of this feature are gone, so anything that says
+ * "backup" in the app goes through these four modules. Keep it that way — two
+ * systems agreeing on nothing is what this rewrite removed.
  */
 
 export {
