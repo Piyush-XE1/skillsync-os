@@ -14,7 +14,7 @@ import { AppShell } from "@/components/layout/AppShell";
 import { Card, Chip, SectionHeader } from "@/components/ui/primitives";
 import { useAppStore, useHydrated } from "@/store/useAppStore";
 import { systemSnapshot } from "@/lib/system-info";
-import { formatBytes } from "@/lib/backup-legacy";
+import { formatBytes } from "@/lib/backup/advanced-backup";
 
 export const Route = createFileRoute("/profile/system")({
   head: () => ({

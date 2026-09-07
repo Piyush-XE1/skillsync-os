@@ -7,7 +7,7 @@ import { ArrowLeft, AlertTriangle } from "lucide-react";
 import { AppShell } from "@/components/layout/AppShell";
 import { BottomSheet } from "@/components/edit/Sheet";
 import { TextField } from "@/components/edit/Fields";
-import { AdvancedBackupSection } from "@/components/profile/BackupSection.advanced";
+import { BackupSection } from "@/components/profile/BackupSection";
 import { useAppStore } from "@/store/useAppStore";
 
 export const Route = createFileRoute("/profile/backup")({
@@ -70,7 +70,7 @@ function BackupPage() {
       </header>
 
       <div className="space-y-6 px-5 lg:px-2 pb-24">
-        <AdvancedBackupSection onRequestReset={() => setStep(1)} />
+        <BackupSection onRequestReset={() => setStep(1)} />
       </div>
 
       <BottomSheet open={step === 1} onClose={() => setStep(0)} title="Wipe everything?">

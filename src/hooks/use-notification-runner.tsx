@@ -1,7 +1,7 @@
 import { useEffect } from "react";
 import { useNavigate } from "@tanstack/react-router";
 import { useAppStore } from "@/store/useAppStore";
-import { getLastBackupMeta } from "@/lib/backup-legacy";
+import { getLastBackupMeta } from "@/lib/backup/advanced-backup";
 import { buildDueCandidates, isQuietHours } from "@/lib/notifications/engine";
 import { getAdapter } from "@/lib/notifications/adapter";
 import { getPermission, refreshPermission } from "@/lib/notifications/permission";

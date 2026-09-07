@@ -38,7 +38,8 @@ import { useShallow } from "zustand/react/shallow";
 import { STORAGE_KEY, toAppData, useAppStore, useHydrated } from "@/store/useAppStore";
 import { BACKGROUND_OPTIONS, type BackgroundStyle } from "@/components/layout/backgrounds";
 import { ACCENT_PRESETS, defaultAccentFor, safeAccent } from "@/lib/accent";
-import { formatBytes } from "@/lib/backup-legacy";
+import { formatBytes, formatRelative, getBackupStatus } from "@/lib/backup/advanced-backup";
+import { useBackupStore } from "@/store/useBackupStore";
 import { APP_VERSION } from "@/lib/version";
 import { haptics, hapticsSupported, type HapticIntensity } from "@/lib/haptics";
 import { SOUND_CUES, previewSound, sound, soundSupported, type SoundCue } from "@/lib/sound";
@@ -100,6 +101,8 @@ async function fileToResizedDataUrl(file: File, max = 256): Promise<string> {
 
 function ProfilePage() {
   const hydrated = useHydrated();
+  const lastBackupMeta = useBackupStore((s) => s.lastMeta);
+  const backupStatus = getBackupStatus(lastBackupMeta);
   const profile = useAppStore((s) => s.profile);
   const preferences = useAppStore((s) => s.preferences);
   const stats = useAppStore((s) => s.stats);
@@ -496,13 +499,28 @@ function ProfilePage() {
             to="/profile/backup"
             className="card-surface flex items-center gap-3 p-4 transition-all active:scale-[0.98]"
           >
-            <div className="flex h-11 w-11 items-center justify-center rounded-2xl gradient-primary">
+            <div className="relative flex h-11 w-11 items-center justify-center rounded-2xl gradient-primary">
               <Save className="h-5 w-5 text-white" strokeWidth={1.75} />
+              <span
+                aria-hidden
+                className={
+                  "absolute -right-0.5 -top-0.5 h-2.5 w-2.5 rounded-full border-2 border-[var(--surface)] " +
+                  (backupStatus.tone === "green"
+                    ? "bg-emerald-400"
+                    : backupStatus.tone === "yellow"
+                      ? "bg-amber-400"
+                      : backupStatus.tone === "red"
+                        ? "bg-[var(--danger)]"
+                        : "bg-zinc-500")
+                }
+              />
             </div>
             <div className="min-w-0 flex-1">
               <div className="text-[14px] font-semibold tracking-tight">Backup &amp; Restore</div>
-              <div className="text-[12px] text-muted-foreground">
-                Snapshots, restores and reset controls
+              <div className="truncate text-[12px] text-muted-foreground">
+                {lastBackupMeta
+                  ? `${backupStatus.label} · ${formatRelative(lastBackupMeta.createdAt)}`
+                  : "Nothing saved yet — make the first copy"}
               </div>
             </div>
             <ChevronRight className="h-4 w-4 text-muted-foreground/60" />
