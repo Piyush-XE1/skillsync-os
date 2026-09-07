@@ -1,3 +1,22 @@
+/**
+ * Legacy Backup System
+ * 
+ * This file contains the original backup system for backward compatibility.
+ * For new features, please use the advanced backup system in:
+ * - @/lib/backup/advanced-backup.ts
+ * - @/lib/backup/backup-storage.ts
+ * - @/lib/backup/cloud-backup.ts
+ * 
+ * The advanced system includes:
+ * - Compression
+ * - Encryption
+ * - Incremental backups
+ * - Cloud integration
+ * - Health monitoring
+ * - Storage optimization
+ * - Multi-device sync
+ */
+
 import { AppDataSchema, type AppData } from "./schema";
 import { migrate } from "./migrations";
 import { errorMessage } from "./utils";
