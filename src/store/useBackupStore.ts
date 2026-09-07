@@ -573,7 +573,7 @@ export const useBackupStore = create<BackupState & BackupActions>((set, get) => 
           name: meta.name,
           createdAt: Date.parse(backup.createdAt) || Date.now(),
           sizeBytes: backup.sizeBytes,
-          records: Object.values(backup.meta.recordCounts).reduce((a, b) => a + b, 0),
+          records: Object.values(backup.meta.recordCounts ?? {}).reduce((a, b) => a + b, 0),
           encrypted: backup.encrypted === true,
           compressed: backup.compressed === true,
           incremental: backup.incremental === true,
@@ -598,7 +598,7 @@ export const useBackupStore = create<BackupState & BackupActions>((set, get) => 
         pendingRestore: {
           ...pending,
           createdAt: Date.parse(result.backup.createdAt) || pending.createdAt,
-          records: Object.values(result.backup.meta.recordCounts).reduce((a, b) => a + b, 0),
+          records: Object.values(result.backup.meta.recordCounts ?? {}).reduce((a, b) => a + b, 0),
           encrypted: true,
           warnings: result.warnings,
           data: result.backup.data as AppData,
