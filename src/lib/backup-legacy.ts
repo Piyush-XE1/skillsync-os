@@ -1,12 +1,12 @@
 /**
  * Legacy Backup System
- * 
+ *
  * This file contains the original backup system for backward compatibility.
  * For new features, please use the advanced backup system in:
  * - @/lib/backup/advanced-backup.ts
  * - @/lib/backup/backup-storage.ts
  * - @/lib/backup/cloud-backup.ts
- * 
+ *
  * The advanced system includes:
  * - Compression
  * - Encryption

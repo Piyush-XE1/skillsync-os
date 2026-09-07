@@ -1,6 +1,6 @@
 /**
  * Advanced Backup Storage System
- * 
+ *
  * Features:
  * - IndexedDB for large backup storage
  * - LocalStorage fallback
@@ -17,21 +17,21 @@ import {
   CloudProvider,
   CloudBackupConfig,
   getDeviceId,
-  formatBytes
-} from './advanced-backup';
+  formatBytes,
+} from "./advanced-backup";
 
 // ============================================================================
 // INDEXEDDB STORAGE MANAGER
 // ============================================================================
 
-const DB_NAME = 'SkillSyncBackups';
+const DB_NAME = "SkillSyncBackups";
 const DB_VERSION = 1;
 
 // Store names
-const BACKUP_STORE = 'backups';
-const METADATA_STORE = 'metadata';
-const CLOUD_STORE = 'cloudBackups';
-const HISTORY_STORE = 'history';
+const BACKUP_STORE = "backups";
+const METADATA_STORE = "metadata";
+const CLOUD_STORE = "cloudBackups";
+const HISTORY_STORE = "history";
 
 interface BackupDBEntry {
   id: string; // backupId
@@ -70,31 +70,31 @@ class IndexedDBManager {
       };
       request.onupgradeneeded = (event) => {
         const db = request.result;
-        
+
         // Create stores
         if (!db.objectStoreNames.contains(BACKUP_STORE)) {
-          const store = db.createObjectStore(BACKUP_STORE, { keyPath: 'id' });
-          store.createIndex('createdAt', 'createdAt', { unique: false });
-          store.createIndex('updatedAt', 'updatedAt', { unique: false });
-          store.createIndex('tags', 'tags', { unique: false, multiEntry: true });
+          const store = db.createObjectStore(BACKUP_STORE, { keyPath: "id" });
+          store.createIndex("createdAt", "createdAt", { unique: false });
+          store.createIndex("updatedAt", "updatedAt", { unique: false });
+          store.createIndex("tags", "tags", { unique: false, multiEntry: true });
         }
-        
+
         if (!db.objectStoreNames.contains(METADATA_STORE)) {
-          const store = db.createObjectStore(METADATA_STORE, { keyPath: 'id' });
-          store.createIndex('type', 'type', { unique: false });
+          const store = db.createObjectStore(METADATA_STORE, { keyPath: "id" });
+          store.createIndex("type", "type", { unique: false });
         }
-        
+
         if (!db.objectStoreNames.contains(CLOUD_STORE)) {
-          const store = db.createObjectStore(CLOUD_STORE, { keyPath: 'id' });
-          store.createIndex('provider', 'provider', { unique: false });
-          store.createIndex('uploadedAt', 'uploadedAt', { unique: false });
+          const store = db.createObjectStore(CLOUD_STORE, { keyPath: "id" });
+          store.createIndex("provider", "provider", { unique: false });
+          store.createIndex("uploadedAt", "uploadedAt", { unique: false });
         }
-        
+
         if (!db.objectStoreNames.contains(HISTORY_STORE)) {
-          const store = db.createObjectStore(HISTORY_STORE, { keyPath: 'id' });
-          store.createIndex('backupId', 'backupId', { unique: true });
-          store.createIndex('createdAt', 'createdAt', { unique: false });
-          store.createIndex('type', 'type', { unique: false });
+          const store = db.createObjectStore(HISTORY_STORE, { keyPath: "id" });
+          store.createIndex("backupId", "backupId", { unique: true });
+          store.createIndex("createdAt", "createdAt", { unique: false });
+          store.createIndex("type", "type", { unique: false });
         }
       };
     });
@@ -112,18 +112,18 @@ class IndexedDBManager {
   // Backup storage operations
   async storeBackup(backup: ValidBackup, tags: string[] = []): Promise<string> {
     const db = await this.ensureOpen();
-    
+
     return new Promise((resolve, reject) => {
-      const transaction = db.transaction(BACKUP_STORE, 'readwrite');
+      const transaction = db.transaction(BACKUP_STORE, "readwrite");
       const store = transaction.objectStore(BACKUP_STORE);
 
       const entry: BackupDBEntry = {
         id: backup.backupId,
-        data: backup.text,
+        data: JSON.stringify(backup),
         meta: backup.meta,
         createdAt: Date.now(),
         updatedAt: Date.now(),
-        tags
+        tags,
       };
 
       const request = store.put(entry);
@@ -134,9 +134,9 @@ class IndexedDBManager {
 
   async getBackup(backupId: string): Promise<BackupDBEntry | null> {
     const db = await this.ensureOpen();
-    
+
     return new Promise((resolve) => {
-      const transaction = db.transaction(BACKUP_STORE, 'readonly');
+      const transaction = db.transaction(BACKUP_STORE, "readonly");
       const store = transaction.objectStore(BACKUP_STORE);
 
       const request = store.get(backupId);
@@ -147,9 +147,9 @@ class IndexedDBManager {
 
   async deleteBackup(backupId: string): Promise<boolean> {
     const db = await this.ensureOpen();
-    
+
     return new Promise((resolve) => {
-      const transaction = db.transaction(BACKUP_STORE, 'readwrite');
+      const transaction = db.transaction(BACKUP_STORE, "readwrite");
       const store = transaction.objectStore(BACKUP_STORE);
 
       const request = store.delete(backupId);
@@ -158,62 +158,64 @@ class IndexedDBManager {
     });
   }
 
-  async listBackups(options: {
-    limit?: number;
-    offset?: number;
-    sortBy?: 'createdAt' | 'updatedAt';
-    sortOrder?: 'asc' | 'desc';
-    tags?: string[];
-  } = {}): Promise<BackupDBEntry[]> {
+  async listBackups(
+    options: {
+      limit?: number;
+      offset?: number;
+      sortBy?: "createdAt" | "updatedAt";
+      sortOrder?: "asc" | "desc";
+      tags?: string[];
+    } = {},
+  ): Promise<BackupDBEntry[]> {
     const db = await this.ensureOpen();
-    const {
-      limit = 50,
-      offset = 0,
-      sortBy = 'createdAt',
-      sortOrder = 'desc',
-      tags = []
-    } = options;
-    
+    const { limit = 50, offset = 0, sortBy = "createdAt", sortOrder = "desc", tags = [] } = options;
+
     return new Promise((resolve) => {
-      const transaction = db.transaction(BACKUP_STORE, 'readonly');
+      const transaction = db.transaction(BACKUP_STORE, "readonly");
       const store = transaction.objectStore(BACKUP_STORE);
-      
-      let index = store.index(sortBy);
+
+      const index = store.index(sortBy);
       let range: IDBKeyRange | undefined;
-      
+
       if (tags.length > 0) {
         // For tag filtering, we need a different approach
         const results: BackupDBEntry[] = [];
-        const tagRequests = tags.map(tag => {
+        const tagRequests = tags.map((tag) => {
           return new Promise<BackupDBEntry[]>((tagResolve) => {
-            const tagIndex = store.index('tags');
+            const tagIndex = store.index("tags");
             const tagRange = IDBKeyRange.only(tag);
             const tagRequest = tagIndex.getAll(tagRange);
             tagRequest.onsuccess = () => tagResolve(tagRequest.result || []);
             tagRequest.onerror = () => tagResolve([]);
           });
         });
-        
+
         Promise.all(tagRequests).then((tagResults) => {
           const allResults = tagResults.flat();
-          const uniqueResults = Array.from(new Map(allResults.map(r => [r.id, r])).values());
-          resolve(uniqueResults.sort((a, b) => {
-            const aVal = a[sortBy as keyof BackupDBEntry] as number;
-            const bVal = b[sortBy as keyof BackupDBEntry] as number;
-            return sortOrder === 'desc' ? bVal - aVal : aVal - bVal;
-          }).slice(offset, offset + limit));
+          const uniqueResults = Array.from(new Map(allResults.map((r) => [r.id, r])).values());
+          resolve(
+            uniqueResults
+              .sort((a, b) => {
+                const aVal = a[sortBy as keyof BackupDBEntry] as number;
+                const bVal = b[sortBy as keyof BackupDBEntry] as number;
+                return sortOrder === "desc" ? bVal - aVal : aVal - bVal;
+              })
+              .slice(offset, offset + limit),
+          );
         });
-        
+
         return;
       }
-      
+
       const request = index.getAll();
       request.onsuccess = () => {
-        const results = (request.result as BackupDBEntry[]).sort((a, b) => {
-          const aVal = a[sortBy as keyof BackupDBEntry] as number;
-          const bVal = b[sortBy as keyof BackupDBEntry] as number;
-          return sortOrder === 'desc' ? bVal - aVal : aVal - bVal;
-        }).slice(offset, offset + limit);
+        const results = (request.result as BackupDBEntry[])
+          .sort((a, b) => {
+            const aVal = a[sortBy as keyof BackupDBEntry] as number;
+            const bVal = b[sortBy as keyof BackupDBEntry] as number;
+            return sortOrder === "desc" ? bVal - aVal : aVal - bVal;
+          })
+          .slice(offset, offset + limit);
         resolve(results);
       };
       request.onerror = () => resolve([]);
@@ -222,9 +224,9 @@ class IndexedDBManager {
 
   async getBackupCount(): Promise<number> {
     const db = await this.ensureOpen();
-    
+
     return new Promise((resolve) => {
-      const transaction = db.transaction(BACKUP_STORE, 'readonly');
+      const transaction = db.transaction(BACKUP_STORE, "readonly");
       const store = transaction.objectStore(BACKUP_STORE);
       const request = store.count();
       request.onsuccess = () => resolve(request.result as number);
@@ -234,12 +236,12 @@ class IndexedDBManager {
 
   async getTotalStorageSize(): Promise<number> {
     const db = await this.ensureOpen();
-    
+
     return new Promise((resolve) => {
-      const transaction = db.transaction(BACKUP_STORE, 'readonly');
+      const transaction = db.transaction(BACKUP_STORE, "readonly");
       const store = transaction.objectStore(BACKUP_STORE);
       const request = store.getAll();
-      
+
       request.onsuccess = () => {
         const entries = request.result as BackupDBEntry[];
         const totalSize = entries.reduce((sum, entry) => {
@@ -255,23 +257,23 @@ class IndexedDBManager {
   async storeCloudBackup(
     backup: ValidBackup,
     provider: CloudProvider,
-    checksum: string
+    checksum: string,
   ): Promise<string> {
     const db = await this.ensureOpen();
     const id = `${provider}:${backup.backupId}:${Date.now()}`;
-    
+
     return new Promise((resolve, reject) => {
-      const transaction = db.transaction(CLOUD_STORE, 'readwrite');
+      const transaction = db.transaction(CLOUD_STORE, "readwrite");
       const store = transaction.objectStore(CLOUD_STORE);
 
       const entry: CloudBackupDBEntry = {
         id,
         provider,
-        data: backup.text,
+        data: JSON.stringify(backup),
         meta: backup.meta,
         uploadedAt: Date.now(),
         syncedAt: Date.now(),
-        checksum
+        checksum,
       };
 
       const request = store.put(entry);
@@ -282,9 +284,9 @@ class IndexedDBManager {
 
   async getCloudBackup(id: string): Promise<CloudBackupDBEntry | null> {
     const db = await this.ensureOpen();
-    
+
     return new Promise((resolve) => {
-      const transaction = db.transaction(CLOUD_STORE, 'readonly');
+      const transaction = db.transaction(CLOUD_STORE, "readonly");
       const store = transaction.objectStore(CLOUD_STORE);
       const request = store.get(id);
       request.onsuccess = () => resolve(request.result || null);
@@ -294,19 +296,15 @@ class IndexedDBManager {
 
   async listCloudBackups(provider?: CloudProvider): Promise<CloudBackupDBEntry[]> {
     const db = await this.ensureOpen();
-    
+
     return new Promise((resolve) => {
-      const transaction = db.transaction(CLOUD_STORE, 'readonly');
+      const transaction = db.transaction(CLOUD_STORE, "readonly");
       const store = transaction.objectStore(CLOUD_STORE);
-      
-      let index = provider 
-        ? store.index('provider')
-        : store;
-      
-      let range = provider 
-        ? IDBKeyRange.only(provider)
-        : undefined;
-      
+
+      const index = provider ? store.index("provider") : store;
+
+      const range = provider ? IDBKeyRange.only(provider) : undefined;
+
       const request = index.getAll(range);
       request.onsuccess = () => resolve((request.result as CloudBackupDBEntry[]) || []);
       request.onerror = () => resolve([]);
@@ -317,9 +315,9 @@ class IndexedDBManager {
   async storeHistoryEntry(entry: BackupHistoryEntry): Promise<string> {
     const db = await this.ensureOpen();
     const id = `${entry.backupId}:${entry.createdAt}`;
-    
+
     return new Promise((resolve, reject) => {
-      const transaction = db.transaction(HISTORY_STORE, 'readwrite');
+      const transaction = db.transaction(HISTORY_STORE, "readwrite");
       const store = transaction.objectStore(HISTORY_STORE);
 
       const historyEntry = { ...entry, id };
@@ -331,19 +329,21 @@ class IndexedDBManager {
 
   async getHistoryEntries(limit: number = 50): Promise<BackupHistoryEntry[]> {
     const db = await this.ensureOpen();
-    
+
     return new Promise((resolve) => {
-      const transaction = db.transaction(HISTORY_STORE, 'readonly');
+      const transaction = db.transaction(HISTORY_STORE, "readonly");
       const store = transaction.objectStore(HISTORY_STORE);
-      const index = store.index('createdAt');
+      const index = store.index("createdAt");
       const request = index.getAll(IDBKeyRange.upperBound(Date.now()));
-      
+
       request.onsuccess = () => {
-        const results = (request.result as any[]) || [];
-        resolve(results
-          .sort((a, b) => b.createdAt - a.createdAt)
-          .slice(0, limit)
-          .map(({ id, ...rest }) => rest));
+        const results = (request.result as Array<BackupHistoryEntry & { id: string }>) || [];
+        resolve(
+          results
+            .sort((a, b) => b.createdAt - a.createdAt)
+            .slice(0, limit)
+            .map(({ id, ...rest }) => rest),
+        );
       };
       request.onerror = () => resolve([]);
     });
@@ -353,16 +353,16 @@ class IndexedDBManager {
   async cleanupOldBackups(maxAgeHours: number = 720): Promise<number> {
     const db = await this.ensureOpen();
     const cutoff = Date.now() - maxAgeHours * 3600000;
-    
+
     return new Promise((resolve) => {
-      const transaction = db.transaction(BACKUP_STORE, 'readwrite');
+      const transaction = db.transaction(BACKUP_STORE, "readwrite");
       const store = transaction.objectStore(BACKUP_STORE);
-      const index = store.index('createdAt');
+      const index = store.index("createdAt");
       const range = IDBKeyRange.upperBound(cutoff);
-      
+
       let deletedCount = 0;
       const request = index.openCursor(range);
-      
+
       request.onsuccess = () => {
         const cursor = request.result;
         if (cursor) {
@@ -382,23 +382,23 @@ class IndexedDBManager {
 
   async cleanupLargeBackups(maxSizeBytes: number = 100 * 1024 * 1024): Promise<number> {
     const db = await this.ensureOpen();
-    
+
     return new Promise((resolve) => {
-      const transaction = db.transaction(BACKUP_STORE, 'readwrite');
+      const transaction = db.transaction(BACKUP_STORE, "readwrite");
       const store = transaction.objectStore(BACKUP_STORE);
       const request = store.getAll();
-      
+
       request.onsuccess = () => {
         const entries = (request.result as BackupDBEntry[]) || [];
         let deletedCount = 0;
-        
+
         const deletePromises = entries
-          .filter(entry => entry.data.length > maxSizeBytes)
+          .filter((entry) => entry.data.length > maxSizeBytes)
           .map(async (entry) => {
             const deleteResult = await this.deleteBackup(entry.id);
             if (deleteResult) deletedCount++;
           });
-        
+
         Promise.all(deletePromises).then(() => resolve(deletedCount));
       };
       request.onerror = () => resolve(0);
@@ -414,15 +414,15 @@ class IndexedDBManager {
     isOverQuota: boolean;
   }> {
     const db = await this.ensureOpen();
-    
+
     // Get database usage
     const used = await this.getTotalStorageSize();
-    
+
     // Estimate available storage (browser dependent)
     let available = 0;
     let total = 0;
-    
-    if (typeof navigator !== 'undefined' && navigator.storage && navigator.storage.estimate) {
+
+    if (typeof navigator !== "undefined" && navigator.storage && navigator.storage.estimate) {
       try {
         const estimate = await navigator.storage.estimate();
         available = estimate.quota || 0;
@@ -436,34 +436,34 @@ class IndexedDBManager {
       available = 500 * 1024 * 1024;
       total = used;
     }
-    
+
     const percentageUsed = Math.round((used / (available || 1)) * 100);
     const isOverQuota = percentageUsed > 80;
-    
+
     return {
       used,
       available,
       total,
       percentageUsed,
-      isOverQuota
+      isOverQuota,
     };
   }
 
   // Clear all data
   async clearAll(): Promise<void> {
     const db = await this.ensureOpen();
-    
+
     return new Promise((resolve, reject) => {
       const transaction = db.transaction(
         [BACKUP_STORE, METADATA_STORE, CLOUD_STORE, HISTORY_STORE],
-        'readwrite'
+        "readwrite",
       );
-      
+
       const stores = [BACKUP_STORE, METADATA_STORE, CLOUD_STORE, HISTORY_STORE];
       let completed = 0;
       const errors: Error[] = [];
-      
-      stores.forEach(storeName => {
+
+      stores.forEach((storeName) => {
         const store = transaction.objectStore(storeName);
         const request = store.clear();
         request.onsuccess = () => {
@@ -477,7 +477,7 @@ class IndexedDBManager {
           }
         };
         request.onerror = () => {
-          errors.push(request.error);
+          errors.push(request.error ?? new Error("Unknown IndexedDB error"));
           completed++;
           if (completed === stores.length) {
             reject(errors[0]);
@@ -499,7 +499,7 @@ export const indexedDBManager = new IndexedDBManager();
  * Storage strategy based on data size and browser capabilities
  */
 export type StorageStrategy = {
-  name: 'localStorage' | 'indexedDB' | 'cloud' | 'hybrid';
+  name: "localStorage" | "indexedDB" | "cloud" | "hybrid";
   priority: number;
   maxSize: number;
   description: string;
@@ -510,49 +510,49 @@ export type StorageStrategy = {
  */
 export function determineStorageStrategy(sizeBytes: number): StorageStrategy {
   // Check browser support
-  const supportsIndexedDB = typeof indexedDB !== 'undefined';
-  const supportsLocalStorage = typeof localStorage !== 'undefined';
-  
+  const supportsIndexedDB = typeof indexedDB !== "undefined";
+  const supportsLocalStorage = typeof localStorage !== "undefined";
+
   // Define strategies
   const strategies: StorageStrategy[] = [
     {
-      name: 'cloud',
+      name: "cloud",
       priority: 100,
       maxSize: Infinity,
-      description: 'Cloud storage (unlimited)'
+      description: "Cloud storage (unlimited)",
     },
     {
-      name: 'indexedDB',
+      name: "indexedDB",
       priority: 80,
       maxSize: 500 * 1024 * 1024, // 500MB
-      description: 'IndexedDB (large capacity)'
+      description: "IndexedDB (large capacity)",
     },
     {
-      name: 'hybrid',
+      name: "hybrid",
       priority: 60,
       maxSize: 100 * 1024 * 1024, // 100MB
-      description: 'Hybrid (IndexedDB + LocalStorage)'
+      description: "Hybrid (IndexedDB + LocalStorage)",
     },
     {
-      name: 'localStorage',
+      name: "localStorage",
       priority: 40,
       maxSize: 5 * 1024 * 1024, // 5MB
-      description: 'LocalStorage (limited capacity)'
-    }
+      description: "LocalStorage (limited capacity)",
+    },
   ];
-  
+
   // Filter by support and size
-  const availableStrategies = strategies.filter(s => {
-    if (s.name === 'cloud') return false; // Not implemented yet
-    if (s.name === 'indexedDB') return supportsIndexedDB && sizeBytes <= s.maxSize;
-    if (s.name === 'localStorage') return supportsLocalStorage && sizeBytes <= s.maxSize;
+  const availableStrategies = strategies.filter((s) => {
+    if (s.name === "cloud") return false; // Not implemented yet
+    if (s.name === "indexedDB") return supportsIndexedDB && sizeBytes <= s.maxSize;
+    if (s.name === "localStorage") return supportsLocalStorage && sizeBytes <= s.maxSize;
     return true;
   });
-  
+
   // Sort by priority
   availableStrategies.sort((a, b) => b.priority - a.priority);
-  
-  return availableStrategies[0] || strategies.find(s => s.name === 'localStorage')!;
+
+  return availableStrategies[0] || strategies.find((s) => s.name === "localStorage")!;
 }
 
 // ============================================================================
@@ -564,7 +564,7 @@ export function determineStorageStrategy(sizeBytes: number): StorageStrategy {
  */
 export class BackupStorage {
   private static instance: BackupStorage;
-  
+
   static getInstance(): BackupStorage {
     if (!BackupStorage.instance) {
       BackupStorage.instance = new BackupStorage();
@@ -581,9 +581,9 @@ export class BackupStorage {
     backup: ValidBackup,
     options: {
       tags?: string[];
-      priority?: 'low' | 'normal' | 'high';
+      priority?: "low" | "normal" | "high";
       cloudProviders?: CloudProvider[];
-    } = {}
+    } = {},
   ): Promise<{
     success: boolean;
     storageMethod: string;
@@ -593,17 +593,17 @@ export class BackupStorage {
   }> {
     const warnings: string[] = [];
     const strategy = determineStorageStrategy(backup.meta.sizeBytes);
-    
+
     // Try IndexedDB first for larger backups
-    if (strategy.name === 'indexedDB' || backup.meta.sizeBytes > 1024 * 1024) {
+    if (strategy.name === "indexedDB" || backup.meta.sizeBytes > 1024 * 1024) {
       try {
         const backupId = await indexedDBManager.storeBackup(backup, options.tags || []);
         return {
           success: true,
-          storageMethod: 'indexedDB',
+          storageMethod: "indexedDB",
           backupId,
           sizeBytes: backup.meta.sizeBytes,
-          warnings
+          warnings,
         };
       } catch (error) {
         warnings.push(`IndexedDB storage failed: ${error}`);
@@ -615,52 +615,52 @@ export class BackupStorage {
     try {
       // Check if backup is too large for localStorage
       if (backup.meta.sizeBytes > 5 * 1024 * 1024) {
-        warnings.push('Backup too large for localStorage, using IndexedDB fallback');
+        warnings.push("Backup too large for localStorage, using IndexedDB fallback");
         const backupId = await indexedDBManager.storeBackup(backup, options.tags || []);
         return {
           success: true,
-          storageMethod: 'indexedDB',
+          storageMethod: "indexedDB",
           backupId,
           sizeBytes: backup.meta.sizeBytes,
-          warnings
+          warnings,
         };
       }
 
       // Store in localStorage
       const storageKey = `skillsync:backup:${backup.backupId}`;
-      localStorage.setItem(storageKey, backup.text);
-      
+      localStorage.setItem(storageKey, JSON.stringify(backup));
+
       // Also store metadata
       const metaKey = `skillsync:backup:meta:${backup.backupId}`;
       localStorage.setItem(metaKey, JSON.stringify(backup.meta));
-      
+
       return {
         success: true,
-        storageMethod: 'localStorage',
+        storageMethod: "localStorage",
         backupId: backup.backupId,
         sizeBytes: backup.meta.sizeBytes,
-        warnings
+        warnings,
       };
     } catch (error) {
       warnings.push(`LocalStorage failed: ${error}`);
-      
+
       // Final fallback to IndexedDB
       try {
         const backupId = await indexedDBManager.storeBackup(backup, options.tags || []);
         return {
           success: true,
-          storageMethod: 'indexedDB',
+          storageMethod: "indexedDB",
           backupId,
           sizeBytes: backup.meta.sizeBytes,
-          warnings
+          warnings,
         };
       } catch {
         return {
           success: false,
-          storageMethod: 'none',
-          backupId: '',
+          storageMethod: "none",
+          backupId: "",
           sizeBytes: 0,
-          warnings: [...warnings, 'All storage methods failed']
+          warnings: [...warnings, "All storage methods failed"],
         };
       }
     }
@@ -677,7 +677,7 @@ export class BackupStorage {
         return {
           ...JSON.parse(entry.data),
           sizeBytes: entry.data.length,
-          meta: entry.meta
+          meta: entry.meta,
         };
       }
     } catch {
@@ -688,16 +688,16 @@ export class BackupStorage {
     try {
       const storageKey = `skillsync:backup:${backupId}`;
       const metaKey = `skillsync:backup:meta:${backupId}`;
-      
+
       const text = localStorage.getItem(storageKey);
       const metaStr = localStorage.getItem(metaKey);
-      
+
       if (text && metaStr) {
         const meta = JSON.parse(metaStr) as BackupMeta;
         return {
           ...JSON.parse(text),
           sizeBytes: text.length,
-          meta
+          meta,
         };
       }
     } catch {
@@ -712,7 +712,7 @@ export class BackupStorage {
    */
   async listAllBackups(): Promise<ValidBackup[]> {
     const backups: ValidBackup[] = [];
-    
+
     // Get from IndexedDB
     try {
       const entries = await indexedDBManager.listBackups();
@@ -722,7 +722,7 @@ export class BackupStorage {
           backups.push({
             ...backup,
             sizeBytes: entry.data.length,
-            meta: entry.meta
+            meta: entry.meta,
           });
         } catch {
           // Skip corrupted entries
@@ -735,15 +735,15 @@ export class BackupStorage {
     // Get from localStorage
     try {
       const keys = Object.keys(localStorage);
-      const backupKeys = keys.filter(key => key.startsWith('skillsync:backup:'));
-      
+      const backupKeys = keys.filter((key) => key.startsWith("skillsync:backup:"));
+
       for (const key of backupKeys) {
-        const backupId = key.replace('skillsync:backup:', '');
+        const backupId = key.replace("skillsync:backup:", "");
         const metaKey = `skillsync:backup:meta:${backupId}`;
-        
+
         const text = localStorage.getItem(key);
         const metaStr = localStorage.getItem(metaKey);
-        
+
         if (text && metaStr) {
           try {
             const meta = JSON.parse(metaStr) as BackupMeta;
@@ -751,7 +751,7 @@ export class BackupStorage {
             backups.push({
               ...backup,
               sizeBytes: text.length,
-              meta
+              meta,
             });
           } catch {
             // Skip corrupted entries
@@ -771,7 +771,7 @@ export class BackupStorage {
    */
   async deleteBackup(backupId: string): Promise<boolean> {
     let success = false;
-    
+
     // Try IndexedDB
     try {
       success = await indexedDBManager.deleteBackup(backupId);
@@ -783,7 +783,7 @@ export class BackupStorage {
     try {
       const storageKey = `skillsync:backup:${backupId}`;
       const metaKey = `skillsync:backup:meta:${backupId}`;
-      
+
       localStorage.removeItem(storageKey);
       localStorage.removeItem(metaKey);
       success = true;
@@ -809,7 +809,7 @@ export class BackupStorage {
   }> {
     const allBackups = await this.listAllBackups();
     const totalSize = allBackups.reduce((sum, backup) => sum + backup.sizeBytes, 0);
-    
+
     let quota = { used: 0, available: 0, percentageUsed: 0 };
     try {
       quota = await indexedDBManager.checkStorageQuota();
@@ -818,15 +818,15 @@ export class BackupStorage {
       quota = {
         used: totalSize,
         available: 500 * 1024 * 1024,
-        percentageUsed: Math.round((totalSize / (500 * 1024 * 1024)) * 100)
+        percentageUsed: Math.round((totalSize / (500 * 1024 * 1024)) * 100),
       };
     }
 
     return {
       totalBackups: allBackups.length,
       totalSize,
-      storageMethod: 'hybrid',
-      quota
+      storageMethod: "hybrid",
+      quota,
     };
   }
 
@@ -840,10 +840,10 @@ export class BackupStorage {
   }> {
     const allBackups = await this.listAllBackups();
     const cutoff = Date.now() - maxAgeHours * 3600000;
-    
+
     let deleted = 0;
     let spaceFreed = 0;
-    
+
     for (const backup of allBackups) {
       if (backup.meta.createdAt < cutoff) {
         const success = await this.deleteBackup(backup.backupId);
@@ -865,7 +865,7 @@ export class BackupStorage {
     return {
       deleted,
       total: allBackups.length,
-      spaceFreed
+      spaceFreed,
     };
   }
 
@@ -878,35 +878,36 @@ export class BackupStorage {
   }> {
     const errors: string[] = [];
     let moved = 0;
-    
+
     // Check localStorage for large backups
     try {
       const keys = Object.keys(localStorage);
-      const backupKeys = keys.filter(key => key.startsWith('skillsync:backup:'));
-      
+      const backupKeys = keys.filter((key) => key.startsWith("skillsync:backup:"));
+
       for (const key of backupKeys) {
-        const backupId = key.replace('skillsync:backup:', '');
+        const backupId = key.replace("skillsync:backup:", "");
         const metaKey = `skillsync:backup:meta:${backupId}`;
-        
+
         const text = localStorage.getItem(key);
         const metaStr = localStorage.getItem(metaKey);
-        
-        if (text && metaStr && text.length > 1024 * 1024) { // >1MB
+
+        if (text && metaStr && text.length > 1024 * 1024) {
+          // >1MB
           try {
             const meta = JSON.parse(metaStr) as BackupMeta;
             const backup: ValidBackup = {
               ...JSON.parse(text),
               sizeBytes: text.length,
-              meta
+              meta,
             };
-            
+
             // Store in IndexedDB
-            await indexedDBManager.storeBackup(backup, ['migrated']);
-            
+            await indexedDBManager.storeBackup(backup, ["migrated"]);
+
             // Remove from localStorage
             localStorage.removeItem(key);
             localStorage.removeItem(metaKey);
-            
+
             moved++;
           } catch (error) {
             errors.push(`Failed to migrate backup ${backupId}: ${error}`);
@@ -936,10 +937,10 @@ interface QueueItem {
   backup: ValidBackup;
   options: {
     tags?: string[];
-    priority?: 'low' | 'normal' | 'high';
+    priority?: "low" | "normal" | "high";
     cloudProviders?: CloudProvider[];
   };
-  status: 'queued' | 'processing' | 'completed' | 'failed';
+  status: "queued" | "processing" | "completed" | "failed";
   progress: number;
   error?: string;
   result?: {
@@ -959,69 +960,68 @@ class BackupQueue {
 
   constructor(private storage: BackupStorage = backupStorage) {}
 
-  add(backup: ValidBackup, options: QueueItem['options'] = {}): string {
+  add(backup: ValidBackup, options: QueueItem["options"] = {}): string {
     const item: QueueItem = {
       id: `queue-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
       backup,
       options,
-      status: 'queued',
+      status: "queued",
       progress: 0,
-      createdAt: Date.now()
+      createdAt: Date.now(),
     };
-    
+
     this.queue.push(item);
-    
+
     // Sort by priority
     this.queue.sort((a, b) => {
       const priorityOrder = { high: 0, normal: 1, low: 2 };
-      return (priorityOrder[a.options.priority || 'normal'] - 
-              priorityOrder[b.options.priority || 'normal']);
+      return (
+        priorityOrder[a.options.priority || "normal"] -
+        priorityOrder[b.options.priority || "normal"]
+      );
     });
-    
+
     // Start processing if not already
     this.processNext();
-    
+
     return item.id;
   }
 
   async processNext(): Promise<void> {
     if (this.processing || this.queue.length === 0) return;
-    
+
     this.processing = true;
     const item = this.queue[0];
-    item.status = 'processing';
+    item.status = "processing";
     item.startedAt = Date.now();
-    
+
     try {
-      const result = await this.storage.storeBackup(
-        item.backup,
-        item.options
-      );
-      
-      item.status = 'completed';
+      const result = await this.storage.storeBackup(item.backup, item.options);
+
+      item.status = "completed";
       item.completedAt = Date.now();
       item.result = {
         storageMethod: result.storageMethod,
         backupId: result.backupId,
-        sizeBytes: result.sizeBytes
+        sizeBytes: result.sizeBytes,
       };
       item.progress = 100;
     } catch (error) {
-      item.status = 'failed';
+      item.status = "failed";
       item.completedAt = Date.now();
       item.error = error instanceof Error ? error.message : String(error);
     }
-    
+
     // Remove from queue
     this.queue.shift();
     this.processing = false;
-    
+
     // Process next item
     this.processNext();
   }
 
   getItem(id: string): QueueItem | undefined {
-    return this.queue.find(item => item.id === id);
+    return this.queue.find((item) => item.id === id);
   }
 
   getAll(): QueueItem[] {
@@ -1035,26 +1035,26 @@ class BackupQueue {
     failed: number;
     current?: QueueItem;
   } {
-    const queued = this.queue.filter(i => i.status === 'queued').length;
-    const processing = this.queue.filter(i => i.status === 'processing').length;
-    const completed = this.queue.filter(i => i.status === 'completed').length;
-    const failed = this.queue.filter(i => i.status === 'failed').length;
-    
+    const queued = this.queue.filter((i) => i.status === "queued").length;
+    const processing = this.queue.filter((i) => i.status === "processing").length;
+    const completed = this.queue.filter((i) => i.status === "completed").length;
+    const failed = this.queue.filter((i) => i.status === "failed").length;
+
     return {
       queued,
       processing,
       completed,
       failed,
-      current: this.queue.find(i => i.status === 'processing')
+      current: this.queue.find((i) => i.status === "processing"),
     };
   }
 
   clearCompleted(): void {
-    this.queue = this.queue.filter(item => item.status !== 'completed');
+    this.queue = this.queue.filter((item) => item.status !== "completed");
   }
 
   clearFailed(): void {
-    this.queue = this.queue.filter(item => item.status !== 'failed');
+    this.queue = this.queue.filter((item) => item.status !== "failed");
   }
 
   clearAll(): void {
@@ -1085,19 +1085,19 @@ class BackupCache {
       cached.accessedAt = Date.now();
       return cached.backup;
     }
-    
+
     // Get from storage
     const backup = await backupStorage.getBackup(backupId);
     if (backup) {
       // Update cache
       this.cache.set(backupId, { backup, accessedAt: Date.now() });
-      
+
       // Cleanup old entries
       this.cleanup();
-      
+
       return backup;
     }
-    
+
     return null;
   }
 
@@ -1121,7 +1121,7 @@ class BackupCache {
         this.cache.delete(key);
       }
     }
-    
+
     // Remove excess entries
     while (this.cache.size > this.maxSize) {
       const firstKey = this.cache.keys().next().value;
@@ -1153,79 +1153,85 @@ export function getStorageRecommendation(sizeBytes: number): {
 } {
   const warnings: string[] = [];
   const allStrategies = determineStorageStrategy(sizeBytes);
-  
+
   // Check for issues
-  if (sizeBytes > 500 * 1024 * 1024) { // >500MB
-    warnings.push('Backup is very large. Consider splitting or compressing.');
+  if (sizeBytes > 500 * 1024 * 1024) {
+    // >500MB
+    warnings.push("Backup is very large. Consider splitting or compressing.");
   }
-  
-  if (typeof indexedDB === 'undefined') {
-    warnings.push('IndexedDB not available. Falling back to localStorage.');
+
+  if (typeof indexedDB === "undefined") {
+    warnings.push("IndexedDB not available. Falling back to localStorage.");
   }
-  
-  if (typeof localStorage === 'undefined') {
-    warnings.push('LocalStorage not available. Using IndexedDB only.');
+
+  if (typeof localStorage === "undefined") {
+    warnings.push("LocalStorage not available. Using IndexedDB only.");
   }
-  
+
   // Get all available strategies
   const availableStrategies: StorageStrategy[] = [];
   const unavailableStrategies: StorageStrategy[] = [];
-  
+
   // Test IndexedDB
-  const supportsIndexedDB = typeof indexedDB !== 'undefined';
+  const supportsIndexedDB = typeof indexedDB !== "undefined";
   if (supportsIndexedDB) {
     availableStrategies.push({
-      name: 'indexedDB',
+      name: "indexedDB",
       priority: 80,
       maxSize: 500 * 1024 * 1024,
-      description: 'IndexedDB (recommended for large backups)'
+      description: "IndexedDB (recommended for large backups)",
     });
   } else {
     unavailableStrategies.push({
-      name: 'indexedDB',
+      name: "indexedDB",
       priority: 80,
       maxSize: 500 * 1024 * 1024,
-      description: 'IndexedDB (not available)'
+      description: "IndexedDB (not available)",
     });
   }
-  
+
   // Test localStorage
-  const supportsLocalStorage = typeof localStorage !== 'undefined';
+  const supportsLocalStorage = typeof localStorage !== "undefined";
   if (supportsLocalStorage) {
     try {
-      const testKey = 'skillsync:storage-test';
-      localStorage.setItem(testKey, 'test');
+      const testKey = "skillsync:storage-test";
+      localStorage.setItem(testKey, "test");
       localStorage.removeItem(testKey);
       availableStrategies.push({
-        name: 'localStorage',
+        name: "localStorage",
         priority: 40,
         maxSize: 5 * 1024 * 1024,
-        description: 'LocalStorage (limited to ~5MB)'
+        description: "LocalStorage (limited to ~5MB)",
       });
     } catch {
       unavailableStrategies.push({
-        name: 'localStorage',
+        name: "localStorage",
         priority: 40,
         maxSize: 5 * 1024 * 1024,
-        description: 'LocalStorage (quota exceeded)'
+        description: "LocalStorage (quota exceeded)",
       });
     }
   } else {
     unavailableStrategies.push({
-      name: 'localStorage',
+      name: "localStorage",
       priority: 40,
       maxSize: 5 * 1024 * 1024,
-      description: 'LocalStorage (not available)'
+      description: "LocalStorage (not available)",
     });
   }
-  
+
   // Sort by priority
   availableStrategies.sort((a, b) => b.priority - a.priority);
-  
+
   return {
-    recommended: availableStrategies[0] || { name: 'localStorage', priority: 0, maxSize: 0, description: 'No storage available' },
+    recommended: availableStrategies[0] || {
+      name: "localStorage",
+      priority: 0,
+      maxSize: 0,
+      description: "No storage available",
+    },
     alternatives: availableStrategies.slice(1),
-    warnings
+    warnings,
   };
 }
 
@@ -1238,56 +1244,57 @@ export async function canStoreBackup(sizeBytes: number): Promise<{
   recommendations: string[];
 }> {
   const recommendations: string[] = [];
-  
+
   // Check localStorage quota
-  if (typeof localStorage !== 'undefined') {
+  if (typeof localStorage !== "undefined") {
     try {
-      const testKey = 'skillsync:quota-test';
+      const testKey = "skillsync:quota-test";
       let availableSpace = 0;
-      
+
       // Try to estimate available space
       try {
-        let testData = 'x';
+        let testData = "x";
         while (true) {
           localStorage.setItem(testKey, testData);
-          testData += 'x';
+          testData += "x";
           if (testData.length > 1024 * 1024) break; // Don't test beyond 1MB
         }
         availableSpace = testData.length;
-        localStorage.removeItem(testKey);
       } catch {
         // Quota exceeded
+      } finally {
+        localStorage.removeItem(testKey);
       }
-      
+
       if (availableSpace < sizeBytes) {
-        recommendations.push('Free up localStorage space by removing old backups.');
-        recommendations.push('Enable IndexedDB for larger backups.');
+        recommendations.push("Free up localStorage space by removing old backups.");
+        recommendations.push("Enable IndexedDB for larger backups.");
       }
     } catch {
       // localStorage not available
     }
   }
-  
+
   // Check IndexedDB quota
   try {
     const quota = await indexedDBManager.checkStorageQuota();
     if (quota.isOverQuota) {
-      recommendations.push('Free up IndexedDB space by removing old backups.');
-      recommendations.push('Enable cloud backup for unlimited storage.');
+      recommendations.push("Free up IndexedDB space by removing old backups.");
+      recommendations.push("Enable cloud backup for unlimited storage.");
     }
   } catch {
     // IndexedDB not available
   }
-  
+
   // Overall check
   const canStore = !(
-    (typeof localStorage === 'undefined' || localStorage.length >= 100) &&
-    typeof indexedDB === 'undefined'
+    (typeof localStorage === "undefined" || localStorage.length >= 100) &&
+    typeof indexedDB === "undefined"
   );
-  
+
   return {
     canStore,
-    reason: canStore ? undefined : 'No storage available',
-    recommendations
+    reason: canStore ? undefined : "No storage available",
+    recommendations,
   };
 }

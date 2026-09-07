@@ -38,7 +38,7 @@ import { useShallow } from "zustand/react/shallow";
 import { STORAGE_KEY, toAppData, useAppStore, useHydrated } from "@/store/useAppStore";
 import { BACKGROUND_OPTIONS, type BackgroundStyle } from "@/components/layout/backgrounds";
 import { ACCENT_PRESETS, defaultAccentFor, safeAccent } from "@/lib/accent";
-import { formatBytes } from "@/lib/backup";
+import { formatBytes } from "@/lib/backup-legacy";
 import { APP_VERSION } from "@/lib/version";
 import { haptics, hapticsSupported, type HapticIntensity } from "@/lib/haptics";
 import { SOUND_CUES, previewSound, sound, soundSupported, type SoundCue } from "@/lib/sound";

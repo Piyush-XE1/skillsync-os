@@ -7,7 +7,7 @@ import {
   totalRecords,
   moduleList,
   formatBytes,
-} from "@/lib/backup";
+} from "@/lib/backup-legacy";
 import { createInitialData } from "@/lib/seed";
 import { APP_VERSION } from "@/lib/version";
 

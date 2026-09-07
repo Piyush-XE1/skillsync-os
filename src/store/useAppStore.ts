@@ -31,7 +31,7 @@ import type {
 import { AppDataSchema } from "@/lib/schema";
 import { createInitialData } from "@/lib/seed";
 import { migrate } from "@/lib/migrations";
-import { clearBackupArtifacts } from "@/lib/backup";
+import { clearBackupArtifacts } from "@/lib/backup-legacy";
 import { newId } from "@/lib/id";
 import { todayISO, addDaysISO } from "@/lib/date";
 import { errorMessage } from "@/lib/utils";

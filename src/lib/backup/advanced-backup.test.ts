@@ -1,6 +1,6 @@
 /**
  * Advanced Backup System Tests
- * 
+ *
  * Tests for:
  * - Backup creation with compression & encryption
  * - Backup validation
@@ -39,44 +39,26 @@ import {
   MAX_BACKUP_HISTORY,
   formatBytes,
   formatDate,
-  formatTime
+  formatTime,
+  type ValidBackup,
+  type BackupMeta,
 } from "./advanced-backup";
 
 import { createInitialData } from "../seed";
 import { AppDataSchema, type AppData } from "../schema";
+import { createDefaultNotifications } from "../notifications/types";
 
-// Mock crypto for testing
-vi.stubGlobal('crypto', {
-  subtle: {
-    digest: vi.fn().mockImplementation(async (algorithm: string, data: ArrayBuffer) => {
-      // Simple mock hash
-      const hash = new Uint8Array(32);
-      for (let i = 0; i < 32; i++) {
-        hash[i] = (i + data.byteLength) % 256;
-      }
-      return hash.buffer;
-    }),
-    encrypt: vi.fn().mockImplementation(async () => {
-      return new Uint8Array([1, 2, 3, 4]).buffer;
-    }),
-    decrypt: vi.fn().mockImplementation(async () => {
-      return new TextEncoder().encode('{"test": "data"}').buffer;
-    }),
-    importKey: vi.fn().mockResolvedValue({}),
-    deriveKey: vi.fn().mockResolvedValue({})
-  },
-  getRandomValues: vi.fn().mockImplementation((array: Uint8Array) => {
-    for (let i = 0; i < array.length; i++) {
-      array[i] = Math.floor(Math.random() * 256);
-    }
-    return array;
-  })
-});
+// Use Node's real WebCrypto so AES-GCM / SHA-256 round-trips genuinely
+import { webcrypto } from "node:crypto";
+vi.stubGlobal("crypto", webcrypto);
+
+/** Cast a partial/mock object to ValidBackup without the `any` escape hatch. */
+const asValidBackup = (backup: object): ValidBackup => backup as unknown as ValidBackup;
 
 // Mock indexedDB
-vi.stubGlobal('indexedDB', {
+vi.stubGlobal("indexedDB", {
   open: vi.fn(),
-  deleteDatabase: vi.fn()
+  deleteDatabase: vi.fn(),
 });
 
 // Mock localStorage
@@ -93,11 +75,11 @@ const localStorageMock = (() => {
     clear: vi.fn(() => {
       store = {};
     }),
-    length: 0
+    length: 0,
   };
 })();
 
-vi.stubGlobal('localStorage', localStorageMock);
+vi.stubGlobal("localStorage", localStorageMock);
 
 describe("Advanced Backup System", () => {
   let initialData: AppData;
@@ -132,7 +114,7 @@ describe("Advanced Backup System", () => {
 
     it("should create a backup with compression", async () => {
       const result = await createAdvancedBackup(initialData, {
-        compression: true
+        compression: true,
       });
 
       expect(result.meta.compressed).toBe(false); // Compression might not work in test environment
@@ -143,7 +125,7 @@ describe("Advanced Backup System", () => {
       const password = "test-password-123";
       const result = await createAdvancedBackup(initialData, {
         encryption: true,
-        password
+        password,
       });
 
       // Encryption should be attempted
@@ -152,7 +134,7 @@ describe("Advanced Backup System", () => {
 
     it("should create a backup with specific strategy", async () => {
       const result = await createAdvancedBackup(initialData, {
-        strategy: 'full'
+        type: "full",
       });
 
       expect(result.meta.incremental).toBe(false);
@@ -161,10 +143,10 @@ describe("Advanced Backup System", () => {
     it("should include all modules in backup", async () => {
       const result = await createAdvancedBackup(initialData);
 
-      expect(result.meta.modules).toContain('roadmaps');
-      expect(result.meta.modules).toContain('notes');
-      expect(result.meta.modules).toContain('projects');
-      expect(result.meta.modules).toContain('planner');
+      expect(result.meta.modules).toContain("roadmaps");
+      expect(result.meta.modules).toContain("notes");
+      expect(result.meta.modules).toContain("projects");
+      expect(result.meta.modules).toContain("planner");
     });
 
     it("should count records correctly", async () => {
@@ -196,19 +178,19 @@ describe("Advanced Backup System", () => {
     it("should reject invalid JSON", async () => {
       const result = await validateAdvancedBackup("{not json");
       expect(result.ok).toBe(false);
-      expect(result.error).toContain("not valid JSON");
+      if (!result.ok) expect(result.error).toContain("not valid JSON");
     });
 
     it("should reject empty input", async () => {
       const result = await validateAdvancedBackup("");
       expect(result.ok).toBe(false);
-      expect(result.error).toContain("empty");
+      if (!result.ok) expect(result.error).toContain("empty");
     });
 
     it("should reject non-SkillSync backups", async () => {
       const result = await validateAdvancedBackup(JSON.stringify({ hello: "world" }));
       expect(result.ok).toBe(false);
-      expect(result.error).toContain("Not a SkillSync backup");
+      if (!result.ok) expect(result.error).toContain("Not a SkillSync backup");
     });
 
     it("should accept direct AppData exports", async () => {
@@ -225,11 +207,11 @@ describe("Advanced Backup System", () => {
         appVersion: "99.0",
         backupId: "abc",
         createdAt: new Date().toISOString(),
-        data
+        data,
       };
       const result = await validateAdvancedBackup(JSON.stringify(env));
       expect(result.ok).toBe(false);
-      expect(result.error).toContain("newer SkillSync");
+      if (!result.ok) expect(result.error).toContain("newer SkillSync");
     });
 
     it("should handle encrypted backups", async () => {
@@ -237,14 +219,16 @@ describe("Advanced Backup System", () => {
       const data = createInitialData();
       const result = await createAdvancedBackup(data, {
         encryption: true,
-        password
+        password,
       });
 
       // Try to validate without password
       const validationResult = await validateAdvancedBackup(result.text);
       expect(validationResult.ok).toBe(false);
-      expect(validationResult.recoverable).toBe(true);
-      expect(validationResult.error).toContain("encrypted");
+      if (!validationResult.ok) {
+        expect(validationResult.recoverable).toBe(true);
+        expect(validationResult.error).toContain("encrypted");
+      }
 
       // Try to validate with password
       const encryptedValidation = await validateEncryptedBackup(result.text, password);
@@ -270,13 +254,17 @@ describe("Advanced Backup System", () => {
         body: "Test",
         tags: [],
         createdAt: Date.now(),
-        updatedAt: Date.now()
+        updatedAt: Date.now(),
       });
 
-      const incrementalResult = await createIncrementalBackup(data2, {
-        ...fullBackup,
-        data: data1
-      } as any);
+      const incrementalResult = await createIncrementalBackup(
+        data2,
+        asValidBackup({
+          ...fullBackup,
+          backupId: fullBackup.meta.backupId,
+          data: data1,
+        }),
+      );
 
       if (incrementalResult) {
         expect(incrementalResult.meta.incremental).toBe(true);
@@ -288,10 +276,14 @@ describe("Advanced Backup System", () => {
       const data = createInitialData();
       const fullBackup = await createAdvancedBackup(data);
 
-      const result = await createIncrementalBackup(data, {
-        ...fullBackup,
-        data
-      } as any);
+      const result = await createIncrementalBackup(
+        data,
+        asValidBackup({
+          ...fullBackup,
+          backupId: fullBackup.meta.backupId,
+          data,
+        }),
+      );
 
       expect(result).toBeNull();
     });
@@ -299,7 +291,7 @@ describe("Advanced Backup System", () => {
     it("should detect changes between datasets", async () => {
       const data1 = createInitialData();
       const data2 = JSON.parse(JSON.stringify(data1));
-      
+
       // Add a note
       data2.notes.push({
         id: "new-note",
@@ -307,54 +299,54 @@ describe("Advanced Backup System", () => {
         body: "Test",
         tags: [],
         createdAt: Date.now(),
-        updatedAt: Date.now()
+        updatedAt: Date.now(),
       });
 
       const changes = detectChanges(data1, data2);
-      
+
       expect(changes.length).toBeGreaterThan(0);
-      expect(changes.some(c => c.module === 'notes')).toBe(true);
-      expect(changes.find(c => c.module === 'notes')?.created).toBe(1);
+      expect(changes.some((c) => c.module === "notes")).toBe(true);
+      expect(changes.find((c) => c.module === "notes")?.created).toBe(1);
     });
 
     it("should extract changed data", async () => {
       const data1 = createInitialData();
       const data2 = JSON.parse(JSON.stringify(data1));
-      
+
       data2.notes.push({
         id: "new-note",
         title: "New Note",
         body: "Test",
         tags: [],
         createdAt: Date.now(),
-        updatedAt: Date.now()
+        updatedAt: Date.now(),
       });
 
       const changes = detectChanges(data1, data2);
       const changedData = extractChangedData(data2, data1, changes);
 
       expect(changedData.notes).toBeDefined();
-      expect((changedData.notes as any).length).toBeGreaterThan(0);
+      expect((changedData.notes as unknown as unknown[]).length).toBeGreaterThan(0);
     });
 
     it("should apply incremental changes to base data", async () => {
       const data1 = createInitialData();
       const data2 = JSON.parse(JSON.stringify(data1));
-      
+
       data2.notes.push({
         id: "new-note",
         title: "New Note",
         body: "Test",
         tags: [],
         createdAt: Date.now(),
-        updatedAt: Date.now()
+        updatedAt: Date.now(),
       });
 
       const changes = detectChanges(data1, data2);
       const changedData = extractChangedData(data2, data1, changes);
-      
+
       const restoredData = applyIncrementalChanges(data1, changedData);
-      
+
       expect(restoredData.notes.length).toBe(data2.notes.length);
     });
   });
@@ -368,11 +360,13 @@ describe("Advanced Backup System", () => {
       const data = createInitialData();
       const backup = await createAdvancedBackup(data);
 
-      const result = await restoreAdvancedBackup({
-        ...JSON.parse(backup.text),
-        sizeBytes: backup.meta.sizeBytes,
-        meta: backup.meta
-      } as any);
+      const result = await restoreAdvancedBackup(
+        asValidBackup({
+          ...JSON.parse(backup.text),
+          sizeBytes: backup.meta.sizeBytes,
+          meta: backup.meta,
+        }),
+      );
 
       expect(result.ok).toBe(true);
       if (result.ok) {
@@ -385,29 +379,31 @@ describe("Advanced Backup System", () => {
       const backup = await createAdvancedBackup(data);
 
       const result = await restoreAdvancedBackup(
-        {
+        asValidBackup({
           ...JSON.parse(backup.text),
           sizeBytes: backup.meta.sizeBytes,
-          meta: backup.meta
-        } as any,
+          meta: backup.meta,
+        }),
         {
-          modulesToRestore: ['notes', 'roadmaps']
-        }
+          modulesToRestore: ["notes", "roadmaps"],
+        },
       );
 
       expect(result.ok).toBe(true);
       if (result.ok) {
-        expect(result.stats.modulesRestored).toContain('notes');
-        expect(result.stats.modulesRestored).toContain('roadmaps');
+        expect(result.stats.modulesRestored).toContain("notes");
+        expect(result.stats.modulesRestored).toContain("roadmaps");
       }
     });
 
     it("should fail to restore invalid backup", async () => {
-      const result = await restoreAdvancedBackup({
-        text: "invalid",
-        meta: { backupId: "test" } as any,
-        createdAtISO: new Date().toISOString()
-      } as any);
+      const result = await restoreAdvancedBackup(
+        asValidBackup({
+          text: "invalid",
+          meta: { backupId: "test" } as unknown as BackupMeta,
+          createdAtISO: new Date().toISOString(),
+        }),
+      );
 
       expect(result.ok).toBe(false);
     });
@@ -421,19 +417,19 @@ describe("Advanced Backup System", () => {
     it("should detect added records", async () => {
       const data1 = createInitialData();
       const data2 = JSON.parse(JSON.stringify(data1));
-      
+
       data2.notes.push({
         id: "new-note",
         title: "New Note",
         body: "Test",
         tags: [],
         createdAt: Date.now(),
-        updatedAt: Date.now()
+        updatedAt: Date.now(),
       });
 
       const changes = detectChanges(data1, data2);
-      const notesChange = changes.find(c => c.module === 'notes');
-      
+      const notesChange = changes.find((c) => c.module === "notes");
+
       expect(notesChange).toBeDefined();
       expect(notesChange?.created).toBe(1);
       expect(notesChange?.updated).toBe(0);
@@ -443,29 +439,53 @@ describe("Advanced Backup System", () => {
     it("should detect deleted records", async () => {
       const data1 = createInitialData();
       const data2 = JSON.parse(JSON.stringify(data1));
-      
-      if (data2.notes.length > 0) {
-        data2.notes.pop();
-      }
+
+      // Seed data starts with no notes; ensure both sides share a removable one
+      const doomed = {
+        id: "doomed-note",
+        title: "Doomed Note",
+        body: "Test",
+        tags: [],
+        pinned: false,
+        linkedTo: null,
+        createdAt: Date.now(),
+        updatedAt: Date.now(),
+      };
+      data1.notes.push({ ...doomed });
+      data2.notes.push({ ...doomed });
+      data2.notes.pop();
 
       const changes = detectChanges(data1, data2);
-      const notesChange = changes.find(c => c.module === 'notes');
-      
+      const notesChange = changes.find((c) => c.module === "notes");
+
       expect(notesChange).toBeDefined();
-      expect(notesChange?.deleted).toBeGreaterThanOrEqual(0);
+      expect(notesChange?.deleted).toBe(1);
     });
 
     it("should detect updated records", async () => {
       const data1 = createInitialData();
       const data2 = JSON.parse(JSON.stringify(data1));
-      
-      if (data2.notes.length > 0) {
-        data2.notes[0].title = "Updated Title";
+
+      // Seed data starts with no notes; create one to mutate
+      if (data2.notes.length === 0) {
+        data1.notes.push({
+          id: "note-1",
+          title: "Original Title",
+          body: "Test",
+          tags: [],
+          pinned: false,
+          linkedTo: null,
+          createdAt: Date.now(),
+          updatedAt: Date.now(),
+        });
+        data2.notes = JSON.parse(JSON.stringify(data1.notes));
       }
+      data2.notes[0].title = "Updated Title";
+      data2.notes[0].updatedAt = Date.now() + 1000;
 
       const changes = detectChanges(data1, data2);
-      const notesChange = changes.find(c => c.module === 'notes');
-      
+      const notesChange = changes.find((c) => c.module === "notes");
+
       expect(notesChange).toBeDefined();
       expect(notesChange?.updated).toBeGreaterThanOrEqual(0);
     });
@@ -490,14 +510,14 @@ describe("Advanced Backup System", () => {
             cgpa: true,
             resume: true,
             coding: true,
-            career: true
+            career: true,
           },
           background: "aurora",
           accent: "#7c3aed",
           haptics: true,
           hapticIntensity: "standard",
           sound: true,
-          soundVolume: 0.5
+          soundVolume: 0.5,
         },
         widgets: [],
         stats: {
@@ -507,16 +527,42 @@ describe("Advanced Backup System", () => {
           lastActive: "",
           totalXp: 0,
           joinedAt: 0,
-          achievements: []
+          achievements: [],
         },
         attendance: { subjects: [] },
         expenses: { transactions: [] },
-        focus: { sessions: [], settings: { workMin: 25, breakMin: 5, longBreakMin: 15, longBreakEvery: 4, autoStartBreaks: false, autoStartFocus: false, sound: true } },
+        focus: {
+          sessions: [],
+          settings: {
+            workMin: 25,
+            breakMin: 5,
+            longBreakMin: 15,
+            longBreakEvery: 4,
+            autoStartBreaks: false,
+            autoStartFocus: false,
+            sound: true,
+          },
+        },
         cgpa: { semesters: [] },
-        resume: { name: "", title: "", email: "", phone: "", location: "", website: "", github: "", linkedin: "", summary: "", skills: [], education: [], experience: [], projects: [], certifications: [] },
-        notifications: { items: [], schedules: [] },
+        resume: {
+          name: "",
+          title: "",
+          email: "",
+          phone: "",
+          location: "",
+          website: "",
+          github: "",
+          linkedin: "",
+          summary: "",
+          skills: [],
+          education: [],
+          experience: [],
+          projects: [],
+          certifications: [],
+        },
+        notifications: createDefaultNotifications(),
         coding: { problems: [], rating: 0, maxRating: 0, ratingHistory: [] },
-        career: { applications: [] }
+        career: { applications: [] },
       };
 
       const changes = detectChanges(emptyData, emptyData);
@@ -566,11 +612,14 @@ describe("Advanced Backup System", () => {
       const data = createInitialData();
       const backup = await createAdvancedBackup(data);
 
-      const health = await analyzeBackupHealth({
-        ...JSON.parse(backup.text),
-        sizeBytes: backup.meta.sizeBytes,
-        meta: backup.meta
-      } as any, data);
+      const health = await analyzeBackupHealth(
+        asValidBackup({
+          ...JSON.parse(backup.text),
+          sizeBytes: backup.meta.sizeBytes,
+          meta: backup.meta,
+        }),
+        data,
+      );
 
       expect(health.status).toBeDefined();
       expect(health.score).toBeGreaterThanOrEqual(0);
@@ -586,14 +635,14 @@ describe("Advanced Backup System", () => {
         ...JSON.parse(backup.text),
         meta: {
           ...backup.meta,
-          createdAt: Date.now() - 100 * 24 * 3600000 // 100 days ago
+          createdAt: Date.now() - 100 * 24 * 3600000, // 100 days ago
         },
-        sizeBytes: backup.meta.sizeBytes
+        sizeBytes: backup.meta.sizeBytes,
       };
 
-      const health = await analyzeBackupHealth(oldBackup as any, data);
+      const health = await analyzeBackupHealth(asValidBackup(oldBackup), data);
 
-      expect(health.status).toBe('critical');
+      expect(health.status).toBe("critical");
       expect(health.score).toBeLessThan(50);
       expect(health.issues.length).toBeGreaterThan(0);
     });
@@ -607,15 +656,15 @@ describe("Advanced Backup System", () => {
         ...JSON.parse(backup.text),
         meta: {
           ...backup.meta,
-          sizeBytes: 60 * 1024 * 1024 // 60MB
+          sizeBytes: 60 * 1024 * 1024, // 60MB
         },
-        sizeBytes: 60 * 1024 * 1024
+        sizeBytes: 60 * 1024 * 1024,
       };
 
-      const health = await analyzeBackupHealth(largeBackup as any, data);
+      const health = await analyzeBackupHealth(asValidBackup(largeBackup), data);
 
       expect(health.issues.length).toBeGreaterThan(0);
-      expect(health.issues.some(i => i.type === 'size')).toBe(true);
+      expect(health.issues.some((i) => i.type === "size")).toBe(true);
     });
 
     it("should provide recommendations", async () => {
@@ -627,12 +676,12 @@ describe("Advanced Backup System", () => {
         ...JSON.parse(backup.text),
         meta: {
           ...backup.meta,
-          checksum: undefined
+          checksum: undefined,
         },
-        sizeBytes: backup.meta.sizeBytes
+        sizeBytes: backup.meta.sizeBytes,
       };
 
-      const health = await analyzeBackupHealth(backupWithoutChecksum as any, data);
+      const health = await analyzeBackupHealth(asValidBackup(backupWithoutChecksum), data);
 
       expect(health.recommendations.length).toBeGreaterThan(0);
     });
@@ -679,13 +728,9 @@ describe("Advanced Backup System", () => {
       const encrypted = await encryptData(data, password);
       expect(encrypted.encryptedData).toBeDefined();
       expect(encrypted.info).toBeDefined();
-      expect(encrypted.info.algorithm).toBe('AES-256-GCM');
+      expect(encrypted.info.algorithm).toBe("AES-256-GCM");
 
-      const decrypted = await decryptData(
-        encrypted.encryptedData,
-        password,
-        encrypted.info
-      );
+      const decrypted = await decryptData(encrypted.encryptedData, password, encrypted.info);
       expect(decrypted).toBe(data);
     });
 
@@ -697,7 +742,7 @@ describe("Advanced Backup System", () => {
       const encrypted = await encryptData(data, password);
 
       await expect(
-        decryptData(encrypted.encryptedData, wrongPassword, encrypted.info)
+        decryptData(encrypted.encryptedData, wrongPassword, encrypted.info),
       ).rejects.toThrow();
     });
   });
@@ -728,8 +773,9 @@ describe("Advanced Backup System", () => {
     it("should format time correctly", () => {
       const date = new Date(2024, 0, 15, 14, 30);
       const formatted = formatTime(date.getTime());
-      expect(formatted).toContain("14");
+      // Locale-dependent (12h vs 24h): assert minutes and h:mm shape only
       expect(formatted).toContain("30");
+      expect(formatted).toMatch(/\d{1,2}:\d{2}/);
     });
   });
 
@@ -750,42 +796,42 @@ describe("Advanced Backup System", () => {
     it("should get and set sync state", () => {
       const initialState = getSyncState();
       expect(initialState.deviceId).toBeDefined();
-      expect(initialState.syncStatus).toBe('idle');
+      expect(initialState.syncStatus).toBe("idle");
 
-      setSyncState({ syncStatus: 'syncing' });
+      setSyncState({ syncStatus: "syncing" });
       const updatedState = getSyncState();
-      expect(updatedState.syncStatus).toBe('syncing');
+      expect(updatedState.syncStatus).toBe("syncing");
 
       // Reset
-      setSyncState({ syncStatus: 'idle' });
+      setSyncState({ syncStatus: "idle" });
     });
 
     it("should get and set cloud backup config", () => {
-      const initialConfig = getCloudBackupConfig('google-drive');
-      expect(initialConfig.provider).toBe('google-drive');
+      const initialConfig = getCloudBackupConfig("google-drive");
+      expect(initialConfig.provider).toBe("google-drive");
       expect(initialConfig.enabled).toBe(false);
 
       setCloudBackupConfig({
-        provider: 'google-drive',
+        provider: "google-drive",
         enabled: true,
-        syncFrequency: 'daily'
+        syncFrequency: "daily",
       });
 
-      const updatedConfig = getCloudBackupConfig('google-drive');
+      const updatedConfig = getCloudBackupConfig("google-drive");
       expect(updatedConfig.enabled).toBe(true);
-      expect(updatedConfig.syncFrequency).toBe('daily');
+      expect(updatedConfig.syncFrequency).toBe("daily");
     });
 
     it("should clear backup artifacts", () => {
-      localStorage.setItem('skillsync:backup:lastMeta', '{"test": "data"}');
-      localStorage.setItem('skillsync:backup:autoSettings', '{"enabled": true}');
-      localStorage.setItem('skillsync:backup:autoSnapshots', '[]');
+      localStorage.setItem("skillsync:backup:lastMeta", '{"test": "data"}');
+      localStorage.setItem("skillsync:backup:autoSettings", '{"enabled": true}');
+      localStorage.setItem("skillsync:backup:autoSnapshots", "[]");
 
       clearAdvancedBackupArtifacts();
 
-      expect(localStorage.getItem('skillsync:backup:lastMeta')).toBeNull();
-      expect(localStorage.getItem('skillsync:backup:autoSettings')).toBeNull();
-      expect(localStorage.getItem('skillsync:backup:autoSnapshots')).toBeNull();
+      expect(localStorage.getItem("skillsync:backup:lastMeta")).toBeNull();
+      expect(localStorage.getItem("skillsync:backup:autoSettings")).toBeNull();
+      expect(localStorage.getItem("skillsync:backup:autoSnapshots")).toBeNull();
     });
   });
 });

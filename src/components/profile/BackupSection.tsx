@@ -44,7 +44,7 @@ import {
   validateBackup,
   type BackupMeta,
   type ValidBackup,
-} from "@/lib/backup";
+} from "@/lib/backup-legacy";
 import { APP_VERSION } from "@/lib/version";
 import { AppDataSchema, type AppData } from "@/lib/schema";
 import { saveBackupFile, shareBackupFile } from "@/lib/platform-files";

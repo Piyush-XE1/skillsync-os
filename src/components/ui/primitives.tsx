@@ -53,6 +53,41 @@ export function SectionHeader({
   );
 }
 
+export function Button({
+  variant = "default",
+  size = "default",
+  className,
+  type = "button",
+  ...props
+}: React.ButtonHTMLAttributes<HTMLButtonElement> & {
+  variant?: "default" | "outline" | "ghost" | "danger";
+  size?: "default" | "sm" | "icon";
+}) {
+  const variants: Record<string, string> = {
+    default: "gradient-primary text-white border border-transparent",
+    outline: "border border-white/[0.08] bg-white/[0.02] text-foreground hover:bg-white/[0.05]",
+    ghost: "text-foreground hover:bg-white/[0.05]",
+    danger: "bg-[var(--danger)] text-white border border-transparent",
+  };
+  const sizes: Record<string, string> = {
+    default: "h-10 px-4 text-[13.5px]",
+    sm: "h-8 px-3 text-[12.5px] rounded-lg",
+    icon: "h-10 w-10",
+  };
+  return (
+    <button
+      type={type}
+      className={cn(
+        "inline-flex shrink-0 items-center justify-center gap-1.5 rounded-xl font-medium tracking-tight transition-all duration-200 ease-[var(--ease-out-soft)] active:scale-[0.97] disabled:pointer-events-none disabled:opacity-50",
+        variants[variant],
+        sizes[size],
+        className,
+      )}
+      {...props}
+    />
+  );
+}
+
 export function Chip({
   children,
   tone = "default",
