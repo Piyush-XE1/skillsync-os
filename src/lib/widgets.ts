@@ -10,14 +10,7 @@
  * through the registry), and drag-to-reorder reuses `DragSortList`.
  */
 
-export type ModuleKey =
-  | "attendance"
-  | "expenses"
-  | "focus"
-  | "cgpa"
-  | "resume"
-  | "coding"
-  | "career";
+export type ModuleKey = "attendance" | "expenses" | "focus" | "cgpa" | "coding" | "career";
 
 /** How much of the grid a widget occupies. */
 export type WidgetSize = "tile" | "wide" | "full";
@@ -25,8 +18,7 @@ export type WidgetSize = "tile" | "wide" | "full";
 export const WIDGET_SIZES: WidgetSize[] = ["tile", "wide", "full"];
 
 export const WIDGET_IDS = [
-  "streak",
-  "xp",
+  "goals",
   "focusToday",
   "habitsToday",
   "momentum",
@@ -42,8 +34,6 @@ export const WIDGET_IDS = [
   "habits",
   "weekReview",
   "quote",
-  "achievements",
-  "nextBadge",
   "quickAccess",
   "roadmaps",
   "projects",
@@ -85,19 +75,11 @@ export type WidgetDefinition = {
 
 export const WIDGET_DEFINITIONS: WidgetDefinition[] = [
   {
-    id: "streak",
-    title: "Daily streak",
-    hint: "Days in a row you showed up",
-    defaultSize: "tile",
-    sizes: ["tile", "wide"],
-    defaultVisible: true,
-  },
-  {
-    id: "xp",
-    title: "Level & XP",
-    hint: "Progress towards the next level",
-    defaultSize: "tile",
-    sizes: ["tile", "wide"],
+    id: "goals",
+    title: "Aims",
+    hint: "The goals you are working on",
+    defaultSize: "full",
+    sizes: ["wide", "full"],
     defaultVisible: true,
   },
   {
@@ -227,22 +209,6 @@ export const WIDGET_DEFINITIONS: WidgetDefinition[] = [
     defaultSize: "wide",
     sizes: ["wide", "full"],
     defaultVisible: true,
-  },
-  {
-    id: "achievements",
-    title: "Trophy shelf",
-    hint: "Badges you have unlocked",
-    defaultSize: "full",
-    sizes: ["wide", "full"],
-    defaultVisible: true,
-  },
-  {
-    id: "nextBadge",
-    title: "Next badge",
-    hint: "The closest unlocks",
-    defaultSize: "wide",
-    sizes: ["wide", "full"],
-    defaultVisible: false,
   },
   {
     id: "quickAccess",

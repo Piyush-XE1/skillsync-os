@@ -71,12 +71,15 @@ describe("dashboard widgets", () => {
     await render();
     const html = container.innerHTML;
     expect(html).toContain("Your dashboard");
-    expect(html).toContain("Daily streak");
-    expect(html).toContain("Level &amp; XP");
+    // The highlighted Aims panel sits at the top of the grid.
+    expect(html).toContain("Aims");
+    expect(html).toContain("Gym");
     expect(html).toContain("Continue learning");
     expect(html).toContain("Money this month");
-    // Widgets that are off by default stay off the grid.
-    expect(html).not.toContain("Next badge ·");
+    // No reward-system surfaces anywhere on the dashboard.
+    expect(html).not.toContain("Level &amp; XP");
+    expect(html).not.toContain("Trophy shelf");
+    expect(html).not.toContain("badge");
   });
 
   it("arms drag grips in customize mode and disarms them afterwards", async () => {
@@ -106,7 +109,10 @@ describe("dashboard widgets", () => {
 
   it("removes a widget from the grid and persists the layout", async () => {
     await render();
-    expect(container.innerHTML).toContain("Daily streak");
+    // "Gym" is one of the seeded aims — rendered by the Aims widget…
+    expect(container.innerHTML).toContain("Gym");
+    // …and echoed by the "today" hero, which always surfaces the aims.
+    expect(container.innerHTML).toContain("Today");
 
     click(
       Array.from(container.querySelectorAll("button")).find((b) =>
@@ -116,16 +122,19 @@ describe("dashboard widgets", () => {
     await act(async () => {
       await new Promise((r) => setTimeout(r, 20));
     });
-    click(container.querySelector('[aria-label="Remove Daily streak from the dashboard"]'));
+    click(container.querySelector('[aria-label="Remove Aims from the dashboard"]'));
     await act(async () => {
       await new Promise((r) => setTimeout(r, 30));
     });
 
-    expect(container.innerHTML).not.toContain("Daily streak");
+    // The widget is gone from the grid. The hero keeps the aims visible on
+    // purpose — hiding a widget must never hide the thing you are working on.
+    expect(container.querySelector('[aria-label="Reorder Aims"]')).toBeNull();
+    expect(container.innerHTML).not.toContain("Manage");
     const layout = useAppStore.getState().widgets;
-    expect(layout.find((w) => w.id === "streak")?.visible).toBe(false);
+    expect(layout.find((w) => w.id === "goals")?.visible).toBe(false);
     // …and it can be brought back from the persisted layout.
-    expect(setWidgetVisible(layout, "streak", true).find((w) => w.id === "streak")?.visible).toBe(
+    expect(setWidgetVisible(layout, "goals", true).find((w) => w.id === "goals")?.visible).toBe(
       true,
     );
   });
@@ -140,11 +149,12 @@ describe("dashboard widgets", () => {
     await act(async () => {
       await new Promise((r) => setTimeout(r, 20));
     });
-    click(container.querySelector('[aria-label="Make Daily streak wider"]'));
+    // "Aims" defaults to full width, so the frame offers "smaller".
+    click(container.querySelector('[aria-label="Make Aims smaller"]'));
     await act(async () => {
       await new Promise((r) => setTimeout(r, 30));
     });
-    expect(useAppStore.getState().widgets.find((w) => w.id === "streak")?.size).toBe("wide");
+    expect(useAppStore.getState().widgets.find((w) => w.id === "goals")?.size).toBe("wide");
   });
 
   it("hides widgets whose module is switched off", async () => {
@@ -153,6 +163,6 @@ describe("dashboard widgets", () => {
     }));
     await render();
     expect(container.innerHTML).not.toContain("Money this month");
-    expect(container.innerHTML).toContain("Daily streak");
+    expect(container.innerHTML).toContain("Gym");
   });
 });

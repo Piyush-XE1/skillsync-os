@@ -14,7 +14,6 @@ import { todayISO, addDaysISO } from "./date";
 
 function seed(overrides?: Partial<AppData>): AppData {
   const data = createInitialData();
-  data.stats.joinedAt = 1_700_000_000_000;
   Object.assign(data, overrides);
   return data;
 }

@@ -12,7 +12,6 @@ export const NOTIFICATION_CATEGORIES = [
   "projects",
   "expenses",
   "backup",
-  "achievements",
   "weeklySummary",
 ] as const;
 
@@ -87,13 +86,6 @@ export const CATEGORY_META: Record<CategoryKey, CategoryMeta> = {
     label: "Backup",
     description: "Reminders when your last backup gets old",
     icon: "save",
-    timed: false,
-  },
-  achievements: {
-    key: "achievements",
-    label: "Achievements",
-    description: "Streak milestones, level-ups and XP wins",
-    icon: "trophy",
     timed: false,
   },
   weeklySummary: {

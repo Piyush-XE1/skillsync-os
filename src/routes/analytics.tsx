@@ -6,20 +6,18 @@ import {
   Timer,
   TrendingDown,
   TrendingUp,
-  Zap,
   Braces,
   Activity,
   Target,
-  Clock,
 } from "lucide-react";
 import { AppShell } from "@/components/layout/AppShell";
-import { Card, CircularProgress, ProgressBar, SectionHeader } from "@/components/ui/primitives";
+import { Card, ProgressBar, SectionHeader } from "@/components/ui/primitives";
 import { Heatmap, type HeatCell } from "@/components/common/Heatmap";
 import { AreaChart, BarChart, DonutChart, Legend, getAxisLabel } from "@/components/common/Charts";
 import { useAppStore, useHydrated } from "@/store/useAppStore";
 import { roadmapPct, roadmapCounts } from "@/lib/progress";
 import { todayISO, addDaysISO } from "@/lib/date";
-import { minutesByDay, focusTotals, focusStreak } from "@/lib/focus";
+import { formatMinutes, minutesByDay, focusTotals, focusStreak } from "@/lib/focus";
 import { habitStreak } from "@/lib/habit-streaks";
 import {
   effortByDay,
@@ -54,7 +52,6 @@ function AnalyticsPage() {
   const projects = data.projects;
   const habits = data.habits;
   const habitLogs = data.habitLogs;
-  const stats = data.stats;
 
   const overallLearning = useMemo(
     () =>
@@ -147,6 +144,12 @@ function AnalyticsPage() {
   );
   const streak = useMemo(() => codingStreak(data), [data]);
 
+  // Habits with a live streak — the discipline signal that replaced points.
+  const aliveHabits = useMemo(
+    () => habits.filter((h) => habitStreak(h.id, habitLogs).current > 0).length,
+    [habits, habitLogs],
+  );
+
   const habitCells = useMemo(() => {
     const today = todayISO();
     const days = 70; // 10 weeks
@@ -162,8 +165,6 @@ function AnalyticsPage() {
       };
     });
   }, [habitLogs, habits]);
-
-  const xpToNext = stats.xp % 100;
 
   return (
     <AppShell>
@@ -208,26 +209,22 @@ function AnalyticsPage() {
             </div>
           </Card>
           <Card className="p-4">
-            <div className="text-[12px] text-muted-foreground">Streak</div>
+            <div className="text-[12px] text-muted-foreground">Habit streaks alive</div>
             <div className="mt-2 flex items-baseline gap-1.5">
               <span className="text-[28px] font-semibold tracking-tight">
-                {hydrated ? stats.streak : 0}
+                {hydrated ? aliveHabits : 0}
               </span>
-              <Flame className="h-4 w-4 text-[var(--warning)]" />
+              <span className="text-[13px] text-muted-foreground">/ {habits.length}</span>
             </div>
           </Card>
           <Card className="flex items-center gap-4 p-4">
-            <CircularProgress
-              value={xpToNext}
-              size={64}
-              stroke={6}
-              label={<span className="text-[13px]">{hydrated ? stats.level : "—"}</span>}
-            />
+            <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-[color-mix(in_oklab,var(--primary)_14%,transparent)]">
+              <Timer className="h-5 w-5 text-[var(--primary-glow)]" strokeWidth={1.75} />
+            </div>
             <div>
-              <div className="text-[12px] text-muted-foreground">Level progress</div>
-              <div className="mt-1 flex items-center gap-1.5 text-[16px] font-semibold tracking-tight">
-                <Zap className="h-3.5 w-3.5 text-[var(--primary)]" strokeWidth={2} />
-                {hydrated ? stats.xp : 0} XP
+              <div className="text-[12px] text-muted-foreground">Focus · 14 days</div>
+              <div className="mt-1 text-[16px] font-semibold tracking-tight">
+                {hydrated ? formatMinutes(focusWeek.reduce((s, d) => s + d.minutes, 0)) : "—"}
               </div>
             </div>
           </Card>

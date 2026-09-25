@@ -2,6 +2,128 @@
 
 All notable changes to SkillSync OS are documented here.
 
+## [4.2.0] — 2026-09-25
+
+### Added
+
+- **"Today" hero on the dashboard.** The first surface after the brand opening
+  now leads with live telemetry instead of decoration: a ticking clock, habit
+  and deep-work progress rings, count-up tiles for solved problems / planner
+  load / best streak, a 7-day activity strip, and the user's pinned aims with
+  one-tap entry into Focus and Aims. Backed by a new pure module
+  (`src/lib/today.ts`) with an injected clock, unit-tested end to end
+  (`todaySummary`, `activityStrip`).
+- **Project showcase (`/showcase`, keyboard `?`)** — a viva-ready dossier:
+  stack, feature highlights, a five-layer architecture map, engineering
+  decisions, live metrics and the demo-mode controls.
+- **Demo workspace.** A deterministic, seeded persona (`src/lib/demo.ts`) with
+  six semesters of CGPA, 148 solved problems, a placement pipeline, 120 days of
+  habit history, roadmaps, notes, planner, expenses and notifications. Loading
+  it snapshots the real workspace to `skillsync:demo:snapshot`; exiting — or
+  simply relaunching the app after a crash (`useDemoRecovery`) — restores it
+  byte for byte. A shell-level banner makes the state impossible to miss, and
+  `demoMode` is never persisted, exported or backed up.
+- **Motion & surface system** in `styles.css`: `aurora-panel`, `stat-tile`,
+  `glow-hover`, `animate-rise` with a `--i` stagger index, `sheen`, ambient
+  `drift`/`breathe` loops, themed scrollbars, selection colour and a
+  focus-visible ring — all opacity/transform only, all collapsed by
+  `prefers-reduced-motion`.
+- **Scroll progress rail** and a polished `PageHeader` (accent eyebrow, gradient
+  rule) in the app shell; widget cards lift with an accent rim on hover and the
+  grid fades in with a per-slot stagger; the side and bottom navigation show
+  accent-glowing active states.
+
+### Changed
+
+- README gains a **project dossier** section (layer diagram, engineering
+  highlights, demo instructions); ARCHITECTURE documents the today layer, demo
+  mode and the motion system as §11–13. `APP_VERSION` is now 4.2.
+
+### Fixed
+
+- Removed the dead `resume-print` stylesheet left behind when the Resume module
+  was deleted in 4.1.
+
+## [4.1.0] — 2026-09-25
+
+### Removed
+
+- **The Resume builder is gone — the app builds habits and skills, not
+  documents.** Removed end to end:
+  - the **Resume** page (`src/routes/resume.tsx`, `/resume`) with its editor,
+    print preview, PDF export and sample-resume importer,
+  - the `ResumeSchema` record block (`name`, `title`, `contact`, `summary`,
+    `skills`, `education`, `experience`, `projects`, `certifications`) and the
+    `resume` module flag from `PreferencesSchema`,
+  - the store's `updateResume` / `setResume` actions, the sidebar entry, the
+    command-palette page entry and quick-launch tile, the Profile card and the
+    Profile → Modules toggle,
+  - the "Resume" row from the backup change detector and backup summary.
+
+### Changed
+
+- **Schema v12** with a v11 → v12 migrator that drops the stored `resume`
+  block and the `resume` module flag. Everything else — aims, habits, focus,
+  CGPA, coding, career, notes, planner, backups — migrates untouched.
+- `APP_VERSION` is now 4.1.
+
+## [4.0.0] — 2026-09-25
+
+### Removed
+
+- **The reward system is gone: no XP, no levels, no badges, no trophies.** It
+  was the wrong motivation model for a tool you use on yourself — and the
+  first thing to feel like a toy. Removed end to end:
+  - `src/lib/achievements.ts` (26 declarative badges) and its test suite,
+  - the `useAchievementEngine` hook (toasts, confetti bursts, unlock
+    notifications, level-up celebrations),
+  - the **Trophies** page (`/achievements`), the `xp` / `streak` /
+    `achievements` / `nextBadge` dashboard widgets and the Profile badge
+    showcase,
+  - the global daily-streak counter and its milestone notifications (per-habit
+    streaks stay — they are a consistency signal, not a score),
+  - the `achievement` and `levelUp` sound cues, the XP readouts in Analytics,
+    Week in Review, Profile, System and the weekly digest,
+  - the stored `stats` block (`xp`, `level`, `streak`, `lastActive`, `totalXp`,
+    `achievements`) and the `achievements` notification category.
+
+### Added
+
+- **Aims — a highlighted goals panel.** A new `Goal` record (`id`, `title`,
+  `emoji`, `note`) plus a new **Aims** page (`/goals`, keyboard `G`) where you
+  declare what you are actually working on: Gym, No junk food, Good at
+  academics, No fap, and anything else you type. Quick-add presets make it one
+  tap; aims can be edited, reordered by drag and removed.
+- **The dashboard's top slot is now Aims.** A full-width, accent-glowing
+  `goals` widget (`src/lib/goals.ts` + `GoalsWidget`) that lists your aims and
+  offers one-tap presets when the list is empty, with a **Manage** link into
+  the page. Ordering, resizing, hiding and customize mode all work exactly like
+  every other widget.
+- **Aims in Profile**, plus an aims count in Profile → System diagnostics.
+- **Aims in the weekly review** — the hero line now reads active days + aims in
+  focus instead of streak/level/XP.
+- **Habit-only analytics** — the Analytics header card now reports _habit
+  streaks alive_ and _focus minutes (14 days)_ instead of a global streak and a
+  level ring.
+
+### Changed
+
+- **Schema v11** with a v10 → v11 migrator that drops the retired `stats`
+  block, strips the retired notification category (setting, history and queued
+  entries) and lifts the Aims panel to the top of an existing dashboard. A
+  migrated workspace starts with an empty aims list — starter aims (Gym, No
+  junk food, Good at academics, No fap) are seeded for brand-new workspaces
+  only. App version → **4.0**.
+- `applyOrder`-style scoped reordering for aims, so a drag can never shuffle or
+  drop an aim it did not touch.
+
+### Fixed
+
+- Anything that still read a reward field after the removal would have rendered
+  `undefined` or rejected an old workspace on parse; the migrator and the
+  strict-schema tests cover those paths (`migrations.test.ts` asserts the stats
+  block and the achievements category are gone after an upgrade).
+
 ## [3.6.0] — 2026-09-07
 
 ### Changed

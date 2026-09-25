@@ -43,7 +43,8 @@ export function SectionHeader({
 }) {
   return (
     <div className={cn("flex items-end justify-between px-1", className)}>
-      <h2 className="text-[13px] font-semibold uppercase tracking-[0.1em] text-muted-foreground">
+      <h2 className="flex items-center gap-2 text-[13px] font-semibold uppercase tracking-[0.1em] text-muted-foreground">
+        <span aria-hidden className="gradient-primary h-3 w-[2px] rounded-full" />
         {title}
       </h2>
       {action ? (

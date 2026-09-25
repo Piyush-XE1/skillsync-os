@@ -94,7 +94,7 @@ function NotificationSettingsPage() {
     const result = await deliver({
       id: `test-${Date.now()}`,
       createdAt: Date.now(),
-      category: "achievements",
+      category: "habits",
       title: "SkillSync test notification",
       body: "If you can see this, delivery works on this device.",
       read: false,

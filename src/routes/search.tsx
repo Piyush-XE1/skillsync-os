@@ -17,7 +17,7 @@ import {
   Braces,
   Briefcase,
   Circle,
-  Trophy,
+  Target,
   CalendarHeart,
 } from "lucide-react";
 import { useAppStore, useHydrated } from "@/store/useAppStore";
@@ -233,12 +233,11 @@ function SearchPage() {
             {[
               { icon: Timer, label: "Focus", to: "/focus" },
               { icon: Award, label: "CGPA", to: "/cgpa" },
-              { icon: FileText, label: "Resume", to: "/resume" },
               { icon: Wallet, label: "Expenses", to: "/expenses" },
               { icon: CalendarRange, label: "Planner", to: "/planner" },
               { icon: BookOpen, label: "Learn", to: "/learn" },
               { icon: Flame, label: "Habits", to: "/habits" },
-              { icon: Trophy, label: "Trophies", to: "/achievements" },
+              { icon: Target, label: "Aims", to: "/goals" },
               { icon: CalendarHeart, label: "Review", to: "/review" },
               { icon: LayoutDashboard, label: "Dashboard", to: "/" },
             ].map(({ icon: Icon, label, to }) => (

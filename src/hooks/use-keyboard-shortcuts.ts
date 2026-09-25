@@ -13,8 +13,9 @@ function isTypingTarget(el: EventTarget | null): boolean {
  *   Cmd/Ctrl + K or "/" → command palette (search)
  *   "f"                → focus timer
  *   "c"                → code / DSA prep
- *   "g"                → trophies / achievements
+ *   "g"                → aims / goals
  *   "r"                → week in review
+ *   "?"                → project showcase
  */
 export function useKeyboardShortcuts() {
   const navigate = useNavigate();
@@ -41,10 +42,14 @@ export function useKeyboardShortcuts() {
         void navigate({ to: "/coding" });
       }
       if (e.key.toLowerCase() === "g" && !e.altKey && !e.metaKey && !e.ctrlKey) {
-        void navigate({ to: "/achievements" });
+        void navigate({ to: "/goals" });
       }
       if (e.key.toLowerCase() === "r" && !e.altKey && !e.metaKey && !e.ctrlKey) {
         void navigate({ to: "/review" });
+      }
+      if (e.key === "?" && !e.altKey && !e.metaKey && !e.ctrlKey) {
+        e.preventDefault();
+        void navigate({ to: "/showcase" });
       }
     };
     window.addEventListener("keydown", onKey);

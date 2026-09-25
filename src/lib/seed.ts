@@ -61,6 +61,10 @@ function makeHabit(id: string, title: string, emoji: string): Habit {
   return { id, title, emoji, createdAt: SEED_CREATED_AT, startDate: SEED_START_DATE };
 }
 
+function makeGoal(id: string, title: string, emoji: string, note = "") {
+  return { id, title, emoji, note, createdAt: SEED_CREATED_AT };
+}
+
 export function createInitialData(): AppData {
   return {
     schemaVersion: CURRENT_SCHEMA_VERSION,
@@ -197,6 +201,14 @@ export function createInitialData(): AppData {
       makeHabit("habit-meditation", "Meditation", "🧘"),
     ],
     habitLogs: [],
+    // Starter aims — the highlighted panel is useful the moment the app opens,
+    // and every one of them can be edited or deleted.
+    goals: [
+      makeGoal("goal-gym", "Gym", "🏋️", "Show up even on the days you don't feel like it."),
+      makeGoal("goal-no-junk", "No junk food", "🥗", "Eat for energy, not for boredom."),
+      makeGoal("goal-academics", "Good at academics", "📚"),
+      makeGoal("goal-no-fap", "No fap", "🔒", "Keep the energy. Keep the focus."),
+    ],
     profile: { name: "Learner", avatar: "" },
     preferences: {
       notifications: true,
@@ -206,7 +218,6 @@ export function createInitialData(): AppData {
         expenses: false,
         focus: true,
         cgpa: true,
-        resume: true,
         coding: true,
         career: true,
       },
@@ -218,35 +229,10 @@ export function createInitialData(): AppData {
       soundVolume: DEFAULT_SOUND_VOLUME,
     },
     widgets: defaultWidgetLayout(),
-    stats: {
-      xp: 0,
-      level: 1,
-      streak: 0,
-      lastActive: "",
-      totalXp: 0,
-      joinedAt: Date.now(),
-      achievements: [],
-    },
     attendance: { subjects: [] },
     expenses: { transactions: [] },
     focus: { sessions: [], settings: createDefaultFocusSettings() },
     cgpa: { semesters: [] },
-    resume: {
-      name: "",
-      title: "",
-      email: "",
-      phone: "",
-      location: "",
-      website: "",
-      github: "",
-      linkedin: "",
-      summary: "",
-      skills: [],
-      education: [],
-      experience: [],
-      projects: [],
-      certifications: [],
-    },
     notifications: createDefaultNotifications(),
     coding: { problems: [], rating: 0, maxRating: 0, ratingHistory: [] },
     career: { applications: [] },

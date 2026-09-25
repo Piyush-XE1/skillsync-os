@@ -15,12 +15,12 @@ import {
   PanelLeftOpen,
   Timer,
   Award,
-  FileText,
   Search,
   Braces,
   Briefcase,
-  Trophy,
+  Target,
   CalendarHeart,
+  Sparkles,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { haptics } from "@/lib/haptics";
@@ -38,18 +38,18 @@ type Item = {
     | "/expenses"
     | "/focus"
     | "/cgpa"
-    | "/resume"
     | "/coding"
     | "/career"
-    | "/achievements"
+    | "/goals"
     | "/review"
     | "/search"
-    | "/profile";
+    | "/profile"
+    | "/showcase";
   label: string;
   icon: typeof LayoutDashboard;
   exact?: boolean;
   /** Module flag that gates this entry. */
-  module?: "attendance" | "expenses" | "focus" | "cgpa" | "resume" | "coding" | "career";
+  module?: "attendance" | "expenses" | "focus" | "cgpa" | "coding" | "career";
   kbd?: string;
 };
 
@@ -63,13 +63,13 @@ const items: Item[] = [
   { to: "/attendance", label: "Attendance", icon: CalendarCheck, module: "attendance" },
   { to: "/habits", label: "Habits", icon: Flame },
   { to: "/expenses", label: "Expenses", icon: Wallet, module: "expenses" },
-  { to: "/resume", label: "Resume", icon: FileText, module: "resume" },
   { to: "/coding", label: "Code", icon: Braces, module: "coding", kbd: "C" },
   { to: "/career", label: "Career", icon: Briefcase, module: "career" },
-  { to: "/achievements", label: "Trophies", icon: Trophy, kbd: "G" },
+  { to: "/goals", label: "Aims", icon: Target, kbd: "G" },
   { to: "/review", label: "Review", icon: CalendarHeart, kbd: "R" },
   { to: "/search", label: "Search", icon: Search, kbd: "⌘K" },
   { to: "/profile", label: "Profile", icon: User },
+  { to: "/showcase", label: "Project", icon: Sparkles, kbd: "?" },
 ];
 
 const STORAGE_KEY = "skillsync.sidebar.collapsed";
@@ -170,7 +170,7 @@ export function SideNav() {
                 "group relative flex items-center gap-3 rounded-[14px] px-3 py-2.5 transition-all duration-200 ease-[var(--ease-out-soft)]",
                 collapsed && "justify-center px-0",
                 active
-                  ? "bg-white/[0.07] text-foreground shadow-[inset_0_0_0_1px_oklch(1_0_0_/_0.08)]"
+                  ? "bg-[color-mix(in_oklab,var(--primary)_10%,transparent)] text-foreground shadow-[inset_0_0_0_1px_color-mix(in_oklab,var(--primary)_22%,transparent)]"
                   : "text-muted-foreground hover:translate-x-0.5 hover:bg-white/[0.04] hover:text-foreground",
               )}
             >
@@ -191,7 +191,7 @@ export function SideNav() {
                 </>
               )}
               {active ? (
-                <span className="absolute inset-y-2 left-0 w-[2px] rounded-full bg-[var(--primary)]" />
+                <span className="absolute inset-y-2 left-0 w-[2px] rounded-full bg-[var(--primary)] shadow-[0_0_12px_var(--primary-glow)]" />
               ) : null}
             </Link>
           );

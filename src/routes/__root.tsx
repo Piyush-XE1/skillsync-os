@@ -102,12 +102,12 @@ export const Route = createRootRoute({
       { title: "SkillSync" },
       {
         name: "description",
-        content: "Your personal growth dashboard: streaks, XP, focus and progress.",
+        content: "Your personal growth dashboard: aims, streaks, focus and progress.",
       },
       { property: "og:title", content: "SkillSync" },
       {
         property: "og:description",
-        content: "Your personal growth dashboard: streaks, XP, focus and progress.",
+        content: "Your personal growth dashboard: aims, streaks, focus and progress.",
       },
       { property: "og:type", content: "website" },
       { property: "og:image", content: "/og.png" },
@@ -117,7 +117,7 @@ export const Route = createRootRoute({
       { name: "twitter:title", content: "SkillSync" },
       {
         name: "twitter:description",
-        content: "Your personal growth dashboard: streaks, XP, focus and progress.",
+        content: "Your personal growth dashboard: aims, streaks, focus and progress.",
       },
       { name: "twitter:image", content: "/og.png" },
     ],

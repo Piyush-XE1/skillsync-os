@@ -11,9 +11,11 @@ import {
   Circle,
   FolderKanban,
   GraduationCap,
+  Plus,
   Quote as QuoteIcon,
   Sparkles,
   StickyNote,
+  Target,
   Timer,
   Trophy,
   Wallet,
@@ -28,7 +30,7 @@ import { roadmapPct, topicPct } from "@/lib/progress";
 import { todayISO } from "@/lib/date";
 import { dailyQuote } from "@/lib/quotes";
 import { composeReview } from "@/lib/review";
-import { ACHIEVEMENTS, allAchievements } from "@/lib/achievements";
+import { GOAL_PRESETS, unusedPresets } from "@/lib/goals";
 import { habitStreak } from "@/lib/habit-streaks";
 import { fireConfetti } from "@/lib/confetti";
 import { haptics } from "@/lib/haptics";
@@ -424,112 +426,119 @@ export function QuoteWidget({ size, ...chrome }: WidgetProps) {
   );
 }
 
-/* ------------------------------- achievements ---------------------------- */
+/* ---------------------------------- aims --------------------------------- */
 
-export function AchievementsWidget({ size, ...chrome }: WidgetProps) {
+/**
+ * The highlighted Aims panel — the anti-trophy-shelf.
+ *
+ * No levels, no XP, no badges: just the handful of aims the user is actually
+ * working on, kept in the most visible slot on the dashboard. When the list is
+ * empty it offers one-tap presets (Gym, No junk food, Good at academics, …) so
+ * declaring an aim takes a single tap.
+ */
+export function GoalsWidget({ size, ...chrome }: WidgetProps) {
   const hydrated = useHydrated();
-  const unlocked = useAppStore((s) => s.stats.achievements);
-  const habitLogs = useAppStore((s) => s.habitLogs);
-  const roadmaps = useAppStore((s) => s.roadmaps);
-  const achievements = useMemo(() => {
-    const data = useAppStore.getState() as unknown as AppData;
-    return allAchievements(data);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [unlocked, habitLogs, roadmaps]);
-  const earned = achievements.filter((a) => unlocked.includes(a.id));
-
-  return (
-    <WidgetFrame
-      size={size}
-      title={`Trophy shelf · ${unlocked.length}/${ACHIEVEMENTS.length}`}
-      icon={<Trophy className="h-3.5 w-3.5" strokeWidth={2} />}
-      action={
-        <Link
-          to="/achievements"
-          className="inline-flex items-center gap-0.5 text-[11px] text-muted-foreground transition-colors hover:text-foreground"
-        >
-          All badges <ChevronRight className="h-3 w-3" />
-        </Link>
-      }
-      {...chrome}
-    >
-      {!hydrated || earned.length === 0 ? (
-        <EmptyState
-          icon={Trophy}
-          title="No badges yet"
-          hint="Finish a topic or log a habit to unlock your first."
-        />
-      ) : (
-        <div className="no-scrollbar -mx-1 flex gap-2.5 overflow-x-auto px-1 pb-1">
-          {earned.slice(0, 8).map((a) => (
-            <div
-              key={a.id}
-              className="card-surface min-w-[128px] shrink-0 p-3 text-center transition-transform [@media(hover:hover)_and_(pointer:fine)]:hover:-translate-y-0.5"
-            >
-              <div className="text-[24px]" aria-hidden>
-                {a.icon}
-              </div>
-              <div className="mt-1 truncate text-[12px] font-semibold">{a.title}</div>
-              <div className="mt-0.5 line-clamp-2 text-[10px] leading-snug text-muted-foreground">
-                {a.description}
-              </div>
-            </div>
-          ))}
-        </div>
-      )}
-    </WidgetFrame>
+  const goals = useAppStore((s) => s.goals);
+  const addGoal = useAppStore((s) => s.addGoal);
+  const quick = useMemo(
+    () => unusedPresets(goals).slice(0, size === "wide" ? 3 : 6),
+    [goals, size],
   );
-}
 
-/* -------------------------------- next badge ------------------------------ */
-
-export function NextBadgeWidget({ size, ...chrome }: WidgetProps) {
-  const hydrated = useHydrated();
-  const unlocked = useAppStore((s) => s.stats.achievements);
-  const stats = useAppStore((s) => s.stats);
-  const habitLogs = useAppStore((s) => s.habitLogs);
-  const next = useMemo(() => {
-    const data = useAppStore.getState() as unknown as AppData;
-    return ACHIEVEMENTS.filter((a) => !unlocked.includes(a.id))
-      .map((a) => ({
-        ...a,
-        hint: a.progressHint ? a.progressHint(data) : undefined,
-      }))
-      .slice(0, size === "tile" ? 2 : 4);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [unlocked, stats, habitLogs, size]);
+  const add = (preset: (typeof GOAL_PRESETS)[number]) => {
+    addGoal({ title: preset.title, emoji: preset.emoji, note: preset.note });
+    haptics.success();
+    sound.success();
+    toast.success(`Added "${preset.title}"`, { description: "It now lives on your dashboard." });
+  };
 
   return (
     <WidgetFrame
       size={size}
-      title={`Next badge · ${unlocked.length} earned`}
-      icon={<Trophy className="h-3.5 w-3.5" strokeWidth={2} />}
+      title="Aims"
+      icon={<Target className="h-3.5 w-3.5" strokeWidth={2} />}
+      className="border-[color-mix(in_oklab,var(--primary)_38%,transparent)] shadow-[var(--shadow-glow)]"
       action={
         <Link
-          to="/achievements"
+          to="/goals"
           className="inline-flex items-center gap-0.5 text-[11px] text-muted-foreground transition-colors hover:text-foreground"
         >
-          Trophies <ChevronRight className="h-3 w-3" />
+          Manage <ChevronRight className="h-3 w-3" />
         </Link>
       }
       {...chrome}
     >
-      {!hydrated || next.length === 0 ? (
-        <EmptyState icon={Trophy} title="Every badge unlocked" hint="Legend status achieved." />
+      {!hydrated ? (
+        <div className="text-[12.5px] text-muted-foreground">Loading…</div>
+      ) : goals.length === 0 ? (
+        <div>
+          <p className="max-w-[46ch] text-[13px] leading-relaxed text-muted-foreground">
+            What are you working on? Add the aims you want staring back at you every day — no
+            points, no levels, just direction.
+          </p>
+          <div className="mt-3 flex flex-wrap gap-2">
+            {quick.map((preset) => (
+              <button
+                key={preset.title}
+                type="button"
+                onClick={() => add(preset)}
+                className="pressable flex items-center gap-1.5 rounded-full border border-[color-mix(in_oklab,var(--primary)_35%,transparent)] bg-[color-mix(in_oklab,var(--primary)_10%,transparent)] px-3 py-1.5 text-[12.5px] font-medium transition-colors hover:border-[var(--primary)]"
+              >
+                <span aria-hidden>{preset.emoji}</span>
+                <Plus className="h-3 w-3" strokeWidth={2.5} />
+                {preset.title}
+              </button>
+            ))}
+          </div>
+        </div>
       ) : (
-        <div className="flex flex-wrap gap-2">
-          {next.map((a) => (
-            <div
-              key={a.id}
-              className="flex items-center gap-2 rounded-full border border-white/[0.06] bg-white/[0.02] px-3 py-1.5 text-[12px] text-muted-foreground"
-            >
-              <span className="opacity-60" aria-hidden>
-                {a.icon}
+        <div className="space-y-3">
+          <ul className="flex flex-wrap gap-2">
+            {goals.map((goal) => (
+              <li
+                key={goal.id}
+                className="flex items-center gap-2 rounded-2xl border border-[color-mix(in_oklab,var(--primary)_24%,transparent)] bg-[color-mix(in_oklab,var(--primary)_8%,transparent)] px-3 py-1.5"
+              >
+                <span className="text-[15px] leading-none" aria-hidden>
+                  {goal.emoji}
+                </span>
+                <span className="text-[13px] font-medium tracking-tight">{goal.title}</span>
+              </li>
+            ))}
+          </ul>
+          {size !== "wide" && goals.some((g) => g.note) ? (
+            <ul className="space-y-1.5">
+              {goals
+                .filter((g) => g.note)
+                .slice(0, 3)
+                .map((goal) => (
+                  <li key={`${goal.id}-note`} className="text-[11.5px] text-muted-foreground">
+                    <span className="mr-1.5" aria-hidden>
+                      {goal.emoji}
+                    </span>
+                    {goal.note}
+                  </li>
+                ))}
+            </ul>
+          ) : null}
+          {quick.length > 0 ? (
+            <div className="flex flex-wrap items-center gap-1.5">
+              <span className="text-[11px] uppercase tracking-[0.14em] text-muted-foreground/70">
+                Add
               </span>
-              {a.title}
-              {a.hint ? <span className="text-[10.5px] opacity-70">{a.hint}</span> : null}
+              {quick.map((preset) => (
+                <button
+                  key={preset.title}
+                  type="button"
+                  onClick={() => add(preset)}
+                  className="pressable flex items-center gap-1 rounded-full border border-white/[0.08] bg-white/[0.02] px-2.5 py-1 text-[11.5px] text-muted-foreground transition-colors hover:border-[color-mix(in_oklab,var(--primary)_40%,transparent)] hover:text-foreground"
+                >
+                  <span aria-hidden>{preset.emoji}</span>
+                  {preset.title}
+                </button>
+              ))}
             </div>
-          ))}
+          ) : null}
         </div>
       )}
     </WidgetFrame>

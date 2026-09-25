@@ -27,7 +27,10 @@ export const Route = createFileRoute("/focus")({
   head: () => ({
     meta: [
       { title: "Focus — SkillSync" },
-      { name: "description", content: "Pomodoro deep-work timer with XP and streaks." },
+      {
+        name: "description",
+        content: "Pomodoro deep-work timer with session history and a focus streak.",
+      },
       { property: "og:title", content: "Focus — SkillSync" },
       { property: "og:description", content: "Deep work, measured." },
       { property: "og:type", content: "website" },
@@ -121,7 +124,7 @@ function FocusPage() {
       // Reward the deep-work win with a quiet celebratory scatter.
       fireConfetti({ count: 90, origin: { x: 0.5, y: 0.6 }, ttl: 1.8 });
       toast.success("Focus session complete", {
-        description: `+${minutes} XP · ${formatClock(minutes * 60)} of deep work logged.`,
+        description: `${formatClock(minutes * 60)} of deep work logged.`,
       });
       const next: Phase =
         completedRef.current % settings.longBreakEvery === 0 ? "longBreak" : "break";
@@ -189,7 +192,7 @@ function FocusPage() {
       <PageHeader
         eyebrow="Deep Work"
         title="Focus."
-        subtitle="One session at a time. Completed focus sessions earn XP and extend your streak."
+        subtitle="One session at a time. Completed focus sessions build your focus streak."
       />
 
       <div className="space-y-6 px-5 lg:px-2 lg:auto-grid-wide lg:items-start lg:space-y-0">

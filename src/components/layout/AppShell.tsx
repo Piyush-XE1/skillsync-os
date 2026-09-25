@@ -1,11 +1,12 @@
-import type { ReactNode } from "react";
+import { useEffect, useRef, type ReactNode } from "react";
 import { cn } from "@/lib/utils";
 import { BottomNav } from "./BottomNav";
 import { SideNav } from "./SideNav";
 import { useHapticPreferences } from "@/hooks/use-haptics";
 import { useSoundPreferences } from "@/hooks/use-sound";
 import { useKeyboardShortcuts } from "@/hooks/use-keyboard-shortcuts";
-import { useAchievementEngine } from "@/hooks/use-achievement-engine";
+import { useDemoRecovery } from "@/hooks/use-demo-recovery";
+import { DemoBanner } from "./DemoBanner";
 
 /**
  * Responsive application shell.
@@ -16,12 +17,14 @@ export function AppShell({ children }: { children: ReactNode }) {
   useHapticPreferences();
   useSoundPreferences();
   useKeyboardShortcuts();
-  useAchievementEngine();
+  useDemoRecovery();
   // Automatic copies are handled by the single backup scheduler
   // (`startAutoScheduler`, mounted once in the root route). Doing it here per
   // screen meant every route serialised the whole workspace on a 1.5s debounce.
   return (
     <div className="relative flex min-h-[100dvh] w-full">
+      <ScrollProgress />
+      <DemoBanner />
       <SideNav />
       <div className="flex min-w-0 flex-1 flex-col">
         <main className="animate-float-in flex-1 pb-32 pt-[max(env(safe-area-inset-top),24px)] lg:pb-16 lg:pt-8">
@@ -32,6 +35,47 @@ export function AppShell({ children }: { children: ReactNode }) {
         <BottomNav />
       </div>
     </div>
+  );
+}
+
+/**
+ * Two-pixel scroll rail across the very top of the viewport — a cheap,
+ * always-correct answer to "how much is left in this page". Written with rAF at
+ * most once per frame, and animated with `transform` so it never triggers
+ * layout while scrolling.
+ */
+function ScrollProgress() {
+  const ref = useRef<HTMLDivElement | null>(null);
+
+  useEffect(() => {
+    let raf = 0;
+    const update = () => {
+      raf = 0;
+      const doc = document.documentElement;
+      const max = doc.scrollHeight - window.innerHeight;
+      const pct = max > 0 ? Math.min(1, Math.max(0, window.scrollY / max)) : 0;
+      if (ref.current) ref.current.style.transform = `scaleX(${pct})`;
+    };
+    const onScroll = () => {
+      if (!raf) raf = requestAnimationFrame(update);
+    };
+    update();
+    window.addEventListener("scroll", onScroll, { passive: true });
+    window.addEventListener("resize", onScroll);
+    return () => {
+      window.removeEventListener("scroll", onScroll);
+      window.removeEventListener("resize", onScroll);
+      if (raf) cancelAnimationFrame(raf);
+    };
+  }, []);
+
+  return (
+    <div
+      aria-hidden
+      ref={ref}
+      style={{ transform: "scaleX(0)" }}
+      className="gradient-primary pointer-events-none fixed inset-x-0 top-0 z-[70] h-[2px] origin-left opacity-80"
+    />
   );
 }
 
@@ -81,7 +125,8 @@ export function PageHeader({
       <div className="flex items-start justify-between gap-4">
         <div className="min-w-0">
           {eyebrow ? (
-            <div className="mb-2 text-[11px] font-semibold uppercase tracking-[0.16em] text-muted-foreground">
+            <div className="mb-2 flex items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.16em] text-muted-foreground">
+              <span aria-hidden className="gradient-primary h-1.5 w-1.5 rounded-full" />
               {eyebrow}
             </div>
           ) : null}
@@ -95,6 +140,10 @@ export function PageHeader({
         {right}
       </div>
       {hero ? <div className="mt-5">{hero}</div> : null}
+      <div
+        aria-hidden
+        className="mt-5 h-px w-full bg-gradient-to-r from-transparent via-white/[0.09] to-transparent"
+      />
     </header>
   );
 }

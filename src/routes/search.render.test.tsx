@@ -40,7 +40,7 @@ describe("search render", () => {
     expect(html).toContain("roadmaps");
     expect(html).toContain("Focus");
     expect(html).toContain("CGPA");
-    expect(html).toContain("Resume");
+    expect(html).not.toContain("Resume");
     expect(html).toContain("Go to");
   });
 });

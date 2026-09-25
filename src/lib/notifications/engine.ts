@@ -201,21 +201,6 @@ export function buildDueCandidates(
     }
   }
 
-  // Achievements — streak milestones.
-  if (categoryActive("achievements", settings, data)) {
-    const streak = data.stats?.streak ?? 0;
-    if ([3, 7, 14, 21, 30, 50, 75, 100, 150, 200, 365].includes(streak)) {
-      out.push({
-        category: "achievements",
-        title: `${streak}-day streak`,
-        body: "Consistency is the whole game. Keep it running.",
-        priority: "normal",
-        action: { kind: "route", to: "/analytics" },
-        sourceId: `achievements:streak:${streak}`,
-      });
-    }
-  }
-
   // Weekly summary.
   const ws = settings.weeklySummary;
   if (
@@ -232,7 +217,7 @@ export function buildDueCandidates(
     out.push({
       category: "weeklySummary",
       title: "Your week in SkillSync",
-      body: `${checkIns} habit check-in${checkIns === 1 ? "" : "s"} · ${donePlanner} planner task${donePlanner === 1 ? "" : "s"} done · level ${data.stats?.level ?? 1}`,
+      body: `${checkIns} habit check-in${checkIns === 1 ? "" : "s"} · ${donePlanner} planner task${donePlanner === 1 ? "" : "s"} done`,
       priority: "normal",
       action: { kind: "route", to: "/analytics" },
       sourceId: `weekly:${todayISO(now)}`,

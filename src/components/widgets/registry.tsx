@@ -8,17 +8,16 @@ import {
   CalendarClock,
   CalendarRange,
   CheckCircle2,
-  Flame,
   FolderKanban,
   GraduationCap,
   LayoutGrid,
   Quote,
   Sparkles,
   StickyNote,
+  Target,
   Timer,
   Trophy,
   Wallet,
-  Zap,
 } from "lucide-react";
 import type { WidgetId } from "@/lib/widgets";
 import type { WidgetProps } from "./WidgetFrame";
@@ -33,14 +32,11 @@ import {
   MomentumWidget,
   RatingWidget,
   SolvedWidget,
-  StreakWidget,
-  XpWidget,
 } from "./tiles";
 import {
-  AchievementsWidget,
   ContinueLearningWidget,
+  GoalsWidget,
   HabitsWidget,
-  NextBadgeWidget,
   NotesWidget,
   ProjectsWidget,
   QuickAccessWidget,
@@ -58,8 +54,7 @@ import {
  * the customize sheet, drag-to-reorder — picks it up automatically.
  */
 export const WIDGET_COMPONENTS: Record<WidgetId, ComponentType<WidgetProps>> = {
-  streak: StreakWidget,
-  xp: XpWidget,
+  goals: GoalsWidget,
   focusToday: FocusTodayWidget,
   habitsToday: HabitsTodayWidget,
   momentum: MomentumWidget,
@@ -75,8 +70,6 @@ export const WIDGET_COMPONENTS: Record<WidgetId, ComponentType<WidgetProps>> = {
   habits: HabitsWidget,
   weekReview: WeekReviewWidget,
   quote: QuoteWidget,
-  achievements: AchievementsWidget,
-  nextBadge: NextBadgeWidget,
   quickAccess: QuickAccessWidget,
   roadmaps: RoadmapsWidget,
   projects: ProjectsWidget,
@@ -84,8 +77,7 @@ export const WIDGET_COMPONENTS: Record<WidgetId, ComponentType<WidgetProps>> = {
 };
 
 export const WIDGET_ICONS: Record<WidgetId, LucideIcon> = {
-  streak: Flame,
-  xp: Zap,
+  goals: Target,
   focusToday: Timer,
   habitsToday: CheckCircle2,
   momentum: Activity,
@@ -101,8 +93,6 @@ export const WIDGET_ICONS: Record<WidgetId, LucideIcon> = {
   habits: Sparkles,
   weekReview: CalendarRange,
   quote: Quote,
-  achievements: Trophy,
-  nextBadge: Trophy,
   quickAccess: LayoutGrid,
   roadmaps: GraduationCap,
   projects: FolderKanban,

@@ -4,7 +4,7 @@ import { defaultAccentFor, DEFAULT_ACCENT } from "./accent";
 import { DEFAULT_SOUND_VOLUME } from "./sound";
 import { defaultWidgetLayout } from "./widgets";
 
-export const CURRENT_SCHEMA_VERSION = 10;
+export const CURRENT_SCHEMA_VERSION = 12;
 
 export const ChecklistItemSchema = z.object({
   id: z.string(),
@@ -120,6 +120,23 @@ export const HabitLogSchema = z.object({
   date: z.string(),
 });
 
+/**
+ * An aim the user is working on — "Gym", "No junk food", "Good at academics".
+ *
+ * Deliberately inert: a goal has no points, no level and no completion state.
+ * It is a statement of intent that stays visible on the dashboard, because the
+ * only reward worth having is the change itself.
+ */
+export const GoalSchema = z.object({
+  id: z.string(),
+  title: z.string(),
+  /** Emoji rendered as the aim's glyph. */
+  emoji: z.string().default("🎯"),
+  /** Optional line: why it matters, or the rule you keep for it. */
+  note: z.string().default(""),
+  createdAt: z.number(),
+});
+
 export const ProfileSchema = z.object({
   name: z.string().default("Learner"),
   avatar: z.string().default(""),
@@ -130,7 +147,6 @@ export const ModuleFlagsSchema = z.object({
   expenses: z.boolean().default(false),
   focus: z.boolean().default(true),
   cgpa: z.boolean().default(true),
-  resume: z.boolean().default(true),
   coding: z.boolean().default(true),
   career: z.boolean().default(true),
 });
@@ -143,7 +159,6 @@ export const PreferencesSchema = z.object({
     expenses: false,
     focus: true,
     cgpa: true,
-    resume: true,
     coding: true,
     career: true,
   }),
@@ -178,19 +193,6 @@ export const WidgetPlacementSchema = z.object({
   id: z.string(),
   size: z.enum(["tile", "wide", "full"]).default("tile"),
   visible: z.boolean().default(true),
-});
-
-export const StatsSchema = z.object({
-  xp: z.number().default(0),
-  level: z.number().default(1),
-  streak: z.number().default(0),
-  lastActive: z.string().default(""),
-  /** Lifetime XP earned (never decreases; xp never drops below 0). */
-  totalXp: z.number().default(0),
-  /** Timestamp of the first workspace creation (or schema adoption). */
-  joinedAt: z.number().default(0),
-  /** Achievement ids that have been unlocked (and awarded XP) already. */
-  achievements: z.array(z.string()).default([]),
 });
 
 export const SubjectSchema = z.object({
@@ -297,81 +299,6 @@ export const CgpaSchema = z.object({
 });
 
 /* ------------------------------------------------------------------ *
- * Resume module
- * ------------------------------------------------------------------ */
-
-export const ResumeEducationSchema = z.object({
-  id: z.string(),
-  institution: z.string(),
-  degree: z.string(),
-  field: z.string().default(""),
-  start: z.string().default(""),
-  end: z.string().default(""),
-  score: z.string().default(""),
-});
-
-export const ResumeExperienceSchema = z.object({
-  id: z.string(),
-  role: z.string(),
-  company: z.string(),
-  start: z.string().default(""),
-  end: z.string().default(""),
-  current: z.boolean().default(false),
-  bullets: z.array(z.string()).default([]),
-});
-
-export const ResumeProjectSchema = z.object({
-  id: z.string(),
-  name: z.string(),
-  tech: z.string().default(""),
-  link: z.string().default(""),
-  bullets: z.array(z.string()).default([]),
-});
-
-export const ResumeCertificationSchema = z.object({
-  id: z.string(),
-  name: z.string(),
-  issuer: z.string().default(""),
-  year: z.string().default(""),
-});
-
-export function createDefaultResume(): ResumeData {
-  return {
-    name: "",
-    title: "",
-    email: "",
-    phone: "",
-    location: "",
-    website: "",
-    github: "",
-    linkedin: "",
-    summary: "",
-    skills: [],
-    education: [],
-    experience: [],
-    projects: [],
-    certifications: [],
-  };
-}
-
-export const ResumeSchema = z.object({
-  name: z.string().default(""),
-  title: z.string().default(""),
-  email: z.string().default(""),
-  phone: z.string().default(""),
-  location: z.string().default(""),
-  website: z.string().default(""),
-  github: z.string().default(""),
-  linkedin: z.string().default(""),
-  summary: z.string().default(""),
-  skills: z.array(z.string()).default([]),
-  education: z.array(ResumeEducationSchema).default([]),
-  experience: z.array(ResumeExperienceSchema).default([]),
-  projects: z.array(ResumeProjectSchema).default([]),
-  certifications: z.array(ResumeCertificationSchema).default([]),
-});
-
-/* ------------------------------------------------------------------ *
  * Coding / DSA Prep module
  * ------------------------------------------------------------------ */
 
@@ -474,6 +401,8 @@ export const AppDataSchema = z.object({
   planner: z.array(PlannerTaskSchema).default([]),
   habits: z.array(HabitSchema).default([]),
   habitLogs: z.array(HabitLogSchema).default([]),
+  /** The highlighted aims shown at the top of the dashboard. */
+  goals: z.array(GoalSchema).default([]),
   profile: ProfileSchema.default({ name: "Learner", avatar: "" }),
   preferences: PreferencesSchema.default({
     notifications: true,
@@ -483,7 +412,6 @@ export const AppDataSchema = z.object({
       expenses: false,
       focus: true,
       cgpa: true,
-      resume: true,
       coding: true,
       career: true,
     },
@@ -495,20 +423,10 @@ export const AppDataSchema = z.object({
     soundVolume: DEFAULT_SOUND_VOLUME,
   }),
   widgets: z.array(WidgetPlacementSchema).default(() => defaultWidgetLayout()),
-  stats: StatsSchema.default({
-    xp: 0,
-    level: 1,
-    streak: 0,
-    lastActive: "",
-    totalXp: 0,
-    joinedAt: 0,
-    achievements: [],
-  }),
   attendance: AttendanceSchema.default({ subjects: [] }),
   expenses: ExpensesSchema.default({ transactions: [] }),
   focus: FocusSchema.default({ sessions: [], settings: createDefaultFocusSettings() }),
   cgpa: CgpaSchema.default({ semesters: [] }),
-  resume: ResumeSchema.default(() => createDefaultResume()),
   notifications: NotificationsStateSchema.default(() => createDefaultNotifications()),
   coding: CodingSchema.default({ problems: [], rating: 0, maxRating: 0, ratingHistory: [] }),
   career: CareerSchema.default({ applications: [] }),
@@ -527,9 +445,9 @@ export type PlannerTask = z.infer<typeof PlannerTaskSchema>;
 export type PlannerPriority = z.infer<typeof PlannerPriority>;
 export type Habit = z.infer<typeof HabitSchema>;
 export type HabitLog = z.infer<typeof HabitLogSchema>;
+export type Goal = z.infer<typeof GoalSchema>;
 export type Profile = z.infer<typeof ProfileSchema>;
 export type Preferences = z.infer<typeof PreferencesSchema>;
-export type Stats = z.infer<typeof StatsSchema>;
 export type Subject = z.infer<typeof SubjectSchema>;
 export type Attendance = z.infer<typeof AttendanceSchema>;
 export type Transaction = z.infer<typeof TransactionSchema>;
@@ -548,9 +466,4 @@ export type JobStatus = z.infer<typeof JobStatus>;
 export type JobApplication = z.infer<typeof JobApplicationSchema>;
 export type Career = z.infer<typeof CareerSchema>;
 export type WidgetPlacement = z.infer<typeof WidgetPlacementSchema>;
-export type ResumeData = z.infer<typeof ResumeSchema>;
-export type ResumeEducation = z.infer<typeof ResumeEducationSchema>;
-export type ResumeExperience = z.infer<typeof ResumeExperienceSchema>;
-export type ResumeProject = z.infer<typeof ResumeProjectSchema>;
-export type ResumeCertification = z.infer<typeof ResumeCertificationSchema>;
 export type AppData = z.infer<typeof AppDataSchema>;

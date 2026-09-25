@@ -37,8 +37,6 @@
  * Item deleted               → trash
  * An action failed           → error
  * Streak milestone           → streak
- * Achievement unlocked       → achievement
- * Level up                   → levelUp
  * Focus timer finished       → chime
  * Timer's final seconds      → tick
  */
@@ -58,8 +56,6 @@ export type SoundCue =
   | "trash"
   | "error"
   | "streak"
-  | "achievement"
-  | "levelUp"
   | "chime"
   | "tick";
 
@@ -212,29 +208,6 @@ export const SOUND_CUES: Record<SoundCue, CueSpec> = {
       { freq: N.C6, at: 0.07, dur: 0.08, gain: 0.055 },
       { freq: N.E6, at: 0.14, dur: 0.2, gain: 0.05 },
     ],
-  },
-  achievement: {
-    label: "Achievement",
-    cooldown: 600,
-    tones: [
-      { freq: N.C5, dur: 0.1, gain: 0.06 },
-      { freq: N.E5, at: 0.09, dur: 0.1, gain: 0.06 },
-      { freq: N.G5, at: 0.18, dur: 0.1, gain: 0.06 },
-      { freq: N.C6, at: 0.27, dur: 0.34, gain: 0.055 },
-    ],
-  },
-  levelUp: {
-    label: "Level up",
-    cooldown: 900,
-    tones: [
-      { freq: N.G4, dur: 0.09, gain: 0.06 },
-      { freq: N.C5, at: 0.08, dur: 0.09, gain: 0.06 },
-      { freq: N.E5, at: 0.16, dur: 0.09, gain: 0.06 },
-      { freq: N.G5, at: 0.24, dur: 0.1, gain: 0.06 },
-      { freq: N.C6, at: 0.32, dur: 0.4, gain: 0.055 },
-      { freq: N.E6, at: 0.34, dur: 0.4, gain: 0.04 },
-    ],
-    noise: { at: 0.3, dur: 0.3, gain: 0.018, filter: "highpass", freq: 2400 },
   },
   chime: {
     label: "Timer done",
@@ -515,10 +488,6 @@ export const sound = {
   error: () => playCue("error"),
   /** Streak milestone reached. */
   streak: () => playCue("streak"),
-  /** Badge unlocked. */
-  achievement: () => playCue("achievement"),
-  /** Level up. */
-  levelUp: () => playCue("levelUp"),
   /** Focus / break timer finished. */
   chime: () => playCue("chime"),
   /** Final-seconds countdown tick. */

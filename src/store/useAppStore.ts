@@ -16,12 +16,11 @@ import type {
   Profile,
   Subject,
   Transaction,
-  Stats,
+  Goal,
   FocusSession,
   FocusSettings,
   CgpaSemester,
   CgpaSubject,
-  ResumeData,
   CodingProblem,
   RatingPoint,
   JobApplication,
@@ -30,13 +29,15 @@ import type {
 } from "@/lib/schema";
 import { AppDataSchema } from "@/lib/schema";
 import { createInitialData } from "@/lib/seed";
+import { clearDemoSnapshot, createDemoData, readDemoSnapshot, saveDemoSnapshot } from "@/lib/demo";
 import { migrate } from "@/lib/migrations";
 import { setLastBackupMeta } from "@/lib/backup/advanced-backup";
 import { newId } from "@/lib/id";
-import { todayISO, addDaysISO } from "@/lib/date";
+import { todayISO } from "@/lib/date";
 import { errorMessage } from "@/lib/utils";
-import { topicPct, subtopicPct } from "@/lib/progress";
+import { topicPct } from "@/lib/progress";
 import { applyOrder } from "@/lib/drag-sort";
+import { cleanGoalText, createGoal, GOAL_NOTE_MAX, GOAL_TITLE_MAX } from "@/lib/goals";
 import {
   applyWidgetOrder,
   moveWidget,
@@ -47,7 +48,6 @@ import {
   setWidgetVisible,
   type WidgetId,
 } from "@/lib/widgets";
-import { focusXp } from "@/lib/focus";
 import {
   HISTORY_LIMIT,
   type CategoryKey,
@@ -56,10 +56,16 @@ import {
   type ScheduledNotification,
 } from "@/lib/notifications/types";
 
-type ModuleKey = "attendance" | "expenses" | "focus" | "cgpa" | "resume" | "coding" | "career";
+type ModuleKey = "attendance" | "expenses" | "focus" | "cgpa" | "coding" | "career";
 
 type State = AppData & {
   _hydrated: boolean;
+  /**
+   * True while the workspace holds the generated demo persona. Never persisted
+   * (`partialize`/`toAppData` whitelist plain workspace fields only) and never
+   * exported — it exists so the UI can say "this is a demo" out loud.
+   */
+  demoMode: boolean;
   markHydrated: () => void;
 
   // roadmap ops
@@ -154,13 +160,17 @@ type State = AppData & {
   deleteHabit: (id: string) => void;
   toggleHabitToday: (id: string, dateISO?: string) => void;
 
-  // profile / prefs / stats
+  // goals (aims)
+  addGoal: (input: { title: string; emoji?: string; note?: string }) => Goal;
+  updateGoal: (id: string, patch: Partial<Pick<Goal, "title" | "emoji" | "note">>) => void;
+  deleteGoal: (id: string) => void;
+  /** Persists a drag-sort result; ids not on the list are ignored. */
+  reorderGoals: (ids: string[]) => void;
+
+  // profile / prefs
   updateProfile: (patch: Partial<Profile>) => void;
   updatePreferences: (patch: Partial<Preferences>) => void;
   setModuleEnabled: (key: ModuleKey, enabled: boolean) => void;
-  addXp: (amount: number) => void;
-  touchStreak: () => void;
-  unlockAchievements: (ids: string[]) => string[];
 
   // focus (Pomodoro)
   addFocusSession: (input: {
@@ -181,10 +191,6 @@ type State = AppData & {
   ) => CgpaSubject;
   updateCgpaSubject: (semesterId: string, subjectId: string, patch: Partial<CgpaSubject>) => void;
   deleteCgpaSubject: (semesterId: string, subjectId: string) => void;
-
-  // resume
-  updateResume: (patch: Partial<ResumeData>) => void;
-  setResume: (resume: ResumeData) => void;
 
   // coding / DSA prep
   addCodingProblem: (
@@ -267,41 +273,17 @@ type State = AppData & {
   exportJSON: () => string;
   importJSON: (input: string) => { ok: boolean; error?: string };
   resetAll: () => void;
+
+  // demo workspace (showcase / viva mode)
+  /** Snapshot the real workspace, then adopt the demo persona. */
+  loadDemoWorkspace: () => boolean;
+  /** Restore the snapshot taken by `loadDemoWorkspace`. */
+  exitDemoWorkspace: () => boolean;
+  /** Boot-time guard: restore the real workspace if a demo was left running. */
+  recoverFromDemo: () => boolean;
 };
 
 export const STORAGE_KEY = "skillsync:data:v1";
-
-/**
- * XP awarded per meaningful action. One level = 100 XP; the curve is
- * deliberately linear so progress stays legible on the dashboard.
- */
-export const XP_AWARDS = {
-  topicCompletion: 15,
-  subtopicCompletion: 10,
-  checklistCompletion: 15,
-  plannerTask: 5,
-  habit: 5,
-  projectDone: 40,
-  achievement: 25,
-  codingProblem: 8,
-  codeRating: 30,
-} as const;
-
-/** Pure XP helper: applies a gain (clamped ≥ 0) and recomputes the level. */
-export function addXpToStats(stats: Stats, amount: number): Stats {
-  const gain = Math.max(0, amount);
-  const xp = Math.max(0, stats.xp + amount);
-  const level = 1 + Math.floor(xp / 100);
-  return { ...stats, xp, level, totalXp: stats.totalXp + gain };
-}
-
-/** Pure streak helper: extends the streak on consecutive-day activity. */
-export function touchStreakStats(stats: Stats, today: string = todayISO()): Stats {
-  if (stats.lastActive === today) return stats;
-  const yesterday = addDaysISO(today, -1);
-  const streak = stats.lastActive === yesterday ? stats.streak + 1 : 1;
-  return { ...stats, streak, lastActive: today };
-}
 
 /** Current visibility of a widget in a layout. */
 function isVisible(layout: WidgetPlacement[], id: string): boolean {
@@ -414,14 +396,13 @@ export function toAppData(state: AppData): AppData {
     planner: state.planner,
     habits: state.habits,
     habitLogs: state.habitLogs,
+    goals: state.goals,
     profile: state.profile,
     preferences: state.preferences,
-    stats: state.stats,
     attendance: state.attendance,
     expenses: state.expenses,
     focus: state.focus,
     cgpa: state.cgpa,
-    resume: state.resume,
     notifications: state.notifications,
     coding: state.coding,
     career: state.career,
@@ -434,6 +415,7 @@ export const useAppStore = create<State>()(
     (set, get) => ({
       ...createInitialData(),
       _hydrated: false,
+      demoMode: false,
       markHydrated: () => set({ _hydrated: true }),
 
       addRoadmap: (title) =>
@@ -623,10 +605,7 @@ export const useAppStore = create<State>()(
             : nextPct < 100
               ? { ...nextTopic, completedAt: null }
               : nextTopic;
-          return {
-            ...updateTopicIn(s, path.roadmapId, path.phaseId, path.topicId, () => withStamp),
-            stats: crossed ? addXpToStats(s.stats, XP_AWARDS.checklistCompletion) : s.stats,
-          };
+          return updateTopicIn(s, path.roadmapId, path.phaseId, path.topicId, () => withStamp);
         }),
       deleteChecklistItem: (path, itemId) =>
         set((s) =>
@@ -656,7 +635,6 @@ export const useAppStore = create<State>()(
           const topic = findTopic(s, roadmapId, phaseId, topicId);
           const sub = topic?.subtopics.find((x) => x.id === subtopicId);
           if (!topic || !sub) return {};
-          const award = done && subtopicPct(sub) < 100;
           const nextTopic = normalizeTopic({
             ...topic,
             subtopics: topic.subtopics.map((x) =>
@@ -665,24 +643,17 @@ export const useAppStore = create<State>()(
           });
           const crossed = topicPct(topic) < 100 && topicPct(nextTopic) === 100;
           const withStamp = crossed ? { ...nextTopic, completedAt: Date.now() } : nextTopic;
-          return {
-            ...updateTopicIn(s, roadmapId, phaseId, topicId, () => withStamp),
-            stats: award ? addXpToStats(s.stats, XP_AWARDS.subtopicCompletion) : s.stats,
-          };
+          return updateTopicIn(s, roadmapId, phaseId, topicId, () => withStamp);
         }),
       setTopicComplete: (roadmapId, phaseId, topicId, done) =>
         set((s) => {
           const topic = findTopic(s, roadmapId, phaseId, topicId);
           if (!topic) return {};
-          const award = done && topicPct(topic) < 100;
           const next: Topic = {
             ...propagateTopic(topic, done),
             completedAt: done ? Date.now() : null,
           };
-          return {
-            ...updateTopicIn(s, roadmapId, phaseId, topicId, () => next),
-            stats: award ? addXpToStats(s.stats, XP_AWARDS.topicCompletion) : s.stats,
-          };
+          return updateTopicIn(s, roadmapId, phaseId, topicId, () => next);
         }),
       setPhaseComplete: (roadmapId, phaseId, done) =>
         set((s) =>
@@ -731,16 +702,9 @@ export const useAppStore = create<State>()(
         return project;
       },
       updateProject: (id, patch) =>
-        set((s) => {
-          const project = s.projects.find((p) => p.id === id);
-          const shipped = patch.status === "done" && project && project.status !== "done";
-          return {
-            projects: s.projects.map((p) => (p.id === id ? { ...p, ...patch } : p)),
-            stats: shipped
-              ? touchStreakStats(addXpToStats(s.stats, XP_AWARDS.projectDone))
-              : s.stats,
-          };
-        }),
+        set((s) => ({
+          projects: s.projects.map((p) => (p.id === id ? { ...p, ...patch } : p)),
+        })),
       deleteProject: (id) => set((s) => ({ projects: s.projects.filter((p) => p.id !== id) })),
       addProjectTask: (projectId, title) =>
         set((s) => ({
@@ -790,15 +754,11 @@ export const useAppStore = create<State>()(
       updatePlannerTask: (id, patch) =>
         set((s) => {
           const task = s.planner.find((t) => t.id === id);
-          const completing = patch.done === true && !task?.done;
           let doneAt = task?.doneAt ?? null;
           if (patch.done === true && !task?.done) doneAt = Date.now();
           if (patch.done === false) doneAt = null;
           return {
             planner: s.planner.map((t) => (t.id === id ? { ...t, ...patch, doneAt } : t)),
-            stats: completing
-              ? touchStreakStats(addXpToStats(s.stats, XP_AWARDS.plannerTask))
-              : s.stats,
           };
         }),
       deletePlannerTask: (id) => set((s) => ({ planner: s.planner.filter((t) => t.id !== id) })),
@@ -837,10 +797,7 @@ export const useAppStore = create<State>()(
             habitLogs: s.habitLogs.filter((l) => !(l.habitId === id && l.date === date)),
           }));
         } else {
-          set((s) => ({
-            habitLogs: [...s.habitLogs, { habitId: id, date }],
-            stats: touchStreakStats(addXpToStats(s.stats, XP_AWARDS.habit)),
-          }));
+          set((s) => ({ habitLogs: [...s.habitLogs, { habitId: id, date }] }));
         }
       },
 
@@ -853,21 +810,50 @@ export const useAppStore = create<State>()(
             modules: { ...s.preferences.modules, [key]: enabled },
           },
         })),
-      addXp: (amount) => set((s) => ({ stats: addXpToStats(s.stats, amount) })),
-      touchStreak: () => set((s) => ({ stats: touchStreakStats(s.stats) })),
-      unlockAchievements: (ids) => {
-        const state = get();
-        const awarded = new Set(state.stats.achievements);
-        const fresh = ids.filter((id) => !awarded.has(id));
-        if (fresh.length === 0) return [];
-        set((s) => ({
-          stats: addXpToStats(
-            { ...s.stats, achievements: [...s.stats.achievements, ...fresh] },
-            XP_AWARDS.achievement * fresh.length,
-          ),
-        }));
-        return fresh;
+      addGoal: (input) => {
+        const goal = createGoal(input);
+        set((s) => ({ goals: [...s.goals, goal] }));
+        return goal;
       },
+      updateGoal: (id, patch) =>
+        set((s) => ({
+          goals: s.goals.map((g) =>
+            g.id === id
+              ? {
+                  ...g,
+                  ...patch,
+                  ...(patch.title !== undefined
+                    ? { title: cleanGoalText(patch.title, GOAL_TITLE_MAX) }
+                    : {}),
+                  ...(patch.note !== undefined
+                    ? { note: cleanGoalText(patch.note, GOAL_NOTE_MAX) }
+                    : {}),
+                }
+              : g,
+          ),
+        })),
+      deleteGoal: (id) => set((s) => ({ goals: s.goals.filter((g) => g.id !== id) })),
+      reorderGoals: (ids) =>
+        set((s) => {
+          const byId = new Map(s.goals.map((g) => [g.id, g]));
+          // Only ids that really are on the list take part, and they fill the
+          // slots the listed aims already occupied — a stale id can never
+          // shift or drop the others.
+          const known = ids.filter((id) => byId.has(id));
+          if (known.length < 2) return {};
+          const slots: number[] = [];
+          s.goals.forEach((g, index) => {
+            if (known.includes(g.id)) slots.push(index);
+          });
+          const next = [...s.goals];
+          known.forEach((id, order) => {
+            const slot = slots[order];
+            const goal = byId.get(id);
+            if (slot === undefined || !goal) return;
+            next[slot] = goal;
+          });
+          return { goals: next };
+        }),
 
       addFocusSession: (input) => {
         const session: FocusSession = {
@@ -879,10 +865,6 @@ export const useAppStore = create<State>()(
         };
         set((s) => ({
           focus: { ...s.focus, sessions: [...s.focus.sessions, session] },
-          stats:
-            session.mode === "focus"
-              ? touchStreakStats(addXpToStats(s.stats, focusXp(session.minutes)))
-              : s.stats,
         }));
         return session;
       },
@@ -955,9 +937,6 @@ export const useAppStore = create<State>()(
           },
         })),
 
-      updateResume: (patch) => set((s) => ({ resume: { ...s.resume, ...patch } })),
-      setResume: (resume) => set({ resume }),
-
       addCodingProblem: (partial) => {
         const problem: CodingProblem = {
           id: newId(),
@@ -973,7 +952,6 @@ export const useAppStore = create<State>()(
         };
         set((s) => ({
           coding: { ...s.coding, problems: [problem, ...s.coding.problems] },
-          stats: touchStreakStats(addXpToStats(s.stats, XP_AWARDS.codingProblem)),
         }));
         return problem;
       },
@@ -998,7 +976,6 @@ export const useAppStore = create<State>()(
               maxRating: Math.max(s.coding.maxRating, rating),
               ratingHistory: [...s.coding.ratingHistory, point],
             },
-            stats: addXpToStats(s.stats, XP_AWARDS.codeRating),
           };
         }),
 
@@ -1282,23 +1259,49 @@ export const useAppStore = create<State>()(
           }
           const migrated = migrate(parsed);
           const valid = AppDataSchema.parse(migrated);
-          set({ ...valid });
+          clearDemoSnapshot();
+          set({ ...valid, demoMode: false });
           return { ok: true };
         } catch (e) {
           return { ok: false, error: errorMessage(e, "Invalid file") };
         }
       },
       resetAll: () => {
-        set({ ...createInitialData() });
+        clearDemoSnapshot();
+        set({ ...createInitialData(), demoMode: false });
         // A wipe must not leave the previous workspace's "backed up" badge
         // behind. Saved copies in the vault and any files stay untouched, so a
         // reset can still be undone by restoring a backup.
         setLastBackupMeta(null);
       },
+
+      loadDemoWorkspace: () => {
+        // Snapshot first: if storage is full/blocked we still enter the demo,
+        // but the caller is told so it can warn the user.
+        const saved = saveDemoSnapshot(toAppData(get()));
+        set({ ...createDemoData(), demoMode: true });
+        return saved;
+      },
+      exitDemoWorkspace: () => {
+        const snapshot = readDemoSnapshot();
+        if (!snapshot) {
+          set({ demoMode: false });
+          clearDemoSnapshot();
+          return false;
+        }
+        clearDemoSnapshot();
+        set({ ...snapshot, demoMode: false });
+        return true;
+      },
+      recoverFromDemo: () => {
+        if (get().demoMode) return false;
+        if (!readDemoSnapshot()) return false;
+        return get().exitDemoWorkspace();
+      },
     }),
     {
       name: STORAGE_KEY,
-      version: 10,
+      version: 12,
       storage: createJSONStorage(() =>
         // No storage during SSR — persist skips hydration when this is undefined.
         typeof window !== "undefined"

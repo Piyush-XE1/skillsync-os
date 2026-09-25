@@ -115,15 +115,10 @@ describe("notifications engine - buildDueCandidates", () => {
     expect(buildDueCandidates(data, s, now).length).toBeGreaterThan(0);
   });
 
-  it("fires an achievement on a streak milestone regardless of time", () => {
+  it("never emits the retired reward category", () => {
     const data = createInitialData();
-    data.stats.streak = 7;
     const candidates = buildDueCandidates(data, settings(), now);
-    expect(
-      candidates.some(
-        (c) => c.category === "achievements" && c.sourceId === "achievements:streak:7",
-      ),
-    ).toBe(true);
+    expect(candidates.some((c) => (c.category as string) === "achievements")).toBe(false);
   });
 
   it("fires the weekly summary on the configured weekday and time", () => {
