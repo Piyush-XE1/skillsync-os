@@ -23,7 +23,6 @@ const ALL_MODULES = {
   expenses: true,
   focus: true,
   cgpa: true,
-  resume: true,
   coding: true,
   career: true,
 };
@@ -32,7 +31,6 @@ const NO_MODULES = {
   expenses: false,
   focus: false,
   cgpa: false,
-  resume: false,
   coding: false,
   career: false,
 };

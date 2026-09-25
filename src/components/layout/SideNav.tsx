@@ -15,7 +15,6 @@ import {
   PanelLeftOpen,
   Timer,
   Award,
-  FileText,
   Search,
   Braces,
   Briefcase,
@@ -38,7 +37,6 @@ type Item = {
     | "/expenses"
     | "/focus"
     | "/cgpa"
-    | "/resume"
     | "/coding"
     | "/career"
     | "/goals"
@@ -49,7 +47,7 @@ type Item = {
   icon: typeof LayoutDashboard;
   exact?: boolean;
   /** Module flag that gates this entry. */
-  module?: "attendance" | "expenses" | "focus" | "cgpa" | "resume" | "coding" | "career";
+  module?: "attendance" | "expenses" | "focus" | "cgpa" | "coding" | "career";
   kbd?: string;
 };
 
@@ -63,7 +61,6 @@ const items: Item[] = [
   { to: "/attendance", label: "Attendance", icon: CalendarCheck, module: "attendance" },
   { to: "/habits", label: "Habits", icon: Flame },
   { to: "/expenses", label: "Expenses", icon: Wallet, module: "expenses" },
-  { to: "/resume", label: "Resume", icon: FileText, module: "resume" },
   { to: "/coding", label: "Code", icon: Braces, module: "coding", kbd: "C" },
   { to: "/career", label: "Career", icon: Briefcase, module: "career" },
   { to: "/goals", label: "Aims", icon: Target, kbd: "G" },

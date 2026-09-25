@@ -4,7 +4,7 @@ import { defaultAccentFor, DEFAULT_ACCENT } from "./accent";
 import { DEFAULT_SOUND_VOLUME } from "./sound";
 import { defaultWidgetLayout } from "./widgets";
 
-export const CURRENT_SCHEMA_VERSION = 11;
+export const CURRENT_SCHEMA_VERSION = 12;
 
 export const ChecklistItemSchema = z.object({
   id: z.string(),
@@ -147,7 +147,6 @@ export const ModuleFlagsSchema = z.object({
   expenses: z.boolean().default(false),
   focus: z.boolean().default(true),
   cgpa: z.boolean().default(true),
-  resume: z.boolean().default(true),
   coding: z.boolean().default(true),
   career: z.boolean().default(true),
 });
@@ -160,7 +159,6 @@ export const PreferencesSchema = z.object({
     expenses: false,
     focus: true,
     cgpa: true,
-    resume: true,
     coding: true,
     career: true,
   }),
@@ -301,81 +299,6 @@ export const CgpaSchema = z.object({
 });
 
 /* ------------------------------------------------------------------ *
- * Resume module
- * ------------------------------------------------------------------ */
-
-export const ResumeEducationSchema = z.object({
-  id: z.string(),
-  institution: z.string(),
-  degree: z.string(),
-  field: z.string().default(""),
-  start: z.string().default(""),
-  end: z.string().default(""),
-  score: z.string().default(""),
-});
-
-export const ResumeExperienceSchema = z.object({
-  id: z.string(),
-  role: z.string(),
-  company: z.string(),
-  start: z.string().default(""),
-  end: z.string().default(""),
-  current: z.boolean().default(false),
-  bullets: z.array(z.string()).default([]),
-});
-
-export const ResumeProjectSchema = z.object({
-  id: z.string(),
-  name: z.string(),
-  tech: z.string().default(""),
-  link: z.string().default(""),
-  bullets: z.array(z.string()).default([]),
-});
-
-export const ResumeCertificationSchema = z.object({
-  id: z.string(),
-  name: z.string(),
-  issuer: z.string().default(""),
-  year: z.string().default(""),
-});
-
-export function createDefaultResume(): ResumeData {
-  return {
-    name: "",
-    title: "",
-    email: "",
-    phone: "",
-    location: "",
-    website: "",
-    github: "",
-    linkedin: "",
-    summary: "",
-    skills: [],
-    education: [],
-    experience: [],
-    projects: [],
-    certifications: [],
-  };
-}
-
-export const ResumeSchema = z.object({
-  name: z.string().default(""),
-  title: z.string().default(""),
-  email: z.string().default(""),
-  phone: z.string().default(""),
-  location: z.string().default(""),
-  website: z.string().default(""),
-  github: z.string().default(""),
-  linkedin: z.string().default(""),
-  summary: z.string().default(""),
-  skills: z.array(z.string()).default([]),
-  education: z.array(ResumeEducationSchema).default([]),
-  experience: z.array(ResumeExperienceSchema).default([]),
-  projects: z.array(ResumeProjectSchema).default([]),
-  certifications: z.array(ResumeCertificationSchema).default([]),
-});
-
-/* ------------------------------------------------------------------ *
  * Coding / DSA Prep module
  * ------------------------------------------------------------------ */
 
@@ -489,7 +412,6 @@ export const AppDataSchema = z.object({
       expenses: false,
       focus: true,
       cgpa: true,
-      resume: true,
       coding: true,
       career: true,
     },
@@ -505,7 +427,6 @@ export const AppDataSchema = z.object({
   expenses: ExpensesSchema.default({ transactions: [] }),
   focus: FocusSchema.default({ sessions: [], settings: createDefaultFocusSettings() }),
   cgpa: CgpaSchema.default({ semesters: [] }),
-  resume: ResumeSchema.default(() => createDefaultResume()),
   notifications: NotificationsStateSchema.default(() => createDefaultNotifications()),
   coding: CodingSchema.default({ problems: [], rating: 0, maxRating: 0, ratingHistory: [] }),
   career: CareerSchema.default({ applications: [] }),
@@ -545,9 +466,4 @@ export type JobStatus = z.infer<typeof JobStatus>;
 export type JobApplication = z.infer<typeof JobApplicationSchema>;
 export type Career = z.infer<typeof CareerSchema>;
 export type WidgetPlacement = z.infer<typeof WidgetPlacementSchema>;
-export type ResumeData = z.infer<typeof ResumeSchema>;
-export type ResumeEducation = z.infer<typeof ResumeEducationSchema>;
-export type ResumeExperience = z.infer<typeof ResumeExperienceSchema>;
-export type ResumeProject = z.infer<typeof ResumeProjectSchema>;
-export type ResumeCertification = z.infer<typeof ResumeCertificationSchema>;
 export type AppData = z.infer<typeof AppDataSchema>;

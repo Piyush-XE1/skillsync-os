@@ -28,7 +28,6 @@ is `src/routes/__root.tsx`.
 | Learn               | `learn.tsx` · `learn.index.tsx` · `learn.$roadmapId.tsx` · `learn.$roadmapId_.$topicId.tsx`                                             |
 | Focus (Pomodoro)    | `focus.tsx`                                                                                                                             |
 | CGPA tracker        | `cgpa.tsx`                                                                                                                              |
-| Resume builder      | `resume.tsx`                                                                                                                            |
 | Command palette     | `search.tsx`                                                                                                                            |
 | Projects            | `projects.tsx`                                                                                                                          |
 | Planner             | `planner.tsx`                                                                                                                           |

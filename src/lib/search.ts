@@ -36,7 +36,6 @@ const PAGES: SearchResult[] = [
   { kind: "page", to: "/notes", title: "Notes", subtitle: "Local-first notes" },
   { kind: "page", to: "/focus", title: "Focus", subtitle: "Pomodoro deep work" },
   { kind: "page", to: "/cgpa", title: "CGPA", subtitle: "Grade tracker" },
-  { kind: "page", to: "/resume", title: "Resume", subtitle: "Resume builder" },
   { kind: "page", to: "/analytics", title: "Analytics", subtitle: "Trends & heatmaps" },
   { kind: "page", to: "/notifications", title: "Notifications", subtitle: "Alerts & digest" },
   { kind: "page", to: "/attendance", title: "Attendance", subtitle: "Class attendance" },

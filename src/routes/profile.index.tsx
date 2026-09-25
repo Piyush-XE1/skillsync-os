@@ -25,7 +25,6 @@ import {
   Volume2,
   Timer,
   Award,
-  FileText,
   Target,
 } from "lucide-react";
 import { AppShell, AppFooter, PageHeader } from "@/components/layout/AppShell";
@@ -449,23 +448,6 @@ function ProfilePage() {
                 <div className="text-[14px] font-semibold tracking-tight">CGPA tracker</div>
                 <div className="text-[12px] text-muted-foreground">
                   Semester-wise grades & target simulator
-                </div>
-              </div>
-              <ChevronRight className="h-4 w-4 text-muted-foreground/60" />
-            </Link>
-          ) : null}
-          {preferences.modules.resume ? (
-            <Link
-              to="/resume"
-              className="card-surface flex items-center gap-3 p-4 transition-all active:scale-[0.98]"
-            >
-              <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-white/[0.04]">
-                <FileText className="h-5 w-5 text-muted-foreground" strokeWidth={1.75} />
-              </div>
-              <div className="min-w-0 flex-1">
-                <div className="text-[14px] font-semibold tracking-tight">Resume builder</div>
-                <div className="text-[12px] text-muted-foreground">
-                  Print-ready resume with autosave
                 </div>
               </div>
               <ChevronRight className="h-4 w-4 text-muted-foreground/60" />

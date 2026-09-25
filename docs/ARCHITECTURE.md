@@ -9,7 +9,7 @@
    app and the Android APK share one codebase and one data model.
 2. **Data is the product.** Every record is validated at the boundary —
    nothing malformed ever reaches a component.
-3. **Upgrades never lose data.** The persisted schema is versioned (v1 → v11)
+3. **Upgrades never lose data.** The persisted schema is versioned (v1 → v12)
    and migrated automatically, with field-level salvage when corruption is
    found.
 4. **Aim, don't score.** The product deliberately ships _no_ points, levels or
@@ -31,7 +31,7 @@
 │  completion stamps the analytics derive from.              │
 ├────────────────────────────────────────────────────────────┤
 │  Migrations (src/lib/migrations.ts)                        │
-│  Pure functions v1→v11. Each migrator is additive. On      │
+│  Pure functions v1→v12. Each migrator is additive. On      │
 │  invalid input the engine salvages valid top-level fields  │
 │  one by one instead of crashing or wiping.                 │
 ├────────────────────────────────────────────────────────────┤
@@ -53,8 +53,8 @@
   survives.
 - `schemaVersion` lives **inside** the payload. Zustand's persist `version`
   bumps alongside it, so a stored v6 payload is routed through the migration
-  chain and emerges as valid v11 data.
-- Migrations are **additive**: new domains (Focus, CGPA, Resume) start empty
+  chain and emerges as valid v12 data.
+- Migrations are **additive**: new domains (Focus, CGPA, Coding, Career) start empty
   with safe defaults; existing records are enriched (e.g. planner tasks gain
   `priority`, topics gain `completedAt`).
 - If the full parse fails, `migrate()` re-parses each top-level field against
@@ -140,7 +140,7 @@ add a runtime package, and all three are unit-tested beside their source.
   chrome, `tiles`/`panels`, `registry`, `WidgetGrid`, `WidgetCustomizer`) and the
   store exposes typed actions (`setWidgets`, `toggleWidget`, `resizeWidget`,
   `reorderWidgets`, `moveWidgetTo`, `resetWidgets`). Layout persists as
-  `widgets: WidgetPlacement[]` (schema v11) — never as component state.
+  `widgets: WidgetPlacement[]` (schema v12) — never as component state.
 - **Drag & keyboard reorder** — `src/lib/drag-sort.ts` computes target slots from
   _measured_ item rects (variable heights, either axis) and `DragSortList.tsx`
   drives the gesture: pointer + long-press lift, transform-only movement,

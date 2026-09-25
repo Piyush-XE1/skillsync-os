@@ -2,6 +2,29 @@
 
 All notable changes to SkillSync OS are documented here.
 
+## [4.1.0] — 2026-09-25
+
+### Removed
+
+- **The Resume builder is gone — the app builds habits and skills, not
+  documents.** Removed end to end:
+  - the **Resume** page (`src/routes/resume.tsx`, `/resume`) with its editor,
+    print preview, PDF export and sample-resume importer,
+  - the `ResumeSchema` record block (`name`, `title`, `contact`, `summary`,
+    `skills`, `education`, `experience`, `projects`, `certifications`) and the
+    `resume` module flag from `PreferencesSchema`,
+  - the store's `updateResume` / `setResume` actions, the sidebar entry, the
+    command-palette page entry and quick-launch tile, the Profile card and the
+    Profile → Modules toggle,
+  - the "Resume" row from the backup change detector and backup summary.
+
+### Changed
+
+- **Schema v12** with a v11 → v12 migrator that drops the stored `resume`
+  block and the `resume` module flag. Everything else — aims, habits, focus,
+  CGPA, coding, career, notes, planner, backups — migrates untouched.
+- `APP_VERSION` is now 4.1.
+
 ## [4.0.0] — 2026-09-25
 
 ### Removed

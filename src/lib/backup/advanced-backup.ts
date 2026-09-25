@@ -467,7 +467,6 @@ const CHANGE_MODULES: Array<{ key: keyof AppData; hasId: boolean }> = [
   { key: "expenses", hasId: false },
   { key: "focus", hasId: false },
   { key: "cgpa", hasId: false },
-  { key: "resume", hasId: false },
   { key: "notifications", hasId: false },
   { key: "coding", hasId: false },
   { key: "career", hasId: false },
@@ -1107,11 +1106,6 @@ export function countRecords(data: AppData): Record<string, number> {
   counts.codingProblems = data?.coding?.problems?.length ?? 0;
   counts.careerApplications = data?.career?.applications?.length ?? 0;
   counts.notifications = data?.notifications?.items?.length ?? 0;
-  counts.resumeItems =
-    (data?.resume?.education?.length ?? 0) +
-    (data?.resume?.experience?.length ?? 0) +
-    (data?.resume?.projects?.length ?? 0) +
-    (data?.resume?.certifications?.length ?? 0);
 
   return counts;
 }
@@ -1128,7 +1122,6 @@ const SUMMARY_LABELS: Array<[keyof AppData | string, string]> = [
   ["cgpa", "CGPA"],
   ["coding", "Coding"],
   ["career", "Career"],
-  ["resume", "Resume"],
   ["profile", "Profile"],
   ["preferences", "Preferences"],
 ];
@@ -1157,7 +1150,6 @@ export function getBackupSummary(data: AppData): {
     { key: "cgpa", label: "CGPA", count: counts.cgpaSubjects },
     { key: "coding", label: "Coding", count: counts.codingProblems },
     { key: "career", label: "Career", count: counts.careerApplications },
-    { key: "resume", label: "Resume", count: counts.resumeItems },
   ];
 
   return {

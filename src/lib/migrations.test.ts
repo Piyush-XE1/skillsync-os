@@ -38,7 +38,6 @@ describe("migrate", () => {
       expenses: false,
       focus: true,
       cgpa: true,
-      resume: true,
       coding: true,
       career: true,
     });
@@ -75,7 +74,8 @@ describe("migrate", () => {
     expect(result.planner[0].doneAt).toBeNull();
     expect(result.focus.sessions).toEqual([]);
     expect(result.cgpa.semesters).toEqual([]);
-    expect(result.resume.experience).toEqual([]);
+    // The Resume builder was removed in v12: no record block anywhere.
+    expect("resume" in result).toBe(false);
     // XP, levels, streaks and badges are gone — not carried over, not hidden.
     expect("stats" in result).toBe(false);
   });
@@ -118,6 +118,34 @@ describe("migrate", () => {
       goals: [{ id: "g1", title: "No fap", emoji: "🔒", note: "", createdAt: 1 }],
     });
     expect(result.goals.map((g) => g.title)).toEqual(["No fap"]);
+  });
+
+  it("migrates v11 to v12: drops the resume module and its data", () => {
+    const v11 = {
+      schemaVersion: 11,
+      preferences: {
+        modules: { focus: true, cgpa: true, resume: true, coding: true, career: true },
+      },
+      resume: {
+        name: "Ada Lovelace",
+        title: "Software Engineer",
+        email: "ada@example.com",
+        skills: ["TypeScript"],
+        education: [{ id: "e1", institution: "IIT", degree: "B.Tech" }],
+        experience: [],
+        projects: [],
+        certifications: [],
+      },
+      habits: [{ id: "h1", title: "Gym", emoji: "🏋️", createdAt: 1 }],
+    };
+    const result = migrate(v11);
+    expect(result.schemaVersion).toBe(CURRENT_SCHEMA_VERSION);
+    // The record block and the module flag are both gone…
+    expect("resume" in result).toBe(false);
+    expect("resume" in result.preferences.modules).toBe(false);
+    // …while everything else survives untouched.
+    expect(result.habits.map((h) => h.title)).toEqual(["Gym"]);
+    expect(result.preferences.modules.focus).toBe(true);
   });
 
   it("migrates legacy theme light → background light", () => {

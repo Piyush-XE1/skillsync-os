@@ -233,7 +233,6 @@ function SearchPage() {
             {[
               { icon: Timer, label: "Focus", to: "/focus" },
               { icon: Award, label: "CGPA", to: "/cgpa" },
-              { icon: FileText, label: "Resume", to: "/resume" },
               { icon: Wallet, label: "Expenses", to: "/expenses" },
               { icon: CalendarRange, label: "Planner", to: "/planner" },
               { icon: BookOpen, label: "Learn", to: "/learn" },

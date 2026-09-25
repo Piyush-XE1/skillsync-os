@@ -105,7 +105,6 @@ const migrators: Record<number, (data: LegacyData) => LegacyData> = {
       expenses: false,
       focus: true,
       cgpa: true,
-      resume: true,
       ...(((data.preferences ?? {}) as LegacyData).modules ?? {}),
     };
     return {
@@ -205,6 +204,20 @@ const migrators: Record<number, (data: LegacyData) => LegacyData> = {
     next.widgets = moveWidget(normalizeWidgetLayout(next.widgets), "goals", 0);
     return next;
   },
+  /**
+   * v11 -> v12: the Resume builder is removed. Its whole record block and the
+   * `resume` module flag are dropped — a migrated workspace simply no longer
+   * has the module, and the rest of the data is untouched.
+   */
+  11: (data) => {
+    const next: LegacyData = { ...data };
+    delete next.resume;
+    const prefs = { ...((next.preferences ?? {}) as LegacyData) };
+    const modules = { ...((prefs.modules ?? {}) as LegacyData) };
+    delete modules.resume;
+    next.preferences = { ...prefs, modules };
+    return next;
+  },
 };
 
 export function migrate(input: unknown): AppData {
@@ -232,7 +245,6 @@ export function migrate(input: unknown): AppData {
       expenses: false,
       focus: true,
       cgpa: true,
-      resume: true,
       coding: true,
       career: true,
       ...((data.preferences ?? {}).modules ?? {}),
@@ -286,8 +298,8 @@ export function migrate(input: unknown): AppData {
     priority: ["low", "medium", "high"].includes(t.priority) ? t.priority : "medium",
     doneAt: typeof t.doneAt === "number" ? t.doneAt : null,
   }));
-  // Focus / CGPA / Resume modules joined the schema in v7; absent keys get
-  // their defaults from the schema parse below.
+  // Focus and CGPA joined the schema in v7; absent keys get their defaults
+  // from the schema parse below.
   {
     const defaults = createDefaultNotifications();
     const n = data.notifications ?? {};

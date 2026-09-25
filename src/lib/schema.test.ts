@@ -28,7 +28,6 @@ describe("schema", () => {
       expenses: false,
       focus: true,
       cgpa: true,
-      resume: true,
       coding: true,
       career: true,
     });
@@ -39,7 +38,8 @@ describe("schema", () => {
     expect(parsed.expenses).toEqual({ transactions: [] });
     expect(parsed.focus.sessions).toEqual([]);
     expect(parsed.cgpa.semesters).toEqual([]);
-    expect(parsed.resume.skills).toEqual([]);
+    // The Resume builder was removed in v12: no record block anywhere.
+    expect("resume" in parsed).toBe(false);
     expect(parsed.notifications.items).toEqual([]);
     expect(parsed.coding).toEqual({ problems: [], rating: 0, maxRating: 0, ratingHistory: [] });
     expect(parsed.career).toEqual({ applications: [] });

@@ -21,7 +21,6 @@ import type {
   FocusSettings,
   CgpaSemester,
   CgpaSubject,
-  ResumeData,
   CodingProblem,
   RatingPoint,
   JobApplication,
@@ -56,7 +55,7 @@ import {
   type ScheduledNotification,
 } from "@/lib/notifications/types";
 
-type ModuleKey = "attendance" | "expenses" | "focus" | "cgpa" | "resume" | "coding" | "career";
+type ModuleKey = "attendance" | "expenses" | "focus" | "cgpa" | "coding" | "career";
 
 type State = AppData & {
   _hydrated: boolean;
@@ -185,10 +184,6 @@ type State = AppData & {
   ) => CgpaSubject;
   updateCgpaSubject: (semesterId: string, subjectId: string, patch: Partial<CgpaSubject>) => void;
   deleteCgpaSubject: (semesterId: string, subjectId: string) => void;
-
-  // resume
-  updateResume: (patch: Partial<ResumeData>) => void;
-  setResume: (resume: ResumeData) => void;
 
   // coding / DSA prep
   addCodingProblem: (
@@ -393,7 +388,6 @@ export function toAppData(state: AppData): AppData {
     expenses: state.expenses,
     focus: state.focus,
     cgpa: state.cgpa,
-    resume: state.resume,
     notifications: state.notifications,
     coding: state.coding,
     career: state.career,
@@ -927,9 +921,6 @@ export const useAppStore = create<State>()(
           },
         })),
 
-      updateResume: (patch) => set((s) => ({ resume: { ...s.resume, ...patch } })),
-      setResume: (resume) => set({ resume }),
-
       addCodingProblem: (partial) => {
         const problem: CodingProblem = {
           id: newId(),
@@ -1268,7 +1259,7 @@ export const useAppStore = create<State>()(
     }),
     {
       name: STORAGE_KEY,
-      version: 11,
+      version: 12,
       storage: createJSONStorage(() =>
         // No storage during SSR — persist skips hydration when this is undefined.
         typeof window !== "undefined"

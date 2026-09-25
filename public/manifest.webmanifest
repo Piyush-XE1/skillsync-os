@@ -1,7 +1,7 @@
 {
   "name": "SkillSync — Personal Growth OS",
   "short_name": "SkillSync",
-  "description": "Your personal growth operating system: roadmaps, projects, habits, focus timer, CGPA tracker and resume builder.",
+  "description": "Your personal growth operating system: aims, roadmaps, projects, habits, focus timer and a CGPA tracker.",
   "start_url": "/",
   "scope": "/",
   "id": "/",

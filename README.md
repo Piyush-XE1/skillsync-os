@@ -16,7 +16,6 @@ Built with a **premium futuristic UI**, animated Aurora backgrounds, an offline-
 | 🎓 **Learn**               | Structured roadmaps with phases, topics, checklists, resources & progress                                                                                |
 | ⏱️ **Focus**               | Pomodoro deep-work timer — sessions, sounds and a focus streak                                                                                           |
 | 🎯 **CGPA Tracker**        | Semester-wise SGPA, cumulative CGPA, grade breakdown & target simulator                                                                                  |
-| 📄 **Resume Builder**      | Structured editor → print-ready ATS-friendly resume, JSON import/export                                                                                  |
 | 💻 **Code · DSA Prep**     | Track solved problems across LeetCode, Codeforces, CodeChef & more — difficulty breakdowns, solve heatmap, streaks & contest ratings                     |
 | 🤝 **Career · Placements** | Job & internship pipeline from Saved → Applied → Referral → OA → Interview → Offer, with rounds & referrals                                              |
 | 🔍 **Command Palette**     | `/` or `⌘K` anywhere — search every roadmap, topic, note, project & task                                                                                 |
@@ -53,7 +52,7 @@ Built with a **premium futuristic UI**, animated Aurora backgrounds, an offline-
 - **TanStack Router + TanStack Start** — file-based routing, SSR-safe shell
 - **Tailwind CSS v4** — design tokens and utilities
 - **Zustand** — local-first store, persisted to `localStorage`
-- **Zod** — runtime validation of every persisted record, schema-versioned migrations (v1 → v11)
+- **Zod** — runtime validation of every persisted record, schema-versioned migrations (v1 → v12)
 - **Vitest** — 360+ unit & render tests for the domain/rule engines and the custom SVG chart geometry
 - **Custom SVG charts** — dependency-free area, bar, donut, sparkline & tooltip components (no chart library)
 - **Capacitor** — native Android shell, haptics, notifications, file save/share
@@ -68,7 +67,7 @@ Routes (React, file-based)
    │  read/write via typed actions
 Store (zustand + persist middleware)
    │  partialize → only plain data is persisted
-Migrations (v1→v11, field-by-field salvage on corruption)
+Migrations (v1→v12, field-by-field salvage on corruption)
    │  validate
 Schema (zod — single source of truth for every record)
    │  derive
@@ -148,14 +147,13 @@ Instead of using separate tools for every part of personal development, SkillSyn
 - [x] Core productivity system · Dashboard · Learn · Projects · Planner · Habits · Notes
 - [x] Focus timer with session stats & focus streaks
 - [x] CGPA tracker with target simulator
-- [x] Resume builder with print/PDF export
 - [x] DSA practice tracker with solve heatmap, streaks & contest ratings
 - [x] Placement / job application tracker with interview rounds
 - [x] Command palette with global keyboard shortcuts
 - [x] Aims & goals panel (deliberately no XP, levels or badges)
 - [x] Activity heatmaps & learning velocity analytics
 - [x] Local notifications · Android APK · native haptics
-- [x] Schema-versioned migrations (v1 → v11) with corruption salvage
+- [x] Schema-versioned migrations (v1 → v12) with corruption salvage
 - [x] Unit + render test suite (Vitest) · CI (typecheck · lint · tests · build)
 - [ ] Cloud backup & sync
 - [ ] Multi-device synchronization

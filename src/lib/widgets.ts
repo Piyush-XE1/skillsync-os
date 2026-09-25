@@ -10,14 +10,7 @@
  * through the registry), and drag-to-reorder reuses `DragSortList`.
  */
 
-export type ModuleKey =
-  | "attendance"
-  | "expenses"
-  | "focus"
-  | "cgpa"
-  | "resume"
-  | "coding"
-  | "career";
+export type ModuleKey = "attendance" | "expenses" | "focus" | "cgpa" | "coding" | "career";
 
 /** How much of the grid a widget occupies. */
 export type WidgetSize = "tile" | "wide" | "full";

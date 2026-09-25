@@ -237,14 +237,4 @@ describe("useAppStore — roadmap completion & modules", () => {
     useAppStore.getState().deleteCgpaSemester(semId);
     expect(useAppStore.getState().cgpa.semesters.length).toBe(0);
   });
-
-  it("persists resume edits", () => {
-    useAppStore.getState().updateResume({
-      name: "Ada Lovelace",
-      title: "Software Engineer",
-      skills: ["TypeScript", "React"],
-    });
-    expect(useAppStore.getState().resume.name).toBe("Ada Lovelace");
-    expect(useAppStore.getState().resume.skills).toEqual(["TypeScript", "React"]);
-  });
 });
