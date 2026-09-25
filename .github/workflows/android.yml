@@ -51,8 +51,21 @@ jobs:
           distribution: temurin
           java-version: "21"
 
+      # Use the Android SDK preinstalled on GitHub's Ubuntu runners and install
+      # exactly the packages this project needs (compileSdk/targetSdk 36).
       - name: Setup Android SDK
-        uses: android-actions/setup-android@v3
+        run: |
+          SDK="${ANDROID_SDK_ROOT:-${ANDROID_HOME:-/usr/local/lib/android/sdk}}"
+          echo "ANDROID_HOME=$SDK" >> "$GITHUB_ENV"
+          echo "ANDROID_SDK_ROOT=$SDK" >> "$GITHUB_ENV"
+          SDKMANAGER="$SDK/cmdline-tools/latest/bin/sdkmanager"
+          if [ ! -x "$SDKMANAGER" ]; then
+            SDKMANAGER=$(ls "$SDK"/cmdline-tools/*/bin/sdkmanager | head -n 1)
+          fi
+          echo "Using $SDKMANAGER"
+          yes | "$SDKMANAGER" --licenses > /dev/null || true
+          "$SDKMANAGER" --install "platform-tools" "platforms;android-36" "build-tools;36.0.0"
+          printf 'sdk.dir=%s\n' "$SDK" > android/local.properties
 
       - name: Install dependencies
         run: bun install --frozen-lockfile
