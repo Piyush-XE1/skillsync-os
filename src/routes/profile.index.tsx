@@ -26,10 +26,10 @@ import {
   Timer,
   Award,
   FileText,
-  Trophy,
+  Target,
 } from "lucide-react";
 import { AppShell, AppFooter, PageHeader } from "@/components/layout/AppShell";
-import { Card, Chip, ProgressBar, SectionHeader } from "@/components/ui/primitives";
+import { Card, Chip, SectionHeader } from "@/components/ui/primitives";
 import { BottomSheet } from "@/components/edit/Sheet";
 import { TextField } from "@/components/edit/Fields";
 import { ActionButton } from "@/components/edit/Buttons";
@@ -43,14 +43,13 @@ import { useBackupStore } from "@/store/useBackupStore";
 import { APP_VERSION } from "@/lib/version";
 import { haptics, hapticsSupported, type HapticIntensity } from "@/lib/haptics";
 import { SOUND_CUES, previewSound, sound, soundSupported, type SoundCue } from "@/lib/sound";
-import { allAchievements } from "@/lib/achievements";
 import { focusTotals } from "@/lib/focus";
 
 export const Route = createFileRoute("/profile/")({
   head: () => ({
     meta: [
       { title: "Profile — SkillSync" },
-      { name: "description", content: "Your level, preferences and backups." },
+      { name: "description", content: "Your aims, preferences and backups." },
       { property: "og:title", content: "Profile — SkillSync" },
       { property: "og:description", content: "Your growth, at a glance." },
       { property: "og:type", content: "website" },
@@ -70,8 +69,6 @@ const PREVIEW_CUES: SoundCue[] = [
   "drop",
   "coin",
   "streak",
-  "achievement",
-  "levelUp",
   "chime",
   "error",
 ];
@@ -105,15 +102,13 @@ function ProfilePage() {
   const backupStatus = getBackupStatus(lastBackupMeta);
   const profile = useAppStore((s) => s.profile);
   const preferences = useAppStore((s) => s.preferences);
-  const stats = useAppStore((s) => s.stats);
+  const goals = useAppStore((s) => s.goals);
+  const habits = useAppStore((s) => s.habits);
   const updateProfile = useAppStore((s) => s.updateProfile);
   const updatePreferences = useAppStore((s) => s.updatePreferences);
   const exportJSON = useAppStore((s) => s.exportJSON);
   const resetAll = useAppStore((s) => s.resetAll);
   const focusSessions = useAppStore((s) => s.focus.sessions);
-  // Computed per render (cheap: ~20 condition checks) so badges always reflect
-  // the latest state without unstable-selector subscription loops.
-  const achievements = allAchievements(useAppStore.getState() as never);
   const focusTotal = focusTotals(focusSessions).totalMinutes;
 
   const [openProfile, setOpenProfile] = useState(false);
@@ -235,8 +230,6 @@ function ProfilePage() {
 
   const jsonPreview = useMemo(() => (openJson ? exportJSON() : ""), [openJson, exportJSON]);
 
-  const xpToNext = stats.xp % 100;
-
   return (
     <AppShell>
       <PageHeader eyebrow="You" title="Profile." />
@@ -263,7 +256,6 @@ function ProfilePage() {
                 <div className="text-[16px] font-semibold tracking-tight">
                   {hydrated ? profile.name || "Learner" : "…"}
                 </div>
-                <Chip tone="primary">Lv {hydrated ? stats.level : "—"}</Chip>
               </div>
               <div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 text-[12px] text-muted-foreground">
                 <button onClick={openNameEditor} className="underline-offset-2 hover:underline">
@@ -303,21 +295,14 @@ function ProfilePage() {
             }}
           />
 
-          <div className="relative mt-5 space-y-2">
-            <div className="flex items-center justify-between text-[12px] text-muted-foreground">
-              <span>Level progress</span>
-              <span className="text-foreground/80">
-                {hydrated ? `${xpToNext} / 100 XP` : "— / — XP"}
-              </span>
-            </div>
-            <ProgressBar value={hydrated ? xpToNext : 0} tone="gradient" />
-          </div>
-
-          <div className="relative mt-4 grid grid-cols-3 gap-3">
+          <div className="relative mt-5 grid grid-cols-3 gap-3">
             {[
-              { k: "Streak", v: hydrated ? String(stats.streak) : "—" },
-              { k: "Level", v: hydrated ? String(stats.level) : "—" },
-              { k: "XP", v: hydrated ? String(stats.xp) : "—" },
+              { k: "Aims", v: hydrated ? String(goals.length) : "—" },
+              { k: "Habits", v: hydrated ? String(habits.length) : "—" },
+              {
+                k: "Focus",
+                v: hydrated ? `${Math.round(focusTotal / 60)}h` : "—",
+              },
             ].map((s) => (
               <div key={s.k} className="rounded-2xl border border-white/[0.05] bg-white/[0.02] p-3">
                 <div className="text-[11px] text-muted-foreground">{s.k}</div>
@@ -327,43 +312,39 @@ function ProfilePage() {
           </div>
         </Card>
 
-        {/* Achievements */}
+        {/* Aims */}
         <section className="space-y-3">
           <SectionHeader
-            title={`Badges · ${stats.achievements.length}/${achievements.length}`}
-            action={<Link to="/achievements">See all</Link>}
+            title={goals.length > 0 ? `Aims · ${goals.length}` : "Aims"}
+            action={<Link to="/goals">Manage</Link>}
           />
           <Card className="p-4">
-            <div className="grid grid-cols-4 gap-3 sm:grid-cols-6">
-              {achievements.map((a) => {
-                const unlocked = stats.achievements.includes(a.id);
-                return (
-                  <div
-                    key={a.id}
-                    title={unlocked ? a.description : `Locked — ${a.description}`}
-                    className={
-                      "flex flex-col items-center gap-1.5 rounded-2xl border p-2.5 text-center transition-all " +
-                      (unlocked
-                        ? "border-[var(--primary)]/25 bg-[color-mix(in_oklab,var(--primary)_8%,transparent)]"
-                        : "border-white/[0.05] bg-white/[0.01] opacity-45 grayscale")
-                    }
+            {goals.length === 0 ? (
+              <p className="text-[12.5px] leading-relaxed text-muted-foreground">
+                No aims yet. Add what you are working on — gym, no junk food, academics — and they
+                stay pinned to the top of your dashboard. No points, no levels.
+              </p>
+            ) : (
+              <div className="flex flex-wrap gap-2">
+                {goals.map((goal) => (
+                  <span
+                    key={goal.id}
+                    className="flex items-center gap-1.5 rounded-full border border-[color-mix(in_oklab,var(--primary)_24%,transparent)] bg-[color-mix(in_oklab,var(--primary)_8%,transparent)] px-3 py-1.5 text-[12.5px] font-medium"
                   >
-                    <span className="text-[22px] leading-none">{a.icon}</span>
-                    <span className="text-[10px] font-medium leading-tight">{a.title}</span>
-                  </div>
-                );
-              })}
-            </div>
-            <p className="mt-3 text-center text-[11.5px] text-muted-foreground">
-              {stats.achievements.length > 0 ? (
-                <span className="flex items-center justify-center gap-1.5">
-                  <Trophy className="h-3.5 w-3.5 text-[var(--warning)]" strokeWidth={2} />
-                  {stats.achievements.length} earned · keep shipping to unlock the rest
-                </span>
-              ) : (
-                "Complete topics, build habits and ship projects to earn your first badge."
-              )}
-            </p>
+                    <span aria-hidden>{goal.emoji}</span>
+                    {goal.title}
+                  </span>
+                ))}
+              </div>
+            )}
+            <Link
+              to="/goals"
+              className="mt-4 inline-flex items-center gap-1.5 text-[12.5px] text-muted-foreground transition-colors hover:text-foreground"
+            >
+              <Target className="h-3.5 w-3.5" strokeWidth={1.75} />
+              Edit your aims
+              <ChevronRight className="h-3.5 w-3.5" />
+            </Link>
           </Card>
         </section>
 
@@ -450,7 +431,7 @@ function ProfilePage() {
                 <div className="text-[12px] text-muted-foreground">
                   {focusTotal > 0
                     ? `${focusTotal} minutes of deep work logged`
-                    : "Pomodoro sessions with XP rewards"}
+                    : "Pomodoro sessions and deep-work stats"}
                 </div>
               </div>
               <ChevronRight className="h-4 w-4 text-muted-foreground/60" />

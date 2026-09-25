@@ -520,15 +520,7 @@ describe("Advanced Backup System", () => {
           soundVolume: 0.5,
         },
         widgets: [],
-        stats: {
-          xp: 0,
-          level: 1,
-          streak: 0,
-          lastActive: "",
-          totalXp: 0,
-          joinedAt: 0,
-          achievements: [],
-        },
+        goals: [],
         attendance: { subjects: [] },
         expenses: { transactions: [] },
         focus: {

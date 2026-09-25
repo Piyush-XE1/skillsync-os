@@ -9,12 +9,13 @@
    app and the Android APK share one codebase and one data model.
 2. **Data is the product.** Every record is validated at the boundary —
    nothing malformed ever reaches a component.
-3. **Upgrades never lose data.** The persisted schema is versioned (v1 → v8)
+3. **Upgrades never lose data.** The persisted schema is versioned (v1 → v11)
    and migrated automatically, with field-level salvage when corruption is
    found.
-4. **Everything measurable.** XP, streaks, achievements, focus sessions and
-   activity heatmaps are all derived from the same event-like records —
-   nothing is tracked twice.
+4. **Aim, don't score.** The product deliberately ships _no_ points, levels or
+   badges. What it does measure — focus sessions, habit streaks, activity
+   heatmaps — is derived from the same event-like records, nothing tracked
+   twice, and always presented as information rather than reward.
 
 ## 2. Layers
 
@@ -26,11 +27,11 @@
 ├────────────────────────────────────────────────────────────┤
 │  Store (src/store/useAppStore.ts)                          │
 │  zustand + persist. One typed action per mutation; actions │
-│  own cascade rules (topic → subtopic → checklist) and      │
-│  gamification (XP awards, streaks, completedAt stamps).    │
+│  own cascade rules (topic → subtopic → checklist) and the  │
+│  completion stamps the analytics derive from.              │
 ├────────────────────────────────────────────────────────────┤
 │  Migrations (src/lib/migrations.ts)                        │
-│  Pure functions v1→v10. Each migrator is additive. On      │
+│  Pure functions v1→v11. Each migrator is additive. On      │
 │  invalid input the engine salvages valid top-level fields  │
 │  one by one instead of crashing or wiping.                 │
 ├────────────────────────────────────────────────────────────┤
@@ -40,7 +41,7 @@
 ├────────────────────────────────────────────────────────────┤
 │  Domain libs (src/lib/*)                                   │
 │  Pure, unit-tested engines: progress, habit streaks,       │
-│  CGPA math, focus stats, achievements, search, quotes,     │
+│  CGPA math, focus stats, goals, search, quotes,            │
 │  notifications, backup. No React, no DOM.                  │
 └────────────────────────────────────────────────────────────┘
 ```
@@ -52,7 +53,7 @@
   survives.
 - `schemaVersion` lives **inside** the payload. Zustand's persist `version`
   bumps alongside it, so a stored v6 payload is routed through the migration
-  chain and emerges as valid v10 data.
+  chain and emerges as valid v11 data.
 - Migrations are **additive**: new domains (Focus, CGPA, Resume) start empty
   with safe defaults; existing records are enriched (e.g. planner tasks gain
   `priority`, topics gain `completedAt`).
@@ -60,18 +61,30 @@
   its own schema and keeps the survivors — a corrupted single module can
   never take down the whole workspace.
 
-## 4. Gamification engine
+## 4. Aims & goals (the anti-gamification decision)
 
-- **XP awards** live in the store as pure helpers (`addXpToStats`,
-  `touchStreakStats`) so they are deterministic and unit-testable. Awards
-  fire on checklist/topic/subtopic completion, planner check-offs, habit
-  check-ins, project ships, focus sessions and achievement unlocks.
-- **Achievements** (`src/lib/achievements.ts`) are declarative predicates
-  over `AppData`. The engine hook (`useAchievementEngine`) evaluates on a
-  debounced store subscription, unlocks new badges exactly once (idempotent
-  by stored id list), and fires XP + toast + haptic + sound cue + confetti +
-  notification (level-ups get their own rising arpeggio). The notification
-  runner dedupes via `sourceId`.
+The reward system — XP, levels, badges, trophies, unlock notifications — was
+**removed in v11**, not hidden behind a flag. It punished the wrong thing:
+people tuned their behaviour to the meter instead of the change they wanted.
+
+- **The model is deliberately inert.** A `Goal` is `{ id, title, emoji, note,
+createdAt }` (`src/lib/schema.ts`). There is no completion state, no
+  counter, no score to farm and therefore nothing that can silently break in
+  a migration. `src/lib/goals.ts` owns the pure helpers and the quick-add
+  preset catalogue (Gym, No junk food, Good at academics, No fap, …).
+- **It is highly visible.** The `goals` widget is first in
+  `WIDGET_DEFINITIONS`, defaults to the widest size, and is lifted to the top
+  slot of an existing dashboard by the v10→v11 migrator. When the list is
+  empty the panel offers one-tap presets, so declaring an aim takes one tap.
+- **Discipline signals that stayed** are the honest ones: per-habit streaks
+  (computed from the log list, never stored as a counter), focus session
+  minutes and the activity heatmap. They are reported, never rewarded.
+- **How the removal was handled.** The migrator drops the `stats` block
+  (xp/level/streak/lastActive/totalXp/achievements) and retires the
+  `achievements` notification category — its setting, history and queue — so
+  a strict schema parse can never reject an old workspace. Existing
+  workspaces start with an empty aims list; starter aims are seeded for
+  brand-new ones only.
 
 ## 5. Derived analytics
 
@@ -104,7 +117,7 @@ navigation, haptics and notifications flow through
 
 - `npm run typecheck` — strict TypeScript, zero `any` leaks in the domain.
 - `npm run lint` — eslint + prettier.
-- `npm run test` — 260+ Vitest tests: pure Node for libs, jsdom for the store,
+- `npm run test` — 370+ Vitest tests: pure Node for libs, jsdom for the store,
   drag-sort/keyboard interaction and route render smoke tests.
 - CI (GitHub Actions) runs all three plus a production build on every PR.
 
@@ -121,13 +134,13 @@ Three dependency-free primitives carry the "feels native" layer. None of them
 add a runtime package, and all three are unit-tested beside their source.
 
 - **Widget system** — the dashboard is a grid the user owns. `src/lib/widgets.ts`
-  holds the pure model (a 23-widget catalog with id, title, default size and an
+  holds the pure model (a 20-widget catalog with id, title, default size and an
   optional module gate, plus `normalizeWidgetLayout`, `visibleWidgets` and
   `applyWidgetOrder`), `src/components/widgets/` renders it (`WidgetFrame`
   chrome, `tiles`/`panels`, `registry`, `WidgetGrid`, `WidgetCustomizer`) and the
   store exposes typed actions (`setWidgets`, `toggleWidget`, `resizeWidget`,
   `reorderWidgets`, `moveWidgetTo`, `resetWidgets`). Layout persists as
-  `widgets: WidgetPlacement[]` (schema v10) — never as component state.
+  `widgets: WidgetPlacement[]` (schema v11) — never as component state.
 - **Drag & keyboard reorder** — `src/lib/drag-sort.ts` computes target slots from
   _measured_ item rects (variable heights, either axis) and `DragSortList.tsx`
   drives the gesture: pointer + long-press lift, transform-only movement,
@@ -138,7 +151,7 @@ add a runtime package, and all three are unit-tested beside their source.
 - **Sound** — `src/lib/sound.ts` is a tiny Web Audio synth (pentatonic palette
   through a master gain → lowpass) with semantic cues: `tap`, `select`,
   `toggle`, `open`/`close`, `lift`/`move`/`drop`, `success`, `complete`, `coin`,
-  `trash`, `error`, `streak`, `achievement`, `levelUp`, `chime`, `tick`. It mirrors `haptics.ts`: SSR-safe, never throws, unlock on first
+  `trash`, `error`, `streak`, `chime`, `tick`. It mirrors `haptics.ts`: SSR-safe, never throws, unlock on first
   user gesture, per-cue cooldowns so rapid input can't machine-gun. Preferences
   (`sound`, `soundVolume`) persist in the schema and are editable in
   Profile → Sound design, where every cue can be previewed.

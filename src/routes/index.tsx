@@ -50,9 +50,10 @@ function todayDateLabel(): string {
 }
 
 /**
- * The dashboard is a widget grid the user owns: every panel — streaks, XP,
- * focus, habits, week in review, projects, notes — is a widget that can be
- * hidden, resized and dragged into place. Layout persists with the workspace.
+ * The dashboard is a widget grid the user owns: every panel — your aims,
+ * focus, habits, streaks, week in review, projects, notes — is a widget that
+ * can be hidden, resized and dragged into place; the layout persists with the
+ * workspace.
  *
  * Two modes:
  *  - **Live** (default) — widgets are inert surfaces; taps and scrolls behave

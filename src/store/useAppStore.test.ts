@@ -34,44 +34,39 @@ describe("useAppStore", () => {
     expect(habit?.startDate).toMatch(/^\d{4}-\d{2}-\d{2}$/);
   });
 
-  it("adds XP and recomputes the level", () => {
-    useAppStore.getState().addXp(250);
-    const s = useAppStore.getState();
-    expect(s.stats.xp).toBe(250);
-    // level = 1 + floor(250 / 100) = 3
-    expect(s.stats.level).toBe(3);
+  it("adds an aim with a default glyph", () => {
+    const goal = useAppStore.getState().addGoal({ title: "  Gym  " });
+    expect(goal.title).toBe("Gym");
+    expect(goal.emoji).toBe("🎯");
+    expect(useAppStore.getState().goals.at(-1)?.id).toBe(goal.id);
   });
 
-  it("never lets XP drop below zero", () => {
-    useAppStore.getState().addXp(-1000);
-    expect(useAppStore.getState().stats.xp).toBe(0);
+  it("updates, reorders and deletes aims", () => {
+    const a = useAppStore.getState().addGoal({ title: "Gym", emoji: "🏋️" });
+    const b = useAppStore.getState().addGoal({ title: "No junk food", emoji: "🥗" });
+    useAppStore.getState().updateGoal(a.id, { title: "  Gym   daily ", note: "  5x a week " });
+    const updated = useAppStore.getState().goals.find((g) => g.id === a.id);
+    expect(updated?.title).toBe("Gym daily");
+    expect(updated?.note).toBe("5x a week");
+
+    useAppStore.getState().reorderGoals([b.id, a.id]);
+    const order = useAppStore.getState().goals.map((g) => g.id);
+    expect(order.indexOf(b.id)).toBeLessThan(order.indexOf(a.id));
+
+    useAppStore.getState().deleteGoal(a.id);
+    expect(useAppStore.getState().goals.some((g) => g.id === a.id)).toBe(false);
   });
 
-  it("toggles a habit log and grants XP / extends streak", () => {
+  it("toggles a habit log", () => {
     const habitId = useAppStore.getState().habits[0].id;
     useAppStore.getState().toggleHabitToday(habitId, "2026-08-27");
     let s = useAppStore.getState();
     expect(s.habitLogs.some((l) => l.habitId === habitId && l.date === "2026-08-27")).toBe(true);
-    expect(s.stats.xp).toBe(5);
-    expect(s.stats.streak).toBe(1);
 
     // Toggling again removes the log
     useAppStore.getState().toggleHabitToday(habitId, "2026-08-27");
     s = useAppStore.getState();
     expect(s.habitLogs.some((l) => l.habitId === habitId && l.date === "2026-08-27")).toBe(false);
-  });
-
-  it("streak continues when checked on consecutive real days", () => {
-    vi.useFakeTimers();
-    const habitId = useAppStore.getState().habits[0].id;
-
-    vi.setSystemTime(new Date(2026, 7, 26, 10, 0, 0)); // Aug 26
-    useAppStore.getState().toggleHabitToday(habitId);
-    expect(useAppStore.getState().stats.streak).toBe(1);
-
-    vi.setSystemTime(new Date(2026, 7, 27, 10, 0, 0)); // Aug 27
-    useAppStore.getState().toggleHabitToday(habitId);
-    expect(useAppStore.getState().stats.streak).toBe(2);
   });
 
   it("creates, updates, and deletes a note", () => {
@@ -164,14 +159,14 @@ describe("useAppStore", () => {
   });
 });
 
-describe("useAppStore — v7 gamification & modules", () => {
+describe("useAppStore — roadmap completion & modules", () => {
   beforeEach(() => {
     localStorage.clear();
     const data = createInitialData();
     useAppStore.setState({ ...data, _hydrated: true });
   });
 
-  it("awards XP and stamps completedAt when a topic crosses 100%", () => {
+  it("stamps completedAt when a topic crosses 100%", () => {
     const roadmap = useAppStore.getState().roadmaps[0];
     const phase = roadmap.phases[0];
     const topic = phase.topics[0];
@@ -182,7 +177,6 @@ describe("useAppStore — v7 gamification & modules", () => {
         { roadmapId: roadmap.id, phaseId: phase.id, topicId: topic.id },
         "Read the docs",
       );
-    const before = useAppStore.getState().stats.xp;
     useAppStore
       .getState()
       .updateChecklistItem(
@@ -191,63 +185,43 @@ describe("useAppStore — v7 gamification & modules", () => {
         { done: true },
       );
     const s = useAppStore.getState();
-    expect(s.stats.xp).toBe(before + 15);
-    expect(s.stats.totalXp).toBe(s.stats.xp);
     const updated = s.roadmaps[0].phases[0].topics[0];
     expect(updated.completedAt).not.toBeNull();
   });
 
-  it("does not double-award XP when re-completing an already-done topic", () => {
-    const { roadmaps, stats } = useAppStore.getState();
+  it("stamps and clears topic completion", () => {
+    const { roadmaps } = useAppStore.getState();
     const topic = roadmaps[0].phases[0].topics[0];
     useAppStore
       .getState()
       .setTopicComplete(roadmaps[0].id, roadmaps[0].phases[0].id, topic.id, true);
-    const afterFirst = useAppStore.getState().stats.xp;
-    expect(afterFirst).toBe(stats.xp + 15);
+    expect(useAppStore.getState().roadmaps[0].phases[0].topics[0].completedAt).not.toBeNull();
     useAppStore
       .getState()
-      .setTopicComplete(roadmaps[0].id, roadmaps[0].phases[0].id, topic.id, true);
-    expect(useAppStore.getState().stats.xp).toBe(afterFirst);
+      .setTopicComplete(roadmaps[0].id, roadmaps[0].phases[0].id, topic.id, false);
+    expect(useAppStore.getState().roadmaps[0].phases[0].topics[0].completedAt).toBeNull();
   });
 
-  it("awards XP when a planner task is checked off", () => {
-    const before = useAppStore.getState().stats.xp;
+  it("records when a planner task is checked off", () => {
     useAppStore.getState().addPlannerTask({ title: "Ship it", date: "2026-09-01" });
     const id = useAppStore.getState().planner[0].id;
     useAppStore.getState().updatePlannerTask(id, { done: true });
     const s = useAppStore.getState();
-    expect(s.stats.xp).toBe(before + 5);
     expect(s.planner[0].doneAt).not.toBeNull();
   });
 
-  it("awards XP when a project ships", () => {
-    const before = useAppStore.getState().stats.xp;
+  it("marks a project as shipped", () => {
     const project = useAppStore.getState().addProject({ title: "SkillSync" });
     useAppStore.getState().updateProject(project.id, { status: "done" });
-    expect(useAppStore.getState().stats.xp).toBe(before + 40);
-    // Re-saving the same state must not re-award.
-    useAppStore.getState().updateProject(project.id, { status: "done" });
-    expect(useAppStore.getState().stats.xp).toBe(before + 40);
+    expect(useAppStore.getState().projects.find((p) => p.id === project.id)?.status).toBe("done");
   });
 
-  it("records focus sessions, awards XP and tracks totals", () => {
-    const before = useAppStore.getState().stats.xp;
+  it("records focus sessions and totals", () => {
     useAppStore.getState().addFocusSession({ minutes: 25, mode: "focus", task: "DSA" });
     useAppStore.getState().addFocusSession({ minutes: 5, mode: "break" });
     const s = useAppStore.getState();
     expect(s.focus.sessions.length).toBe(2);
-    expect(s.stats.xp).toBe(before + 25);
-    expect(s.stats.streak).toBe(1);
-  });
-
-  it("unlocks achievements exactly once and awards XP per unlock", () => {
-    const before = useAppStore.getState().stats.xp;
-    const unlocked = useAppStore.getState().unlockAchievements(["first-topic", "first-habit"]);
-    expect(unlocked).toEqual(["first-topic", "first-habit"]);
-    expect(useAppStore.getState().stats.xp).toBe(before + 50);
-    expect(useAppStore.getState().unlockAchievements(["first-topic", "first-habit"])).toEqual([]);
-    expect(useAppStore.getState().stats.xp).toBe(before + 50);
+    expect(s.focus.sessions[0].task).toBe("DSA");
   });
 
   it("manages CGPA semesters and subjects", () => {

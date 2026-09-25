@@ -5,7 +5,6 @@ import { SideNav } from "./SideNav";
 import { useHapticPreferences } from "@/hooks/use-haptics";
 import { useSoundPreferences } from "@/hooks/use-sound";
 import { useKeyboardShortcuts } from "@/hooks/use-keyboard-shortcuts";
-import { useAchievementEngine } from "@/hooks/use-achievement-engine";
 
 /**
  * Responsive application shell.
@@ -16,7 +15,6 @@ export function AppShell({ children }: { children: ReactNode }) {
   useHapticPreferences();
   useSoundPreferences();
   useKeyboardShortcuts();
-  useAchievementEngine();
   // Automatic copies are handled by the single backup scheduler
   // (`startAutoScheduler`, mounted once in the root route). Doing it here per
   // screen meant every route serialised the whole workspace on a 1.5s debounce.

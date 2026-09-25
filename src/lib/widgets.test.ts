@@ -74,11 +74,11 @@ describe("normalizeWidgetLayout", () => {
 
   it("drops unknown and duplicate ids", () => {
     const out = normalizeWidgetLayout([
-      { id: "streak", size: "tile", visible: true },
-      { id: "streak", size: "wide", visible: false },
+      { id: "goals", size: "full", visible: true },
+      { id: "goals", size: "wide", visible: false },
       { id: "hacker", size: "tile", visible: true },
     ]);
-    expect(out.filter((e) => e.id === "streak")).toHaveLength(1);
+    expect(out.filter((e) => e.id === "goals")).toHaveLength(1);
     expect(out.some((e) => e.id === ("hacker" as never))).toBe(false);
     expect(ids(out)).toEqual(ids(defaultWidgetLayout()));
   });
@@ -86,14 +86,14 @@ describe("normalizeWidgetLayout", () => {
   it("keeps a user's order, sizes and visibility", () => {
     const custom: WidgetPlacement[] = [
       { id: "quote", size: "full", visible: true },
-      { id: "streak", size: "wide", visible: false },
+      { id: "notes", size: "wide", visible: false },
     ];
     const out = normalizeWidgetLayout(custom);
     expect(out[0]).toEqual({ id: "quote", size: "full", visible: true });
-    expect(out[1]).toEqual({ id: "streak", size: "wide", visible: false });
+    expect(out[1]).toEqual({ id: "notes", size: "wide", visible: false });
     // …and appends everything the layout had never seen.
     expect(out.length).toBe(WIDGET_IDS.length);
-    expect(out.some((e) => e.id === "xp")).toBe(true);
+    expect(out.some((e) => e.id === "goals")).toBe(true);
   });
 
   it("snaps an illegal size back to the widget default", () => {
@@ -110,12 +110,12 @@ describe("visibleWidgets", () => {
     expect(shown).not.toContain("expenses");
     expect(shown).not.toContain("focusToday");
     expect(shown).not.toContain("solved");
-    expect(shown).toContain("streak");
+    expect(shown).toContain("goals");
   });
 
   it("respects per-widget visibility", () => {
-    const layout = setWidgetVisible(defaultWidgetLayout(), "streak", false);
-    expect(ids(visibleWidgets(layout, ALL_MODULES))).not.toContain("streak");
+    const layout = setWidgetVisible(defaultWidgetLayout(), "goals", false);
+    expect(ids(visibleWidgets(layout, ALL_MODULES))).not.toContain("goals");
   });
 
   it("keeps the user's order", () => {
@@ -136,15 +136,16 @@ describe("setWidgetVisible / setWidgetSize", () => {
   });
 
   it("resizes within the allowed sizes only", () => {
-    const wide = setWidgetSize(defaultWidgetLayout(), "streak", "wide");
-    expect(wide.find((e) => e.id === "streak")?.size).toBe("wide");
-    const illegal = setWidgetSize(wide, "streak", "full");
-    expect(illegal.find((e) => e.id === "streak")?.size).toBe("tile");
+    // "notes" offers wide/full and defaults to wide.
+    const full = setWidgetSize(defaultWidgetLayout(), "notes", "full");
+    expect(full.find((e) => e.id === "notes")?.size).toBe("full");
+    const illegal = setWidgetSize(full, "notes", "tile");
+    expect(illegal.find((e) => e.id === "notes")?.size).toBe("wide");
   });
 
   it("cycles sizes", () => {
-    expect(nextWidgetSize("streak", "tile")).toBe("wide");
-    expect(nextWidgetSize("streak", "wide")).toBe("tile");
+    expect(nextWidgetSize("notes", "wide")).toBe("full");
+    expect(nextWidgetSize("notes", "full")).toBe("wide");
     expect(nextWidgetSize("today", "wide")).toBe("full");
     expect(nextWidgetSize("today", "full")).toBe("wide");
   });
@@ -167,14 +168,14 @@ describe("moveWidget", () => {
 describe("applyWidgetOrder", () => {
   it("permutes only the dragged subset, in the slots it already owned", () => {
     const layout = normalizeWidgetLayout([
-      { id: "streak", size: "tile", visible: true },
+      { id: "goals", size: "full", visible: true },
       { id: "cgpa", size: "tile", visible: false },
-      { id: "xp", size: "tile", visible: true },
+      { id: "notes", size: "wide", visible: true },
       { id: "quote", size: "wide", visible: true },
     ]);
-    // streak(0) · cgpa(1, hidden) · xp(2) · quote(3) · …defaults
-    const out = applyWidgetOrder(layout, ["quote", "streak", "xp"]);
-    expect(ids(out).slice(0, 4)).toEqual(["quote", "cgpa", "streak", "xp"]);
+    // goals(0) · cgpa(1, hidden) · notes(2) · quote(3) · …defaults
+    const out = applyWidgetOrder(layout, ["quote", "goals", "notes"]);
+    expect(ids(out).slice(0, 4)).toEqual(["quote", "cgpa", "goals", "notes"]);
     // Everything outside the dragged subset keeps its slot.
     expect(out.slice(4)).toEqual(layout.slice(4));
     expect(out.length).toBe(layout.length);
@@ -182,15 +183,16 @@ describe("applyWidgetOrder", () => {
 
   it("is a no-op for a single id or an empty scope", () => {
     const layout = defaultWidgetLayout();
-    expect(applyWidgetOrder(layout, ["xp"])).toEqual(layout);
+    expect(applyWidgetOrder(layout, ["notes"])).toEqual(layout);
     expect(applyWidgetOrder(layout, [])).toEqual(layout);
   });
 
   it("ignores ids that are not in the layout", () => {
     const layout = defaultWidgetLayout();
     // "ghost" is dropped, the two real ids still swap cleanly.
-    const out = applyWidgetOrder(layout, ["xp", "ghost", "streak"]);
-    expect(ids(out).slice(0, 2)).toEqual(["xp", "streak"]);
+    // "goals" and "focusToday" own the first two slots; "ghost" is dropped.
+    const out = applyWidgetOrder(layout, ["focusToday", "ghost", "goals"]);
+    expect(ids(out).slice(0, 2)).toEqual(["focusToday", "goals"]);
     expect(out.length).toBe(layout.length);
     expect(new Set(ids(out)).size).toBe(out.length);
   });
@@ -198,7 +200,7 @@ describe("applyWidgetOrder", () => {
 
 describe("resetWidgetLayout", () => {
   it("restores the shipped dashboard", () => {
-    const messed = setWidgetVisible(moveWidget(defaultWidgetLayout(), "notes", 0), "streak", false);
+    const messed = setWidgetVisible(moveWidget(defaultWidgetLayout(), "notes", 0), "goals", false);
     expect(resetWidgetLayout()).toEqual(defaultWidgetLayout());
     expect(messed).not.toEqual(defaultWidgetLayout());
   });

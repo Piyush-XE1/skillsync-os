@@ -5,12 +5,13 @@ import {
   Award,
   CalendarRange,
   ChevronRight,
+  Flame,
   Lightbulb,
   Sparkles,
+  Target,
   TrendingUp,
   TrendingDown,
   Trophy,
-  Flame,
 } from "lucide-react";
 import { AppShell } from "@/components/layout/AppShell";
 import { Card, Chip, ProgressBar, SectionHeader } from "@/components/ui/primitives";
@@ -53,9 +54,7 @@ function ReviewPage() {
   const hydrated = useHydrated();
   const data = useAppStore((s) => s);
   const review = useMemo(() => composeReview(data as unknown as AppData), [data]);
-  const xp = data.stats.xp;
-  const streak = data.stats.streak;
-  const level = data.stats.level;
+  const activeDays = review.days.filter((d) => d.score > 0).length;
 
   // Small chart series so the review feels alive.
   const focusSeries = useMemo(
@@ -183,13 +182,14 @@ function ReviewPage() {
                 </div>
                 <div className="mt-3 flex flex-wrap items-center gap-x-3 gap-y-1 text-[12.5px] text-muted-foreground">
                   <span className="flex items-center gap-1.5">
-                    <Flame className="h-3.5 w-3.5 text-[var(--warning)]" strokeWidth={2} />
-                    {streak} day streak
+                    <CalendarRange className="h-3.5 w-3.5 text-[var(--warning)]" strokeWidth={2} />
+                    {activeDays} active day{activeDays === 1 ? "" : "s"}
                   </span>
                   <span className="text-white/10">·</span>
-                  <span>Lv {level}</span>
-                  <span className="text-white/10">·</span>
-                  <span>{xp} XP</span>
+                  <span className="flex items-center gap-1.5">
+                    <Target className="h-3.5 w-3.5 text-[var(--primary-glow)]" strokeWidth={2} />
+                    {data.goals.length} aim{data.goals.length === 1 ? "" : "s"} in focus
+                  </span>
                 </div>
               </div>
             </div>

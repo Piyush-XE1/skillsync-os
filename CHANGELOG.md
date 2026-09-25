@@ -2,6 +2,63 @@
 
 All notable changes to SkillSync OS are documented here.
 
+## [4.0.0] — 2026-09-25
+
+### Removed
+
+- **The reward system is gone: no XP, no levels, no badges, no trophies.** It
+  was the wrong motivation model for a tool you use on yourself — and the
+  first thing to feel like a toy. Removed end to end:
+  - `src/lib/achievements.ts` (26 declarative badges) and its test suite,
+  - the `useAchievementEngine` hook (toasts, confetti bursts, unlock
+    notifications, level-up celebrations),
+  - the **Trophies** page (`/achievements`), the `xp` / `streak` /
+    `achievements` / `nextBadge` dashboard widgets and the Profile badge
+    showcase,
+  - the global daily-streak counter and its milestone notifications (per-habit
+    streaks stay — they are a consistency signal, not a score),
+  - the `achievement` and `levelUp` sound cues, the XP readouts in Analytics,
+    Week in Review, Profile, System and the weekly digest,
+  - the stored `stats` block (`xp`, `level`, `streak`, `lastActive`, `totalXp`,
+    `achievements`) and the `achievements` notification category.
+
+### Added
+
+- **Aims — a highlighted goals panel.** A new `Goal` record (`id`, `title`,
+  `emoji`, `note`) plus a new **Aims** page (`/goals`, keyboard `G`) where you
+  declare what you are actually working on: Gym, No junk food, Good at
+  academics, No fap, and anything else you type. Quick-add presets make it one
+  tap; aims can be edited, reordered by drag and removed.
+- **The dashboard's top slot is now Aims.** A full-width, accent-glowing
+  `goals` widget (`src/lib/goals.ts` + `GoalsWidget`) that lists your aims and
+  offers one-tap presets when the list is empty, with a **Manage** link into
+  the page. Ordering, resizing, hiding and customize mode all work exactly like
+  every other widget.
+- **Aims in Profile**, plus an aims count in Profile → System diagnostics.
+- **Aims in the weekly review** — the hero line now reads active days + aims in
+  focus instead of streak/level/XP.
+- **Habit-only analytics** — the Analytics header card now reports _habit
+  streaks alive_ and _focus minutes (14 days)_ instead of a global streak and a
+  level ring.
+
+### Changed
+
+- **Schema v11** with a v10 → v11 migrator that drops the retired `stats`
+  block, strips the retired notification category (setting, history and queued
+  entries) and lifts the Aims panel to the top of an existing dashboard. A
+  migrated workspace starts with an empty aims list — starter aims (Gym, No
+  junk food, Good at academics, No fap) are seeded for brand-new workspaces
+  only. App version → **4.0**.
+- `applyOrder`-style scoped reordering for aims, so a drag can never shuffle or
+  drop an aim it did not touch.
+
+### Fixed
+
+- Anything that still read a reward field after the removal would have rendered
+  `undefined` or rejected an old workspace on parse; the migrator and the
+  strict-schema tests cover those paths (`migrations.test.ts` asserts the stats
+  block and the achievements category are gone after an upgrade).
+
 ## [3.6.0] — 2026-09-07
 
 ### Changed

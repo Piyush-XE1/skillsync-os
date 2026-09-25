@@ -92,8 +92,3 @@ export function focusStreak(sessions: FocusSession[], now: Date = new Date()): n
   }
   return streak;
 }
-
-/** XP earned for completing a focus session: 1 per minute, capped at 60. */
-export function focusXp(minutes: number): number {
-  return Math.min(60, Math.max(1, Math.round(minutes)));
-}

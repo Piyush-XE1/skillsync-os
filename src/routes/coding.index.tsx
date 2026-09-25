@@ -137,7 +137,7 @@ function CodingPage() {
       solvedAt: Date.now(),
     });
     sound.success();
-    toast.success("Problem logged. +8 XP 🎉");
+    toast.success("Problem logged 🎉");
     setTitle("");
     setUrl("");
     setNotes("");
@@ -515,7 +515,7 @@ function CodingPage() {
           </div>
 
           <ActionButton className="w-full" onClick={submitNew}>
-            <Zap className="h-4 w-4" /> Log it (+8 XP)
+            <Zap className="h-4 w-4" /> Log it
           </ActionButton>
         </div>
       </BottomSheet>

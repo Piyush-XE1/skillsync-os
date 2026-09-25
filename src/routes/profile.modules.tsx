@@ -102,7 +102,7 @@ function ModulesPage() {
         <ModuleRow
           icon={Timer}
           title="Focus"
-          desc="Pomodoro deep-work timer with XP, streaks and session history."
+          desc="Pomodoro deep-work timer with session history and a focus streak."
           on={modules.focus}
           onChange={(v) => setModuleEnabled("focus", v)}
         />

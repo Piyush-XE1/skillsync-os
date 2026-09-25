@@ -45,8 +45,8 @@ describe("sound cue table", () => {
   });
 
   it("orders celebration cues with longer cooldowns than micro cues", () => {
-    expect(SOUND_CUES.levelUp.cooldown).toBeGreaterThan(SOUND_CUES.tap.cooldown);
-    expect(SOUND_CUES.achievement.cooldown).toBeGreaterThan(SOUND_CUES.move.cooldown);
+    expect(SOUND_CUES.streak.cooldown).toBeGreaterThan(SOUND_CUES.move.cooldown);
+    expect(SOUND_CUES.chime.cooldown).toBeGreaterThan(SOUND_CUES.tap.cooldown);
   });
 });
 
@@ -133,10 +133,10 @@ describe("playCue in a non-audio environment", () => {
 
   it("never throws when AudioContext is unavailable", () => {
     expect(() => playCue("tap")).not.toThrow();
-    expect(() => playCue("levelUp")).not.toThrow();
+    expect(() => playCue("chime")).not.toThrow();
     expect(() => playCue("not-a-cue" as SoundCue)).not.toThrow();
     expect(() => sound.complete()).not.toThrow();
-    expect(() => previewSound("achievement")).not.toThrow();
+    expect(() => previewSound("streak")).not.toThrow();
   });
 
   it("reports unsupported when there is no AudioContext", () => {

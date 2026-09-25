@@ -31,6 +31,7 @@ const PAGES: SearchResult[] = [
   { kind: "page", to: "/learn", title: "Learn", subtitle: "Roadmaps & topics" },
   { kind: "page", to: "/projects", title: "Projects", subtitle: "Builds in progress" },
   { kind: "page", to: "/planner", title: "Planner", subtitle: "Tasks & deadlines" },
+  { kind: "page", to: "/goals", title: "Aims", subtitle: "The goals you are working on" },
   { kind: "page", to: "/habits", title: "Habits", subtitle: "Operation Rebirth" },
   { kind: "page", to: "/notes", title: "Notes", subtitle: "Local-first notes" },
   { kind: "page", to: "/focus", title: "Focus", subtitle: "Pomodoro deep work" },

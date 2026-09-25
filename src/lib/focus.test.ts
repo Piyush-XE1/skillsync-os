@@ -1,12 +1,5 @@
 import { describe, it, expect } from "vitest";
-import {
-  formatClock,
-  formatMinutes,
-  focusTotals,
-  minutesByDay,
-  focusStreak,
-  focusXp,
-} from "@/lib/focus";
+import { formatClock, formatMinutes, focusTotals, minutesByDay, focusStreak } from "@/lib/focus";
 import type { FocusSession } from "@/lib/schema";
 import { todayISO, addDaysISO } from "@/lib/date";
 
@@ -70,11 +63,5 @@ describe("focus lib", () => {
     ];
     expect(focusStreak(sessions, NOW)).toBe(3);
     expect(focusStreak([], NOW)).toBe(0);
-  });
-
-  it("caps and floors XP from focus sessions", () => {
-    expect(focusXp(25)).toBe(25);
-    expect(focusXp(90)).toBe(60);
-    expect(focusXp(0)).toBe(1);
   });
 });

@@ -462,7 +462,7 @@ const CHANGE_MODULES: Array<{ key: keyof AppData; hasId: boolean }> = [
   { key: "profile", hasId: false },
   { key: "preferences", hasId: false },
   { key: "widgets", hasId: false },
-  { key: "stats", hasId: false },
+  { key: "goals", hasId: true },
   { key: "attendance", hasId: false },
   { key: "expenses", hasId: false },
   { key: "focus", hasId: false },

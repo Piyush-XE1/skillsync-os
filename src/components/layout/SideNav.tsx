@@ -19,7 +19,7 @@ import {
   Search,
   Braces,
   Briefcase,
-  Trophy,
+  Target,
   CalendarHeart,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -41,7 +41,7 @@ type Item = {
     | "/resume"
     | "/coding"
     | "/career"
-    | "/achievements"
+    | "/goals"
     | "/review"
     | "/search"
     | "/profile";
@@ -66,7 +66,7 @@ const items: Item[] = [
   { to: "/resume", label: "Resume", icon: FileText, module: "resume" },
   { to: "/coding", label: "Code", icon: Braces, module: "coding", kbd: "C" },
   { to: "/career", label: "Career", icon: Briefcase, module: "career" },
-  { to: "/achievements", label: "Trophies", icon: Trophy, kbd: "G" },
+  { to: "/goals", label: "Aims", icon: Target, kbd: "G" },
   { to: "/review", label: "Review", icon: CalendarHeart, kbd: "R" },
   { to: "/search", label: "Search", icon: Search, kbd: "⌘K" },
   { to: "/profile", label: "Profile", icon: User },

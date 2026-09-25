@@ -32,15 +32,9 @@ describe("schema", () => {
       coding: true,
       career: true,
     });
-    expect(parsed.stats).toEqual({
-      xp: 0,
-      level: 1,
-      streak: 0,
-      lastActive: "",
-      totalXp: 0,
-      joinedAt: 0,
-      achievements: [],
-    });
+    // The reward system is gone: no XP, levels or badges anywhere.
+    expect(parsed.goals).toEqual([]);
+    expect("stats" in parsed).toBe(false);
     expect(parsed.attendance).toEqual({ subjects: [] });
     expect(parsed.expenses).toEqual({ transactions: [] });
     expect(parsed.focus.sessions).toEqual([]);

@@ -7,14 +7,12 @@ import {
   CalendarCheck2,
   CheckCircle2,
   ChevronRight,
-  Flame,
   GraduationCap,
   Timer,
   Trophy,
   Wallet,
-  Zap,
 } from "lucide-react";
-import { Chip, CircularProgress, ProgressBar } from "@/components/ui/primitives";
+import { Chip, ProgressBar } from "@/components/ui/primitives";
 import { Sparkline, getAxisLabel } from "@/components/common/Charts";
 import { StatValue, WidgetFrame, type WidgetProps } from "./WidgetFrame";
 import { useAppStore, useHydrated } from "@/store/useAppStore";
@@ -34,103 +32,12 @@ import type { AppData } from "@/lib/schema";
  * layout shell and a hidden widget costs nothing to render.
  */
 
-const STREAK_MILESTONES = [3, 7, 14, 30, 60, 100, 180, 365, 500, 1000];
-
-function nextStreakMilestone(streak: number) {
-  return STREAK_MILESTONES.find((m) => m > streak) ?? streak + 100;
-}
-
 function money(n: number) {
   const abs = Math.abs(n).toLocaleString(undefined, {
     minimumFractionDigits: 0,
     maximumFractionDigits: 2,
   });
   return `₹${abs}`;
-}
-
-/* --------------------------------- streak -------------------------------- */
-
-export function StreakWidget({ size, ...chrome }: WidgetProps) {
-  const hydrated = useHydrated();
-  const streak = useAppStore((s) => s.stats.streak);
-  const milestone = nextStreakMilestone(streak);
-  const pct = Math.min(100, (streak / milestone) * 100);
-  return (
-    <WidgetFrame
-      size={size}
-      title="Daily streak"
-      icon={<Flame className="h-3.5 w-3.5" strokeWidth={2} />}
-      {...chrome}
-    >
-      <StatValue
-        value={hydrated ? streak : "—"}
-        unit="days"
-        footnote={
-          hydrated ? (
-            <span className="flex items-center gap-1">
-              <Trophy className="h-3 w-3 text-[var(--warning)]" strokeWidth={2} />
-              {streak === 0 ? "Start today — log anything" : `${milestone}-day badge next`}
-            </span>
-          ) : (
-            "Loading…"
-          )
-        }
-      />
-      <div className="mt-3 flex gap-1" aria-hidden>
-        {Array.from({ length: 7 }).map((_, i) => (
-          <div
-            key={i}
-            className={cn(
-              "h-1.5 flex-1 rounded-full transition-colors duration-500",
-              hydrated && i < Math.min(streak, 7) ? "gradient-primary" : "bg-white/[0.07]",
-            )}
-          />
-        ))}
-      </div>
-      {size !== "tile" && hydrated ? (
-        <div className="mt-3">
-          <ProgressBar value={pct} tone="gradient" />
-        </div>
-      ) : null}
-    </WidgetFrame>
-  );
-}
-
-/* ----------------------------------- xp ---------------------------------- */
-
-export function XpWidget({ size, ...chrome }: WidgetProps) {
-  const hydrated = useHydrated();
-  const xp = useAppStore((s) => s.stats.xp);
-  const level = useAppStore((s) => s.stats.level);
-  const totalXp = useAppStore((s) => s.stats.totalXp);
-  const inLevel = xp % 100;
-  return (
-    <WidgetFrame
-      size={size}
-      title="Level & XP"
-      icon={<Zap className="h-3.5 w-3.5" strokeWidth={2} />}
-      {...chrome}
-      className={size === "tile" ? undefined : "sm:flex-row"}
-    >
-      <div className={cn("flex items-center gap-4", size === "tile" && "flex-col items-start")}>
-        <CircularProgress
-          value={hydrated ? inLevel : 0}
-          size={size === "tile" ? 62 : 72}
-          stroke={6}
-          label={<span className="text-[14px]">{hydrated ? level : "—"}</span>}
-        />
-        <div className="min-w-0">
-          <StatValue value={hydrated ? xp : "—"} unit="XP" />
-          <div className="mt-1.5 text-[11px] text-muted-foreground">
-            {hydrated ? `${inLevel}/100 to level ${level + 1}` : "Loading…"}
-          </div>
-          {size !== "tile" && hydrated ? (
-            <div className="mt-1 text-[11px] text-muted-foreground/80">{totalXp} XP lifetime</div>
-          ) : null}
-        </div>
-      </div>
-    </WidgetFrame>
-  );
 }
 
 /* -------------------------------- focus today ---------------------------- */

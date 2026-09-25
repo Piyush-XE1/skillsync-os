@@ -78,9 +78,6 @@ function SystemPage() {
 
           <SectionHeader title="Totals" className="pt-3" />
           <Card className="divide-y divide-white/[0.05] p-4">
-            <Row label="Level" value={hydrated ? snapshot.totals.level : "—"} />
-            <Row label="XP (lifetime)" value={hydrated ? snapshot.totals.totalXp : "—"} />
-            <Row label="Day streak" value={hydrated ? snapshot.totals.streak : "—"} />
             <Row label="Best habit streak" value={snapshot.totals.bestHabitStreak} />
             <Row
               label="CGPA"
@@ -109,6 +106,7 @@ function SystemPage() {
             />
             <Row label="Habits" value={snapshot.records.habits} />
             <Row label="Habit check-ins" value={snapshot.records.habitCheckIns} />
+            <Row label="Aims" value={snapshot.records.goals} />
             <Row label="Focus sessions" value={snapshot.records.focusSessions} />
             <Row label="Focus minutes" value={snapshot.records.focusMinutes} />
             <Row label="CGPA semesters" value={snapshot.records.cgpaSemesters} />

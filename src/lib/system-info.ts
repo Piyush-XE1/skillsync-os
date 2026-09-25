@@ -22,6 +22,7 @@ export type SystemSnapshot = {
     plannerDone: number;
     habits: number;
     habitCheckIns: number;
+    goals: number;
     subjects: number;
     transactions: number;
     focusSessions: number;
@@ -31,10 +32,6 @@ export type SystemSnapshot = {
     scheduled: number;
   };
   totals: {
-    xp: number;
-    totalXp: number;
-    level: number;
-    streak: number;
     bestHabitStreak: number;
     cgpa: number | null;
     credits: number;
@@ -70,6 +67,7 @@ export function systemSnapshot(data: AppData): SystemSnapshot {
       plannerDone: data.planner.filter((t) => t.done).length,
       habits: data.habits.length,
       habitCheckIns: data.habitLogs.length,
+      goals: data.goals.length,
       subjects: data.attendance.subjects.length,
       transactions: data.expenses.transactions.length,
       focusSessions: focus.totalSessions,
@@ -79,10 +77,6 @@ export function systemSnapshot(data: AppData): SystemSnapshot {
       scheduled: data.notifications?.scheduled?.length ?? 0,
     },
     totals: {
-      xp: data.stats.xp,
-      totalXp: data.stats.totalXp,
-      level: data.stats.level,
-      streak: data.stats.streak,
       bestHabitStreak: best,
       cgpa,
       credits,

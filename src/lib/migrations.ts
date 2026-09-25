@@ -5,7 +5,7 @@ import { todayISO } from "./date";
 import { createDefaultNotifications } from "./notifications/types";
 import { defaultAccentFor } from "./accent";
 import { DEFAULT_SOUND_VOLUME, clampVolume } from "./sound";
-import { defaultWidgetLayout, normalizeWidgetLayout } from "./widgets";
+import { defaultWidgetLayout, moveWidget, normalizeWidgetLayout } from "./widgets";
 
 /**
  * Loose shape of persisted data while it is being migrated. It can come from
@@ -166,6 +166,45 @@ const migrators: Record<number, (data: LegacyData) => LegacyData> = {
       widgets: Array.isArray(data.widgets) ? data.widgets : defaultWidgetLayout(),
     };
   },
+  /**
+   * v10 -> v11: the reward system retires. XP, levels, badges and the daily
+   * streak counter are gone for good and replaced by plain, highly visible
+   * Goals. This migration drops the retired `stats` block, clears the retired
+   * "achievements" notification category (its setting, history and queued
+   * entries), and lifts the new Goals panel to the top of the dashboard so the
+   * aims are the first thing the user sees.
+   *
+   * Goals themselves are never invented here: a migrated workspace starts with
+   * an empty list and adds its own aims (see `migrate` below).
+   */
+  10: (data) => {
+    const next: LegacyData = { ...data };
+    delete next.stats;
+
+    // Notification history from the retired category must go, or the strict
+    // category enum would reject the workspace on the next parse.
+    const n = (next.notifications ?? {}) as LegacyData;
+    const settings = { ...((n.settings ?? {}) as LegacyData) };
+    if (settings.categories && typeof settings.categories === "object") {
+      const categories = { ...(settings.categories as LegacyData) };
+      delete categories.achievements;
+      settings.categories = categories;
+    }
+    const dropRetired = (list: unknown) =>
+      Array.isArray(list)
+        ? list.filter((entry) => (entry as LegacyData)?.category !== "achievements")
+        : [];
+    next.notifications = {
+      ...n,
+      settings,
+      items: dropRetired(n.items),
+      scheduled: dropRetired(n.scheduled),
+    };
+
+    // Aims first: the Goals panel takes the top slot of the widget grid.
+    next.widgets = moveWidget(normalizeWidgetLayout(next.widgets), "goals", 0);
+    return next;
+  },
 };
 
 export function migrate(input: unknown): AppData {
@@ -223,6 +262,11 @@ export function migrate(input: unknown): AppData {
   // Widget layout: repair whatever was persisted (unknown ids, duplicates,
   // impossible sizes) and append widgets this workspace has never seen.
   data.widgets = normalizeWidgetLayout(data.widgets);
+
+  // Goals arrived in v11. `migrate` merges the seed in first, so an older
+  // workspace would otherwise silently inherit the starter aims: only a
+  // workspace that really carries a goals array of its own keeps it.
+  if (!Array.isArray((input as LegacyData).goals)) data.goals = [];
 
   data.attendance = data.attendance ?? { subjects: [] };
   data.expenses = data.expenses ?? { transactions: [] };
