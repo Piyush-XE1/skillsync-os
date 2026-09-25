@@ -4,7 +4,7 @@ import { defaultAccentFor, DEFAULT_ACCENT } from "./accent";
 import { DEFAULT_SOUND_VOLUME } from "./sound";
 import { defaultWidgetLayout } from "./widgets";
 
-export const CURRENT_SCHEMA_VERSION = 12;
+export const CURRENT_SCHEMA_VERSION = 13;
 
 export const ChecklistItemSchema = z.object({
   id: z.string(),
@@ -165,9 +165,10 @@ export const PreferencesSchema = z.object({
   /**
    * The single source of truth for the app's appearance. "light" activates the
    * Minimalist Light visual system; every other value is a dark variant.
-   * (Removed v5 values "gradient"/"atmospheric" are migrated to "aurora".)
+   * "atelier" is the shipped default. (Removed v5 values
+   * "gradient"/"atmospheric" are migrated to "aurora", then on to "atelier".)
    */
-  background: z.enum(["aurora", "light", "atelier"]).default("aurora"),
+  background: z.enum(["aurora", "light", "atelier"]).default("atelier"),
   /** Custom accent colour. Overrides `--primary`/`--secondary` for any background. */
   accent: z.string().default(DEFAULT_ACCENT),
   /** Tactile feedback on supported devices. */
@@ -415,8 +416,8 @@ export const AppDataSchema = z.object({
       coding: true,
       career: true,
     },
-    background: "aurora",
-    accent: defaultAccentFor("aurora"),
+    background: "atelier",
+    accent: defaultAccentFor("atelier"),
     haptics: true,
     hapticIntensity: "standard",
     sound: true,

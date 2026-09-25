@@ -16,14 +16,14 @@ export type ResolvedTheme = ThemeMode;
  * The appearance applied to <html> for each Background preference. Classes are
  * mutually exclusive — exactly one is present at a time — and each carries its
  * full design-token set in styles.css (never layered on top of another theme).
- * Unknown or retired values fall back to the flagship "aurora" appearance.
+ * Unknown or retired values fall back to "atelier", the shipped default.
  */
 const APPEARANCE: Record<string, { cls: string; scheme: ResolvedTheme; themeColor: string }> = {
   aurora: { cls: "dark", scheme: "dark", themeColor: "#070b19" },
   light: { cls: "light", scheme: "light", themeColor: "#f7f6f2" },
   atelier: { cls: "atelier", scheme: "dark", themeColor: "#12100c" },
 };
-const FALLBACK_APPEARANCE = APPEARANCE.aurora;
+const FALLBACK_APPEARANCE = APPEARANCE.atelier;
 const MANAGED_CLASSES = Object.values(APPEARANCE).map((a) => a.cls);
 const VALID_BACKGROUNDS = Object.keys(APPEARANCE);
 const APPEARANCE_KEY = "skillsync:data:v1";
@@ -37,7 +37,7 @@ const APPEARANCE_KEY = "skillsync:data:v1";
  * value the same way the store does and sets the class + colour scheme + status
  * bar colour synchronously, before any frame is produced.
  */
-export const APPEARANCE_INIT_SCRIPT = `(function(){try{var raw=window.localStorage.getItem(${JSON.stringify(APPEARANCE_KEY)});var bg="aurora";var accent=null;if(raw){var st=JSON.parse(raw);var prefs=st&&st.state?st.state.preferences:null;var val=prefs?prefs.background:null;if(${JSON.stringify(VALID_BACKGROUNDS)}.indexOf(val)>=0)bg=val;if(prefs&&typeof prefs.accent==="string"&&/^#([0-9a-fA-F]{3}|[0-9a-fA-F]{6}|[0-9a-fA-F]{8})$/.test(prefs.accent))accent=prefs.accent;}var map=${JSON.stringify(APPEARANCE)};var a=map[bg]||map.aurora;var el=document.documentElement;el.classList.remove(${MANAGED_CLASSES.map((c) => JSON.stringify(c)).join(",")});el.classList.add(a.cls);el.style.colorScheme=a.scheme;if(accent){el.style.setProperty("--primary",accent);el.style.setProperty("--primary-glow","color-mix(in oklab, "+accent+" 62%, white)");el.style.setProperty("--secondary","color-mix(in oklab, "+accent+" 58%, #0b0b12)");}var m=document.querySelector('meta[name="theme-color"]');if(m)m.setAttribute("content",a.themeColor);}catch(e){}})();`;
+export const APPEARANCE_INIT_SCRIPT = `(function(){try{var raw=window.localStorage.getItem(${JSON.stringify(APPEARANCE_KEY)});var bg="atelier";var accent=null;if(raw){var st=JSON.parse(raw);var prefs=st&&st.state?st.state.preferences:null;var val=prefs?prefs.background:null;if(${JSON.stringify(VALID_BACKGROUNDS)}.indexOf(val)>=0)bg=val;if(prefs&&typeof prefs.accent==="string"&&/^#([0-9a-fA-F]{3}|[0-9a-fA-F]{6}|[0-9a-fA-F]{8})$/.test(prefs.accent))accent=prefs.accent;}var map=${JSON.stringify(APPEARANCE)};var a=map[bg]||map.atelier;var el=document.documentElement;el.classList.remove(${MANAGED_CLASSES.map((c) => JSON.stringify(c)).join(",")});el.classList.add(a.cls);el.style.colorScheme=a.scheme;if(accent){el.style.setProperty("--primary",accent);el.style.setProperty("--primary-glow","color-mix(in oklab, "+accent+" 62%, white)");el.style.setProperty("--secondary","color-mix(in oklab, "+accent+" 58%, #0b0b12)");}var m=document.querySelector('meta[name="theme-color"]');if(m)m.setAttribute("content",a.themeColor);}catch(e){}})();`;
 
 /** Maps a background preference onto the resolved light/dark visual system. */
 export function resolveTheme(background: string | undefined): ResolvedTheme {
@@ -79,7 +79,7 @@ function applyTheme(background: string | undefined, animate: boolean) {
  * OS never flips the app's appearance.
  */
 function applyAccentSafe(accent: string | undefined) {
-  applyAccent(safeAccent(accent ?? defaultAccentFor("aurora")));
+  applyAccent(safeAccent(accent ?? defaultAccentFor("atelier")));
 }
 
 export function useTheme(): ResolvedTheme {

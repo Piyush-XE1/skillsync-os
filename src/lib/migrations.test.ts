@@ -157,16 +157,43 @@ describe("migrate", () => {
     expect((result.preferences as Record<string, unknown>).theme).toBeUndefined();
   });
 
-  it("falls back retired backgrounds to aurora", () => {
+  it("falls back retired backgrounds to atelier", () => {
     for (const bg of ["gradient", "atmospheric"]) {
       const result = migrate({ schemaVersion: 6, preferences: { background: bg } });
-      expect(result.preferences.background).toBe("aurora");
+      expect(result.preferences.background).toBe("atelier");
     }
   });
 
-  it("keeps an unknown-but-dark future background as fallback aurora", () => {
+  it("keeps an unknown future background on the atelier fallback", () => {
     const result = migrate({ schemaVersion: 6, preferences: { background: "neon" } });
-    expect(result.preferences.background).toBe("aurora");
+    expect(result.preferences.background).toBe("atelier");
+  });
+
+  it("migrates v12 to v13: aurora workspaces move to atelier with its accent", () => {
+    const result = migrate({
+      schemaVersion: 12,
+      preferences: { background: "aurora", accent: "#7c3aed" },
+    });
+    expect(result.preferences.background).toBe("atelier");
+    expect(result.preferences.accent).toBe("#c9a35c");
+  });
+
+  it("keeps a hand-picked accent when v12 aurora moves to atelier", () => {
+    const result = migrate({
+      schemaVersion: 12,
+      preferences: { background: "aurora", accent: "#e11d48" },
+    });
+    expect(result.preferences.background).toBe("atelier");
+    expect(result.preferences.accent).toBe("#e11d48");
+  });
+
+  it("leaves Minimalist Light untouched by the v13 migration", () => {
+    const result = migrate({
+      schemaVersion: 12,
+      preferences: { background: "light", accent: "#20573f" },
+    });
+    expect(result.preferences.background).toBe("light");
+    expect(result.preferences.accent).toBe("#20573f");
   });
 
   it("salvages valid top-level fields when one module is corrupted", () => {
@@ -201,7 +228,7 @@ describe("migrate", () => {
       schemaVersion: 8,
       preferences: { background: bg },
     });
-    expect(migrate(v8("aurora")).preferences.accent).toBe("#7c3aed");
+    expect(migrate(v8("aurora")).preferences.accent).toBe("#c9a35c");
     expect(migrate(v8("atelier")).preferences.accent).toBe("#c9a35c");
     expect(migrate(v8("light")).preferences.accent).toBe("#20573f");
   });
@@ -219,6 +246,6 @@ describe("migrate", () => {
       schemaVersion: 9,
       preferences: { background: "aurora", accent: "" },
     });
-    expect(result.preferences.accent).toBe("#7c3aed");
+    expect(result.preferences.accent).toBe("#c9a35c");
   });
 });

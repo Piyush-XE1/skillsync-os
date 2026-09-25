@@ -842,7 +842,7 @@ export function createDemoData(now: Date = new Date()): AppData {
         coding: true,
         career: true,
       },
-      background: "aurora",
+      background: "atelier",
       haptics: true,
       hapticIntensity: "standard",
       sound: true,

@@ -218,6 +218,23 @@ const migrators: Record<number, (data: LegacyData) => LegacyData> = {
     next.preferences = { ...prefs, modules };
     return next;
   },
+  /**
+   * v12 -> v13: Atelier becomes the shipped default appearance. Workspaces
+   * still riding the previous flagship "aurora" are moved over to Atelier;
+   * Minimalist Light is left exactly as the user chose it. The accent moves
+   * along only when it is still the aurora default — a hand-picked colour
+   * belongs to the user, not to the background they happened to sit on.
+   */
+  12: (data) => {
+    const prefs = { ...((data.preferences ?? {}) as LegacyData) };
+    if (prefs.background === "aurora") {
+      prefs.background = "atelier";
+      if (!prefs.accent || prefs.accent === defaultAccentFor("aurora")) {
+        prefs.accent = defaultAccentFor("atelier");
+      }
+    }
+    return { ...data, preferences: prefs };
+  },
 };
 
 export function migrate(input: unknown): AppData {
@@ -237,7 +254,7 @@ export function migrate(input: unknown): AppData {
   data.preferences = {
     notifications: true,
     developerMode: false,
-    background: "aurora",
+    background: "atelier",
     accent: defaultAccentFor((data.preferences ?? {}).background as string | undefined),
     ...(data.preferences ?? {}),
     modules: {
@@ -253,13 +270,13 @@ export function migrate(input: unknown): AppData {
   // Appearance has exactly one source of truth: preferences.background.
   // A legacy light theme becomes the Minimalist Light background; any
   // retired or unknown background value (e.g. "gradient", "atmospheric")
-  // safely falls back to "aurora", the app's default dark appearance.
+  // safely falls back to "atelier", the app's default dark appearance.
   {
     const prefs = data.preferences as LegacyData;
     if (prefs.theme === "light") prefs.background = "light";
     delete prefs.theme;
     if (!["aurora", "light", "atelier"].includes(prefs.background)) {
-      prefs.background = "aurora";
+      prefs.background = "atelier";
     }
     // Accent: fall back to the background's default if it was never set.
     if (typeof prefs.accent !== "string" || prefs.accent.trim().length === 0) {
