@@ -523,6 +523,37 @@ html.light .gradient-primary [class*="text-white"] {
 }
 
 /* ------------------------------------------------------------------ *
+ * Widget grid entrance — opacity only.
+ * The animation deliberately avoids `transform`: the drag slots receive
+ * inline transforms while dragging, and a CSS animation would win over
+ * them. Opacity has no such conflict, so the stagger stays safe.
+ * ------------------------------------------------------------------ */
+.widget-grid > * {
+  animation: fade-in 520ms var(--ease-out-soft) both;
+}
+.widget-grid > *:nth-child(1) {
+  animation-delay: 40ms;
+}
+.widget-grid > *:nth-child(2) {
+  animation-delay: 80ms;
+}
+.widget-grid > *:nth-child(3) {
+  animation-delay: 120ms;
+}
+.widget-grid > *:nth-child(4) {
+  animation-delay: 160ms;
+}
+.widget-grid > *:nth-child(5) {
+  animation-delay: 200ms;
+}
+.widget-grid > *:nth-child(6) {
+  animation-delay: 240ms;
+}
+.widget-grid > *:nth-child(n + 7) {
+  animation-delay: 280ms;
+}
+
+/* ------------------------------------------------------------------ *
  * Widget grid — customize mode
  * The jiggle animates the CARD inside the drag slot, never the slot itself,
  * so a CSS animation can't override the inline transforms DragSortList writes
@@ -545,6 +576,201 @@ html.light .gradient-primary [class*="text-white"] {
 }
 .widget-jiggle:nth-child(3n) > * {
   animation-delay: -1.4s;
+}
+
+/* ============================================================
+   MOTION & SURFACE SYSTEM (v4.2)
+   A small, dependency-free choreography kit used across the app:
+   one hero surface, one stagger primitive, one hover-lift, one
+   specular sweep. Everything is opacity/transform only, honors
+   `prefers-reduced-motion` (the global guard above collapses it),
+   and never animates layout-affecting properties.
+   ============================================================ */
+
+/* Hero surface — layered aurora over the elevated card. */
+@utility aurora-panel {
+  position: relative;
+  overflow: hidden;
+  border-radius: 24px;
+  background:
+    radial-gradient(
+      120% 150% at 10% 0%,
+      color-mix(in oklab, var(--primary) 34%, transparent),
+      transparent 58%
+    ),
+    radial-gradient(
+      120% 150% at 92% 100%,
+      color-mix(in oklab, var(--secondary) 28%, transparent),
+      transparent 62%
+    ),
+    linear-gradient(180deg, oklch(1 0 0 / 0.065), oklch(1 0 0 / 0.015)), var(--surface-elevated);
+  border: 1px solid var(--border-strong);
+  box-shadow:
+    0 1px 0 0 oklch(1 0 0 / 0.07) inset,
+    0 30px 70px -34px oklch(0 0 0 / 0.95);
+}
+
+/* Inset glass tile used for the small telemetry cells inside a hero. */
+@utility stat-tile {
+  border-radius: 16px;
+  border: 1px solid var(--border);
+  background: linear-gradient(180deg, oklch(1 0 0 / 0.05), oklch(1 0 0 / 0.015));
+  box-shadow: 0 1px 0 0 oklch(1 0 0 / 0.05) inset;
+}
+
+/* Desktop hover lift with an accent rim. */
+@utility glow-hover {
+  transition:
+    transform 320ms var(--ease-spring),
+    box-shadow 320ms var(--ease-out-soft),
+    border-color 320ms var(--ease-out-soft);
+  @media (hover: hover) and (pointer: fine) {
+    &:hover {
+      transform: translateY(-2px);
+      border-color: color-mix(in oklab, var(--primary) 32%, var(--border-strong));
+      box-shadow:
+        0 1px 0 0 oklch(1 0 0 / 0.07) inset,
+        0 26px 60px -30px var(--glow);
+    }
+  }
+}
+
+/* Stagger primitive: set `style={{ "--i": n }}` on siblings. */
+@utility animate-rise {
+  animation: rise-in 620ms var(--ease-out-soft) both;
+  animation-delay: calc(var(--i, 0) * 65ms);
+}
+
+@utility animate-fade {
+  animation: fade-in 700ms var(--ease-out-soft) both;
+  animation-delay: calc(var(--i, 0) * 65ms);
+}
+
+/* Slow ambient drift for background orbs / aurora layers. */
+@utility animate-drift {
+  animation: drift 26s ease-in-out infinite alternate;
+}
+
+@utility animate-breathe {
+  animation: breathe 7s ease-in-out infinite;
+}
+
+@keyframes rise-in {
+  from {
+    opacity: 0;
+    transform: translateY(14px) scale(0.985);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@keyframes fade-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes drift {
+  from {
+    transform: translate3d(-2%, -1%, 0) scale(1);
+  }
+  to {
+    transform: translate3d(3%, 2%, 0) scale(1.08);
+  }
+}
+
+@keyframes breathe {
+  0%,
+  100% {
+    opacity: 0.55;
+  }
+  50% {
+    opacity: 0.95;
+  }
+}
+
+@keyframes sheen {
+  from {
+    transform: translateX(-120%) skewX(-14deg);
+  }
+  to {
+    transform: translateX(220%) skewX(-14deg);
+  }
+}
+
+/* Specular sweep across a surface — add to a ::after or a span. */
+.sheen::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    color-mix(in oklab, white 14%, transparent),
+    transparent
+  );
+  animation: sheen 5.5s var(--ease-out-soft) 1.2s infinite;
+  mix-blend-mode: screen;
+}
+
+@keyframes draw-ring {
+  from {
+    stroke-dashoffset: var(--ring-circumference, 999);
+  }
+}
+
+@utility hairline-top {
+  position: relative;
+  &::before {
+    content: "";
+    position: absolute;
+    inset-inline: 12%;
+    top: 0;
+    height: 1px;
+    background: linear-gradient(
+      90deg,
+      transparent,
+      color-mix(in oklab, var(--primary-glow) 55%, transparent),
+      transparent
+    );
+  }
+}
+
+/* Themed scrollbars + selection + focus ring: the last 5% of polish. */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: color-mix(in oklab, var(--foreground) 16%, transparent) transparent;
+}
+::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: color-mix(in oklab, var(--foreground) 16%, transparent);
+  border: 3px solid transparent;
+  border-radius: 999px;
+  background-clip: content-box;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: color-mix(in oklab, var(--foreground) 28%, transparent);
+  background-clip: content-box;
+}
+::selection {
+  background: color-mix(in oklab, var(--primary) 45%, transparent);
+  color: var(--foreground);
+}
+:where(a, button, [role="button"], input, textarea, select):focus-visible {
+  outline: 2px solid color-mix(in oklab, var(--primary-glow) 72%, transparent);
+  outline-offset: 2px;
 }
 
 /* Hide scrollbars on horizontal scrollers */
@@ -698,32 +924,4 @@ html.atelier .gradient-mesh {
 }
 html.light .heat-cell[data-level="4"] {
   box-shadow: 0 1px 6px -2px color-mix(in oklab, var(--primary) 60%, transparent);
-}
-
-/* ------------------------------------------------------------------ *
- * Resume print view: only the resume document survives printing.
- * ------------------------------------------------------------------ */
-@media print {
-  body * {
-    visibility: hidden !important;
-  }
-  .resume-print,
-  .resume-print * {
-    visibility: visible !important;
-  }
-  .resume-print {
-    position: absolute !important;
-    inset: 0 !important;
-    width: 100% !important;
-    max-width: 100% !important;
-    margin: 0 !important;
-    padding: 0 !important;
-    background: #fff !important;
-    color: #111 !important;
-    box-shadow: none !important;
-    border: none !important;
-  }
-  @page {
-    margin: 14mm 12mm;
-  }
 }

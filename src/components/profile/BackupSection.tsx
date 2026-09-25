@@ -545,7 +545,9 @@ export function BackupSection({ onRequestReset }: { onRequestReset?: () => void 
               <MiniStat label="Size" value={formatBytes(created.meta.sizeBytes)} />
               <MiniStat
                 label="Records"
-                value={String(Object.values(created.meta.recordCounts ?? {}).reduce((a, b) => a + b, 0))}
+                value={String(
+                  Object.values(created.meta.recordCounts ?? {}).reduce((a, b) => a + b, 0),
+                )}
               />
               <MiniStat
                 label="Flags"

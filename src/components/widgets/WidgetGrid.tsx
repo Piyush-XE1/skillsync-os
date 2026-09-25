@@ -34,7 +34,7 @@ export function WidgetGrid({
       axis="grid"
       disabled={!customizing}
       handleOnly
-      className={cn("grid grid-cols-2 gap-3 lg:grid-cols-4", className)}
+      className={cn("widget-grid grid grid-cols-2 gap-3 lg:grid-cols-4", className)}
       onReorder={(ids) => reorderWidgets(ids)}
       itemLabel={(item) => WIDGET_BY_ID[item.id as WidgetId]?.title ?? item.id}
       renderItem={({ item, dragging, sorting, setNodeRef, rowProps, handleProps }) => {

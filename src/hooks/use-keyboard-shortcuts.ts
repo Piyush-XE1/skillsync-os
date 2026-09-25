@@ -15,6 +15,7 @@ function isTypingTarget(el: EventTarget | null): boolean {
  *   "c"                → code / DSA prep
  *   "g"                → aims / goals
  *   "r"                → week in review
+ *   "?"                → project showcase
  */
 export function useKeyboardShortcuts() {
   const navigate = useNavigate();
@@ -45,6 +46,10 @@ export function useKeyboardShortcuts() {
       }
       if (e.key.toLowerCase() === "r" && !e.altKey && !e.metaKey && !e.ctrlKey) {
         void navigate({ to: "/review" });
+      }
+      if (e.key === "?" && !e.altKey && !e.metaKey && !e.ctrlKey) {
+        e.preventDefault();
+        void navigate({ to: "/showcase" });
       }
     };
     window.addEventListener("keydown", onKey);

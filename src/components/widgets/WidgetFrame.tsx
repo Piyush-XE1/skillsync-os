@@ -77,7 +77,10 @@ export function WidgetFrame({
       <Card
         className={cn(
           "group/widget relative flex h-full flex-col overflow-hidden p-4",
-          "transition-[border-color,box-shadow] duration-200 ease-[var(--ease-out-soft)]",
+          "transition-[border-color,box-shadow,transform] duration-300 ease-[var(--ease-out-soft)]",
+          "motion-safe:[@media(hover:hover)_and_(pointer:fine)]:hover:-translate-y-[3px]",
+          "[@media(hover:hover)_and_(pointer:fine)]:hover:border-[color-mix(in_oklab,var(--primary)_34%,var(--border))]",
+          "[@media(hover:hover)_and_(pointer:fine)]:hover:shadow-[0_26px_60px_-30px_var(--glow)]",
           dragging &&
             "border-[color-mix(in_oklab,var(--primary)_45%,transparent)] shadow-[0_30px_60px_-26px_oklch(0_0_0/0.95)] ring-1 ring-[color-mix(in_oklab,var(--primary)_35%,transparent)]",
           customizing &&

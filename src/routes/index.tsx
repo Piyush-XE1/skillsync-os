@@ -4,6 +4,7 @@ import { toast } from "sonner";
 import { Activity, Bell, Check, LayoutGrid, Plus, SlidersHorizontal, X } from "lucide-react";
 import { AppShell, PageHeader } from "@/components/layout/AppShell";
 import { WidgetGrid } from "@/components/widgets/WidgetGrid";
+import { TodayHero } from "@/components/dashboard/TodayHero";
 import { WidgetCustomizer } from "@/components/widgets/WidgetCustomizer";
 import { useAppStore } from "@/store/useAppStore";
 import { visibleWidgets } from "@/lib/widgets";
@@ -121,6 +122,8 @@ function Dashboard() {
       />
 
       <div className="px-5 pb-24 lg:px-2">
+        <TodayHero />
+
         {/* Dashboard toolbar */}
         <div className="mb-3 flex items-center justify-between gap-3 px-1">
           <div className="min-w-0">

@@ -66,7 +66,7 @@ export function BottomNav() {
                 className={cn(
                   "flex h-9 w-9 items-center justify-center rounded-full transition-all duration-300",
                   active
-                    ? "bg-white/[0.08] shadow-[inset_0_0_0_1px_oklch(1_0_0_/_0.08)]"
+                    ? "bg-[color-mix(in_oklab,var(--primary)_14%,transparent)] shadow-[inset_0_0_0_1px_color-mix(in_oklab,var(--primary)_26%,transparent)]"
                     : "group-active:scale-90",
                 )}
               >
@@ -81,7 +81,7 @@ export function BottomNav() {
                 {item.label}
               </span>
               {active ? (
-                <span className="absolute -bottom-0.5 h-[3px] w-[3px] rounded-full bg-[var(--primary)]" />
+                <span className="absolute -bottom-0.5 h-[3px] w-[3px] rounded-full bg-[var(--primary)] shadow-[0_0_10px_var(--primary-glow)]" />
               ) : null}
             </Link>
           );

@@ -2,6 +2,48 @@
 
 All notable changes to SkillSync OS are documented here.
 
+## [4.2.0] — 2026-09-25
+
+### Added
+
+- **"Today" hero on the dashboard.** The first surface after the brand opening
+  now leads with live telemetry instead of decoration: a ticking clock, habit
+  and deep-work progress rings, count-up tiles for solved problems / planner
+  load / best streak, a 7-day activity strip, and the user's pinned aims with
+  one-tap entry into Focus and Aims. Backed by a new pure module
+  (`src/lib/today.ts`) with an injected clock, unit-tested end to end
+  (`todaySummary`, `activityStrip`).
+- **Project showcase (`/showcase`, keyboard `?`)** — a viva-ready dossier:
+  stack, feature highlights, a five-layer architecture map, engineering
+  decisions, live metrics and the demo-mode controls.
+- **Demo workspace.** A deterministic, seeded persona (`src/lib/demo.ts`) with
+  six semesters of CGPA, 148 solved problems, a placement pipeline, 120 days of
+  habit history, roadmaps, notes, planner, expenses and notifications. Loading
+  it snapshots the real workspace to `skillsync:demo:snapshot`; exiting — or
+  simply relaunching the app after a crash (`useDemoRecovery`) — restores it
+  byte for byte. A shell-level banner makes the state impossible to miss, and
+  `demoMode` is never persisted, exported or backed up.
+- **Motion & surface system** in `styles.css`: `aurora-panel`, `stat-tile`,
+  `glow-hover`, `animate-rise` with a `--i` stagger index, `sheen`, ambient
+  `drift`/`breathe` loops, themed scrollbars, selection colour and a
+  focus-visible ring — all opacity/transform only, all collapsed by
+  `prefers-reduced-motion`.
+- **Scroll progress rail** and a polished `PageHeader` (accent eyebrow, gradient
+  rule) in the app shell; widget cards lift with an accent rim on hover and the
+  grid fades in with a per-slot stagger; the side and bottom navigation show
+  accent-glowing active states.
+
+### Changed
+
+- README gains a **project dossier** section (layer diagram, engineering
+  highlights, demo instructions); ARCHITECTURE documents the today layer, demo
+  mode and the motion system as §11–13. `APP_VERSION` is now 4.2.
+
+### Fixed
+
+- Removed the dead `resume-print` stylesheet left behind when the Resume module
+  was deleted in 4.1.
+
 ## [4.1.0] — 2026-09-25
 
 ### Removed

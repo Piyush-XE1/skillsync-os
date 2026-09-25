@@ -109,8 +109,10 @@ describe("dashboard widgets", () => {
 
   it("removes a widget from the grid and persists the layout", async () => {
     await render();
-    // "Gym" is one of the seeded aims, so it only renders inside the panel.
+    // "Gym" is one of the seeded aims — rendered by the Aims widget…
     expect(container.innerHTML).toContain("Gym");
+    // …and echoed by the "today" hero, which always surfaces the aims.
+    expect(container.innerHTML).toContain("Today");
 
     click(
       Array.from(container.querySelectorAll("button")).find((b) =>
@@ -125,7 +127,10 @@ describe("dashboard widgets", () => {
       await new Promise((r) => setTimeout(r, 30));
     });
 
-    expect(container.innerHTML).not.toContain("Gym");
+    // The widget is gone from the grid. The hero keeps the aims visible on
+    // purpose — hiding a widget must never hide the thing you are working on.
+    expect(container.querySelector('[aria-label="Reorder Aims"]')).toBeNull();
+    expect(container.innerHTML).not.toContain("Manage");
     const layout = useAppStore.getState().widgets;
     expect(layout.find((w) => w.id === "goals")?.visible).toBe(false);
     // …and it can be brought back from the persisted layout.

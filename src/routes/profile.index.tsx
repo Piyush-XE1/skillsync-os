@@ -14,6 +14,7 @@ import {
   Database,
   FileJson,
   Sparkles,
+  Rocket,
   HardDrive,
   Lock,
   AlertTriangle,
@@ -690,6 +691,23 @@ function ProfilePage() {
               Built for daily use. No accounts, no tracking, no cloud — every roadmap, note and
               habit stays on your device.
             </p>
+            <Link
+              to="/showcase"
+              className="pressable relative mt-4 flex items-center gap-3 rounded-[16px] border border-white/[0.08] bg-white/[0.03] p-3.5 transition-colors hover:border-[color-mix(in_oklab,var(--primary)_30%,transparent)]"
+            >
+              <span className="flex h-9 w-9 items-center justify-center rounded-[13px] bg-white/[0.05]">
+                <Rocket className="h-4 w-4 text-muted-foreground" strokeWidth={1.8} />
+              </span>
+              <span className="min-w-0 flex-1">
+                <span className="block text-[13px] font-semibold tracking-tight">
+                  Project showcase
+                </span>
+                <span className="block text-[11.5px] text-muted-foreground">
+                  Architecture, metrics and a one-tap demo workspace
+                </span>
+              </span>
+              <ChevronRight className="h-4 w-4 text-muted-foreground/60" />
+            </Link>
           </Card>
         </section>
 

@@ -117,8 +117,8 @@ navigation, haptics and notifications flow through
 
 - `npm run typecheck` — strict TypeScript, zero `any` leaks in the domain.
 - `npm run lint` — eslint + prettier.
-- `npm run test` — 370+ Vitest tests: pure Node for libs, jsdom for the store,
-  drag-sort/keyboard interaction and route render smoke tests.
+- `npm run test` — 388 Vitest tests across 47 suites: pure Node for libs, jsdom
+  for the store, drag-sort/keyboard interaction and route render smoke tests.
 - CI (GitHub Actions) runs all three plus a production build on every PR.
 
 ## 9. Design system
@@ -155,3 +155,46 @@ add a runtime package, and all three are unit-tested beside their source.
   user gesture, per-cue cooldowns so rapid input can't machine-gun. Preferences
   (`sound`, `soundVolume`) persist in the schema and are editable in
   Profile → Sound design, where every cue can be previewed.
+
+## 11. The "today" layer — dashboard telemetry
+
+The dashboard hero (`src/components/dashboard/TodayHero.tsx`) is the first
+surface a user meets after the brand opening, so it is fed by arithmetic rather
+than decoration: `src/lib/today.ts` reduces the workspace to one summary —
+habits checked today, deep-work minutes against a daily goal, problems solved
+today and this week, planner load, the longest alive habit streak, plus a
+trailing 7-day activity strip. The module is pure and takes an injected clock,
+so every number the hero shows is unit-tested without a DOM. The live clock is
+isolated in its own component so a ticking second never re-renders the panel.
+
+## 12. Demo workspace & project showcase
+
+`/showcase` is the project dossier: feature highlights, the five-layer
+architecture, engineering decisions, live metrics pulled from the repo itself,
+and a one-tap demo.
+
+- **Deterministic persona** — `src/lib/demo.ts` builds a complete workspace
+  (six semesters of CGPA, 148 solved problems, a placement pipeline, 120 days of
+  habit history, roadmaps, notes, expenses, notifications) from a seeded PRNG,
+  so screenshots, tests and a viva demo are reproducible. The result is parsed
+  by the same `AppDataSchema` every import passes through.
+- **Never lose the real workspace** — `loadDemoWorkspace()` snapshots the user's
+  data into `skillsync:demo:snapshot` before adopting the persona and
+  `exitDemoWorkspace()` restores it byte-for-byte. The snapshot doubles as a
+  crash guard: `useDemoRecovery()` runs once per document load and puts the real
+  workspace back if the app was closed mid-demo. A fixed banner (rendered by the
+  shell) says the demo is running and offers the single escape action.
+- **No leakage** — `demoMode` lives outside `AppData`, so it is never
+  persisted, exported or backed up; exports, imports and a full reset all clear
+  the snapshot.
+
+## 13. Motion & surface system
+
+`styles.css` owns the choreography kit: `aurora-panel` (layered hero surface),
+`stat-tile`, `glow-hover`, `animate-rise` with a `--i` stagger index, `sheen`
+(specular sweep), `animate-drift`/`animate-breathe` ambient loops, plus themed
+scrollbars, selection colour and a focus-visible ring. Two rules keep it honest:
+animations touch only `opacity`/`transform` (never layout), and the widget-grid
+entrance is opacity-only because the drag slots receive inline transforms that a
+CSS animation would override. The global `prefers-reduced-motion` guard
+collapses every duration, so the same markup serves a calm user.

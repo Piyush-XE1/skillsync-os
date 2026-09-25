@@ -6,12 +6,16 @@ SkillSync OS brings **learning, projects, planning, habits, notes, reminders, fo
 
 Built with a **premium futuristic UI**, animated Aurora backgrounds, an offline-first architecture, and a dedicated Android experience. No XP, no levels, no badges — just the aims you are working on and honest progress.
 
+> 🎓 **Final-year B.Tech CSE major project.** The whole engineering story — architecture, decisions, metrics — lives in-app at **`/showcase`** (press `?`), with a **one-tap demo workspace** that fills the app with a realistic student persona without touching your own data.
+
 ## ✨ Features
 
 | Module                     | What it does                                                                                                                                             |
 | -------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | 📊 **Dashboard**           | A widget grid you own — your aims up top, smart "Today" queue, continue-learning, habits, focus and daily insight                                        |
+| 🛰️ **Today Hero**          | The first thing you see: live clock, habit & deep-work rings, solves, best streak, a 7-day activity strip and your pinned aims — all count-up animated   |
 | 🧩 **Widget Grid**         | 20 dashboard widgets: hide, resize (small/wide/tall/full) and drag them into place; the layout persists with the workspace                               |
+| 🎓 **Project Showcase**    | `/showcase` (`?`) — the viva-ready dossier: stack, five-layer architecture, engineering decisions, live metrics and a deterministic **demo workspace**   |
 | 📅 **Week in Review**      | An auto-generated weekly report card — effort score, grade, day-by-day bars, week-over-week deltas, highlights & next-up nudges. Press `R`!              |
 | 🎓 **Learn**               | Structured roadmaps with phases, topics, checklists, resources & progress                                                                                |
 | ⏱️ **Focus**               | Pomodoro deep-work timer — sessions, sounds and a focus streak                                                                                           |
@@ -43,6 +47,7 @@ Built with a **premium futuristic UI**, animated Aurora backgrounds, an offline-
 | `C`                               | Jump to the Code (DSA prep) module              |
 | `G`                               | Jump to your Aims / Goals page                  |
 | `R`                               | Jump to the Week in Review page                 |
+| `?`                               | Open the project showcase (dossier + demo mode) |
 | `↑↓` / `Enter` / `Esc`            | Navigate results inside the palette             |
 | `Space` / `↑↓←→` / `Home` / `End` | Reorder a widget or list row from its drag grip |
 
@@ -53,7 +58,7 @@ Built with a **premium futuristic UI**, animated Aurora backgrounds, an offline-
 - **Tailwind CSS v4** — design tokens and utilities
 - **Zustand** — local-first store, persisted to `localStorage`
 - **Zod** — runtime validation of every persisted record, schema-versioned migrations (v1 → v12)
-- **Vitest** — 360+ unit & render tests for the domain/rule engines and the custom SVG chart geometry
+- **Vitest** — 47 suites / 388 unit & render tests for the domain/rule engines, the store and the route render smoke tests
 - **Custom SVG charts** — dependency-free area, bar, donut, sparkline & tooltip components (no chart library)
 - **Capacitor** — native Android shell, haptics, notifications, file save/share
 - **GitHub Actions** — CI (typecheck · lint · tests · build) + signed APK releases
@@ -79,6 +84,47 @@ Every record that touches disk is validated by Zod on read and write. Backups ar
 versioned envelopes; imports run the full migration chain. Full details in
 [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md).
 
+## 🎓 Project dossier (final-year major project)
+
+SkillSync OS is built as a **single-developer, end-to-end engineering project** —
+from schema design and migration engineering to the motion system, the Android
+shell and the test suite. If you are evaluating it (or sitting in the viva), the
+in-app dossier is at **`/showcase`** (press `?`).
+
+**Five layers, one direction of dependency**
+
+```
+┌─ Presentation ───────────────────────────────────────────────┐
+│  React 19 · TanStack Router (24 routes) · Tailwind v4        │
+│  route splitting · keyboard-first nav · reduced-motion aware │
+├─ Domain (pure TypeScript) ───────────────────────────────────┤
+│  analytics · streaks · weekly review · focus · CGPA · goals  │
+│  injected clock, no DOM, unit-tested                         │
+├─ State ──────────────────────────────────────────────────────┤
+│  Zustand store · every mutation an action · selector-driven   │
+├─ Persistence ────────────────────────────────────────────────┤
+│  Zod contracts · schema v12 · migrators v1 → v12             │
+│  per-field salvage · JSON export/import · backup vault       │
+├─ Platform ───────────────────────────────────────────────────┤
+│  PWA shell · Capacitor Android · haptics · notifications     │
+│  print/PDF surfaces · Web Audio sound design                 │
+└──────────────────────────────────────────────────────────────┘
+```
+
+**Engineering highlights**
+
+- **12 schema versions** with ordered, additive migrators — a v1 workspace still
+  opens, and a workspace written by a broken build is salvaged field by field.
+- **20-widget dashboard** the user owns: hide, resize, drag (pointer _and_
+  keyboard), persisted as data and repaired on load.
+- **Zero-dependency interaction layer** — drag-and-drop, charts, heatmaps,
+  confetti, sound synthesis and the launch animation are all in-repo.
+- **Demo mode that cannot hurt**: `/showcase` → _Load demo workspace_ snapshots
+  your data, drops in a deterministic persona (6 semesters, 148 solved problems,
+  120 days of habits) and restores your workspace on exit or on next launch.
+- **47 test suites / 388 tests** with CI running typecheck, lint, tests and a
+  production build.
+
 ## 🚀 Getting started
 
 ```bash
@@ -87,7 +133,7 @@ npm install         # or: bun install
 npm run dev         # start the dev server (hot reload)
 npm run typecheck   # strict TS check
 npm run lint        # eslint
-npm run test        # vitest suite (370+ tests)
+npm run test        # vitest suite (388 tests)
 npm run build       # production build (TanStack Start + Nitro)
 ```
 
@@ -151,6 +197,8 @@ Instead of using separate tools for every part of personal development, SkillSyn
 - [x] Placement / job application tracker with interview rounds
 - [x] Command palette with global keyboard shortcuts
 - [x] Aims & goals panel (deliberately no XP, levels or badges)
+- [x] Live "today" hero — rings, count-ups, 7-day activity strip
+- [x] Project showcase page + deterministic demo workspace
 - [x] Activity heatmaps & learning velocity analytics
 - [x] Local notifications · Android APK · native haptics
 - [x] Schema-versioned migrations (v1 → v12) with corruption salvage

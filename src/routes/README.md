@@ -32,6 +32,7 @@ is `src/routes/__root.tsx`.
 | Projects            | `projects.tsx`                                                                                                                          |
 | Planner             | `planner.tsx`                                                                                                                           |
 | Habits              | `habits.tsx` · `habits.index.tsx` · `habits.$habitId.tsx`                                                                               |
+| Project showcase    | `showcase.tsx` (keyboard `?`)                                                                                                           |
 | Aims / Goals        | `goals.tsx`                                                                                                                             |
 | Notes               | `notes.tsx` · `notes.index.tsx` · `notes.$noteId.tsx` · `notes.$noteId_.edit.tsx`                                                       |
 | Analytics           | `analytics.tsx`                                                                                                                         |

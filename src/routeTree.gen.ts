@@ -27,6 +27,7 @@ import { Route as ProfileRouteImport } from './routes/profile'
 import { Route as ProjectsRouteImport } from './routes/projects'
 import { Route as ReviewRouteImport } from './routes/review'
 import { Route as SearchRouteImport } from './routes/search'
+import { Route as ShowcaseRouteImport } from './routes/showcase'
 import { Route as SitemapDotxmlRouteImport } from './routes/sitemap[.]xml'
 import { Route as AttendanceIndexRouteImport } from './routes/attendance.index'
 import { Route as AttendanceSemesterRouteImport } from './routes/attendance.$semester'
@@ -135,6 +136,11 @@ const ReviewRoute = ReviewRouteImport.update({
 const SearchRoute = SearchRouteImport.update({
   id: '/search',
   path: '/search',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ShowcaseRoute = ShowcaseRouteImport.update({
+  id: '/showcase',
+  path: '/showcase',
   getParentRoute: () => rootRouteImport,
 } as any)
 const SitemapDotxmlRoute = SitemapDotxmlRouteImport.update({
@@ -252,6 +258,7 @@ export interface FileRoutesByFullPath {
   '/projects': typeof ProjectsRoute
   '/review': typeof ReviewRoute
   '/search': typeof SearchRoute
+  '/showcase': typeof ShowcaseRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
   '/attendance/$semester': typeof AttendanceSemesterRoute
   '/habits/$habitId': typeof HabitsHabitIdRoute
@@ -283,6 +290,7 @@ export interface FileRoutesByTo {
   '/projects': typeof ProjectsRoute
   '/review': typeof ReviewRoute
   '/search': typeof SearchRoute
+  '/showcase': typeof ShowcaseRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
   '/attendance/$semester': typeof AttendanceSemesterRoute
   '/habits/$habitId': typeof HabitsHabitIdRoute
@@ -323,6 +331,7 @@ export interface FileRoutesById {
   '/projects': typeof ProjectsRoute
   '/review': typeof ReviewRoute
   '/search': typeof SearchRoute
+  '/showcase': typeof ShowcaseRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
   '/attendance/$semester': typeof AttendanceSemesterRoute
   '/habits/$habitId': typeof HabitsHabitIdRoute
@@ -364,6 +373,7 @@ export interface FileRouteTypes {
     | '/projects'
     | '/review'
     | '/search'
+    | '/showcase'
     | '/sitemap.xml'
     | '/attendance/$semester'
     | '/habits/$habitId'
@@ -395,6 +405,7 @@ export interface FileRouteTypes {
     | '/projects'
     | '/review'
     | '/search'
+    | '/showcase'
     | '/sitemap.xml'
     | '/attendance/$semester'
     | '/habits/$habitId'
@@ -434,6 +445,7 @@ export interface FileRouteTypes {
     | '/projects'
     | '/review'
     | '/search'
+    | '/showcase'
     | '/sitemap.xml'
     | '/attendance/$semester'
     | '/habits/$habitId'
@@ -474,6 +486,7 @@ export interface RootRouteChildren {
   ProjectsRoute: typeof ProjectsRoute
   ReviewRoute: typeof ReviewRoute
   SearchRoute: typeof SearchRoute
+  ShowcaseRoute: typeof ShowcaseRoute
   SitemapDotxmlRoute: typeof SitemapDotxmlRoute
 }
 
@@ -603,6 +616,13 @@ declare module '@tanstack/react-router' {
       path: '/search'
       fullPath: '/search'
       preLoaderRoute: typeof SearchRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/showcase': {
+      id: '/showcase'
+      path: '/showcase'
+      fullPath: '/showcase'
+      preLoaderRoute: typeof ShowcaseRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/sitemap.xml': {
@@ -868,6 +888,7 @@ const rootRouteChildren: RootRouteChildren = {
   ProjectsRoute: ProjectsRoute,
   ReviewRoute: ReviewRoute,
   SearchRoute: SearchRoute,
+  ShowcaseRoute: ShowcaseRoute,
   SitemapDotxmlRoute: SitemapDotxmlRoute,
 }
 export const routeTree = rootRouteImport

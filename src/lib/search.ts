@@ -42,6 +42,7 @@ const PAGES: SearchResult[] = [
   { kind: "page", to: "/expenses", title: "Expenses", subtitle: "Spending tracker" },
   { kind: "page", to: "/coding", title: "Code", subtitle: "DSA problem solving" },
   { kind: "page", to: "/career", title: "Career", subtitle: "Job & placement tracking" },
+  { kind: "page", to: "/showcase", title: "Project showcase", subtitle: "How SkillSync is built" },
   { kind: "page", to: "/profile", title: "Profile", subtitle: "You & preferences" },
 ];
 

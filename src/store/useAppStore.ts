@@ -29,6 +29,7 @@ import type {
 } from "@/lib/schema";
 import { AppDataSchema } from "@/lib/schema";
 import { createInitialData } from "@/lib/seed";
+import { clearDemoSnapshot, createDemoData, readDemoSnapshot, saveDemoSnapshot } from "@/lib/demo";
 import { migrate } from "@/lib/migrations";
 import { setLastBackupMeta } from "@/lib/backup/advanced-backup";
 import { newId } from "@/lib/id";
@@ -59,6 +60,12 @@ type ModuleKey = "attendance" | "expenses" | "focus" | "cgpa" | "coding" | "care
 
 type State = AppData & {
   _hydrated: boolean;
+  /**
+   * True while the workspace holds the generated demo persona. Never persisted
+   * (`partialize`/`toAppData` whitelist plain workspace fields only) and never
+   * exported — it exists so the UI can say "this is a demo" out loud.
+   */
+  demoMode: boolean;
   markHydrated: () => void;
 
   // roadmap ops
@@ -266,6 +273,14 @@ type State = AppData & {
   exportJSON: () => string;
   importJSON: (input: string) => { ok: boolean; error?: string };
   resetAll: () => void;
+
+  // demo workspace (showcase / viva mode)
+  /** Snapshot the real workspace, then adopt the demo persona. */
+  loadDemoWorkspace: () => boolean;
+  /** Restore the snapshot taken by `loadDemoWorkspace`. */
+  exitDemoWorkspace: () => boolean;
+  /** Boot-time guard: restore the real workspace if a demo was left running. */
+  recoverFromDemo: () => boolean;
 };
 
 export const STORAGE_KEY = "skillsync:data:v1";
@@ -400,6 +415,7 @@ export const useAppStore = create<State>()(
     (set, get) => ({
       ...createInitialData(),
       _hydrated: false,
+      demoMode: false,
       markHydrated: () => set({ _hydrated: true }),
 
       addRoadmap: (title) =>
@@ -1243,18 +1259,44 @@ export const useAppStore = create<State>()(
           }
           const migrated = migrate(parsed);
           const valid = AppDataSchema.parse(migrated);
-          set({ ...valid });
+          clearDemoSnapshot();
+          set({ ...valid, demoMode: false });
           return { ok: true };
         } catch (e) {
           return { ok: false, error: errorMessage(e, "Invalid file") };
         }
       },
       resetAll: () => {
-        set({ ...createInitialData() });
+        clearDemoSnapshot();
+        set({ ...createInitialData(), demoMode: false });
         // A wipe must not leave the previous workspace's "backed up" badge
         // behind. Saved copies in the vault and any files stay untouched, so a
         // reset can still be undone by restoring a backup.
         setLastBackupMeta(null);
+      },
+
+      loadDemoWorkspace: () => {
+        // Snapshot first: if storage is full/blocked we still enter the demo,
+        // but the caller is told so it can warn the user.
+        const saved = saveDemoSnapshot(toAppData(get()));
+        set({ ...createDemoData(), demoMode: true });
+        return saved;
+      },
+      exitDemoWorkspace: () => {
+        const snapshot = readDemoSnapshot();
+        if (!snapshot) {
+          set({ demoMode: false });
+          clearDemoSnapshot();
+          return false;
+        }
+        clearDemoSnapshot();
+        set({ ...snapshot, demoMode: false });
+        return true;
+      },
+      recoverFromDemo: () => {
+        if (get().demoMode) return false;
+        if (!readDemoSnapshot()) return false;
+        return get().exitDemoWorkspace();
       },
     }),
     {
