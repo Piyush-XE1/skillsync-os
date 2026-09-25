@@ -576,7 +576,7 @@ function ProfilePage() {
                       <span className="text-[13px] text-muted-foreground">
                         {
                           BACKGROUND_OPTIONS.find(
-                            (o) => o.id === (preferences.background ?? "aurora"),
+                            (o) => o.id === (preferences.background ?? "atelier"),
                           )?.label
                         }
                       </span>
@@ -864,7 +864,7 @@ function ProfilePage() {
         </p>
         <div className="space-y-3">
           {BACKGROUND_OPTIONS.map((opt) => {
-            const active = (preferences.background ?? "aurora") === opt.id;
+            const active = (preferences.background ?? "atelier") === opt.id;
             return (
               <button
                 key={opt.id}
@@ -916,7 +916,7 @@ function ProfilePage() {
             {ACCENT_PRESETS.map((preset) => {
               const active =
                 (
-                  preferences.accent ?? defaultAccentFor(preferences.background ?? "aurora")
+                  preferences.accent ?? defaultAccentFor(preferences.background ?? "atelier")
                 ).toLowerCase() === preset.color.toLowerCase();
               return (
                 <button
@@ -961,7 +961,7 @@ function ProfilePage() {
                 value={
                   /^#[0-9a-fA-F]{6}$/.test(preferences.accent ?? "")
                     ? preferences.accent
-                    : defaultAccentFor(preferences.background ?? "aurora")
+                    : defaultAccentFor(preferences.background ?? "atelier")
                 }
                 onChange={(e) => {
                   haptics.tap();

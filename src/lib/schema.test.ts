@@ -21,8 +21,8 @@ describe("schema", () => {
       habitLogs: [],
     });
     expect(parsed.profile).toEqual({ name: "Learner", avatar: "" });
-    expect(parsed.preferences.background).toBe("aurora");
-    expect(parsed.preferences.accent).toBe("#7c3aed");
+    expect(parsed.preferences.background).toBe("atelier");
+    expect(parsed.preferences.accent).toBe("#c9a35c");
     expect(parsed.preferences.modules).toEqual({
       attendance: false,
       expenses: false,

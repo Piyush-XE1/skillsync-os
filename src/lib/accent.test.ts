@@ -9,12 +9,12 @@ import {
 } from "./accent";
 
 describe("accent", () => {
-  it("defaults resolve per background and fall back to violet", () => {
+  it("defaults resolve per background and fall back to brass", () => {
     expect(defaultAccentFor("aurora")).toBe("#7c3aed");
     expect(defaultAccentFor("light")).toBe("#20573f");
     expect(defaultAccentFor("atelier")).toBe("#c9a35c");
-    expect(defaultAccentFor(undefined)).toBe(ACCENT_DEFAULTS.aurora);
-    expect(DEFAULT_ACCENT).toBe("#7c3aed");
+    expect(defaultAccentFor(undefined)).toBe(ACCENT_DEFAULTS.atelier);
+    expect(DEFAULT_ACCENT).toBe("#c9a35c");
   });
 
   it("exposes curated presets with valid hex colours", () => {

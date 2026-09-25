@@ -83,12 +83,12 @@ export const ACCENT_DEFAULTS: Record<string, string> = {
   atelier: "#c9a35c",
 };
 
-/** Default accent (used for new workspaces and the Aurora flagship appearance). */
-export const DEFAULT_ACCENT = ACCENT_DEFAULTS.aurora;
+/** Default accent (used for new workspaces and as the safe fallback). */
+export const DEFAULT_ACCENT = ACCENT_DEFAULTS.atelier;
 
 /** Resolve the default accent for a Background preference. */
 export function defaultAccentFor(background?: string): string {
-  return ACCENT_DEFAULTS[background ?? "aurora"] ?? DEFAULT_ACCENT;
+  return ACCENT_DEFAULTS[background ?? "atelier"] ?? DEFAULT_ACCENT;
 }
 
 /* ------------------------------------------------------------------ *
