@@ -4,13 +4,13 @@ name: Android APK
 #  - Run manually from the Actions tab (workflow_dispatch), or
 #  - push a tag like v1.0.0 to also publish a GitHub Release with the APK.
 #
-# Required repository secrets for a signed release build:
+# Optional repository secrets for a signed release build:
 #   ANDROID_KEYSTORE_BASE64    base64 of your skillsync-release.jks
 #   ANDROID_KEYSTORE_PASSWORD  keystore password
 #   ANDROID_KEY_ALIAS          key alias (e.g. skillsync)
 #   ANDROID_KEY_PASSWORD       key password
-# Without them the workflow still succeeds and produces the debug APK plus an
-# unsigned release APK.
+# Without them (or if they are wrong) the workflow still succeeds and produces
+# the debug APK plus an unsigned release APK, with a warning explaining why.
 
 on:
   workflow_dispatch:
@@ -28,9 +28,14 @@ on:
 permissions:
   contents: write
 
+env:
+  # Pinned Android command-line tools, used only when the runner has none.
+  CMDLINE_TOOLS_URL: https://dl.google.com/android/repository/commandlinetools-linux-13114758_latest.zip
+
 jobs:
   build:
     runs-on: ubuntu-latest
+    timeout-minutes: 45
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -51,37 +56,72 @@ jobs:
           distribution: temurin
           java-version: "21"
 
-      # Use the Android SDK preinstalled on GitHub's Ubuntu runners and install
-      # exactly the packages this project needs (compileSdk/targetSdk 36).
+      - name: Setup Gradle cache
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.gradle/caches
+            ~/.gradle/wrapper
+          key: gradle-${{ runner.os }}-${{ hashFiles('android/**/*.gradle', 'android/gradle/wrapper/gradle-wrapper.properties') }}
+          restore-keys: gradle-${{ runner.os }}-
+
+      # Uses the Android SDK preinstalled on GitHub's Ubuntu runners when it is
+      # there; otherwise downloads the official command-line tools into a
+      # private SDK folder. Then installs exactly what this project needs
+      # (compileSdk/targetSdk 36).
       - name: Setup Android SDK
+        shell: bash
         run: |
+          set -euo pipefail
           SDK="${ANDROID_SDK_ROOT:-${ANDROID_HOME:-/usr/local/lib/android/sdk}}"
+          SDKMANAGER=""
+          for candidate in "$SDK/cmdline-tools/latest/bin/sdkmanager" "$SDK"/cmdline-tools/*/bin/sdkmanager; do
+            if [ -x "$candidate" ]; then SDKMANAGER="$candidate"; break; fi
+          done
+          if [ -z "$SDKMANAGER" ] || [ ! -w "$SDK" ]; then
+            echo "No usable preinstalled Android SDK — downloading command-line tools."
+            SDK="$HOME/android-sdk"
+            mkdir -p "$SDK/cmdline-tools"
+            curl -fsSL -o "$RUNNER_TEMP/cmdline-tools.zip" "$CMDLINE_TOOLS_URL"
+            unzip -q "$RUNNER_TEMP/cmdline-tools.zip" -d "$SDK/cmdline-tools"
+            rm -rf "$SDK/cmdline-tools/latest"
+            mv "$SDK/cmdline-tools/cmdline-tools" "$SDK/cmdline-tools/latest"
+            SDKMANAGER="$SDK/cmdline-tools/latest/bin/sdkmanager"
+          fi
+          echo "Android SDK: $SDK"
+          echo "sdkmanager:  $SDKMANAGER"
           echo "ANDROID_HOME=$SDK" >> "$GITHUB_ENV"
           echo "ANDROID_SDK_ROOT=$SDK" >> "$GITHUB_ENV"
-          SDKMANAGER="$SDK/cmdline-tools/latest/bin/sdkmanager"
-          if [ ! -x "$SDKMANAGER" ]; then
-            SDKMANAGER=$(ls "$SDK"/cmdline-tools/*/bin/sdkmanager | head -n 1)
-          fi
-          echo "Using $SDKMANAGER"
-          yes | "$SDKMANAGER" --licenses > /dev/null || true
-          "$SDKMANAGER" --install "platform-tools" "platforms;android-36" "build-tools;36.0.0"
+          # `yes` is killed by SIGPIPE when sdkmanager exits; that is expected.
+          set +o pipefail
+          yes | "$SDKMANAGER" --sdk_root="$SDK" --licenses > /dev/null
+          set -o pipefail
+          "$SDKMANAGER" --sdk_root="$SDK" --install \
+            "platform-tools" "platforms;android-36" "build-tools;36.0.0" > "$RUNNER_TEMP/sdk-install.log" \
+            || { tail -n 50 "$RUNNER_TEMP/sdk-install.log"; echo "::error::Android SDK package install failed (see log above)."; exit 1; }
+          test -d "$SDK/platforms/android-36" || { echo "::error::platforms;android-36 missing after install."; exit 1; }
+          test -d "$SDK/build-tools/36.0.0" || { echo "::error::build-tools;36.0.0 missing after install."; exit 1; }
           printf 'sdk.dir=%s\n' "$SDK" > android/local.properties
+          echo "Android SDK ready."
 
       - name: Install dependencies
         run: bun install --frozen-lockfile
 
       - name: Resolve version
         id: version
+        shell: bash
+        env:
+          INPUT_NAME: ${{ github.event.inputs.versionName }}
+          INPUT_CODE: ${{ github.event.inputs.versionCode }}
         run: |
-          TAG="${GITHUB_REF_NAME}"
-          NAME="${{ github.event.inputs.versionName }}"
+          NAME="${INPUT_NAME:-}"
           if [ -z "$NAME" ]; then
             case "$GITHUB_REF" in
-              refs/tags/v*) NAME="${TAG#v}" ;;
+              refs/tags/v*) NAME="${GITHUB_REF_NAME#v}" ;;
               *) NAME="1.0.0" ;;
             esac
           fi
-          CODE="${{ github.event.inputs.versionCode }}"
+          CODE="${INPUT_CODE:-}"
           if [ -z "$CODE" ]; then CODE="${GITHUB_RUN_NUMBER}"; fi
           echo "name=$NAME" >> "$GITHUB_OUTPUT"
           echo "code=$CODE" >> "$GITHUB_OUTPUT"
@@ -93,22 +133,49 @@ jobs:
       - name: Sync Capacitor Android project
         run: bunx cap sync android
 
-      - name: Decode release keystore
+      # Decodes the keystore and checks that the password and alias really
+      # open it. Any problem becomes a clear warning and an unsigned release
+      # build instead of an obscure Gradle failure.
+      - name: Decode and verify release keystore
         id: keystore
+        shell: bash
         env:
           KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+          KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+          KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
         run: |
-          if [ -n "$KEYSTORE_BASE64" ]; then
-            printf '%s' "$KEYSTORE_BASE64" | base64 -d > "$RUNNER_TEMP/skillsync-release.jks"
-            echo "path=$RUNNER_TEMP/skillsync-release.jks" >> "$GITHUB_OUTPUT"
-            echo "Release keystore decoded."
-          else
-            echo "path=" >> "$GITHUB_OUTPUT"
-            echo "::warning::No ANDROID_KEYSTORE_BASE64 secret set — the release APK will be unsigned."
+          echo "path=" >> "$GITHUB_OUTPUT"
+          if [ -z "${KEYSTORE_BASE64:-}" ]; then
+            echo "::warning::ANDROID_KEYSTORE_BASE64 is not set — the release APK will be unsigned."
+            exit 0
           fi
+          missing=""
+          [ -z "${KEYSTORE_PASSWORD:-}" ] && missing="$missing ANDROID_KEYSTORE_PASSWORD"
+          [ -z "${KEY_ALIAS:-}" ] && missing="$missing ANDROID_KEY_ALIAS"
+          [ -z "${KEY_PASSWORD:-}" ] && missing="$missing ANDROID_KEY_PASSWORD"
+          if [ -n "$missing" ]; then
+            echo "::warning::Missing secrets:$missing — the release APK will be unsigned."
+            exit 0
+          fi
+          KS="$RUNNER_TEMP/skillsync-release.jks"
+          # Strip whitespace/newlines that sneak in when pasting the secret.
+          if ! printf '%s' "$KEYSTORE_BASE64" | tr -d ' \r\n\t' | base64 -d > "$KS" 2>/dev/null || [ ! -s "$KS" ]; then
+            rm -f "$KS"
+            echo "::warning::ANDROID_KEYSTORE_BASE64 is not valid base64 — the release APK will be unsigned."
+            exit 0
+          fi
+          if ! keytool -list -keystore "$KS" -storepass "$KEYSTORE_PASSWORD" -alias "$KEY_ALIAS" > /dev/null 2>&1; then
+            rm -f "$KS"
+            echo "::warning::The keystore could not be opened with ANDROID_KEYSTORE_PASSWORD / ANDROID_KEY_ALIAS (wrong password or alias?) — the release APK will be unsigned."
+            exit 0
+          fi
+          echo "path=$KS" >> "$GITHUB_OUTPUT"
+          echo "Release keystore decoded and verified."
 
       - name: Build APKs
         working-directory: android
+        shell: bash
         env:
           ANDROID_KEYSTORE_PATH: ${{ steps.keystore.outputs.path }}
           ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
@@ -118,10 +185,12 @@ jobs:
           ORG_GRADLE_PROJECT_skillsyncVersionCode: ${{ steps.version.outputs.code }}
         run: |
           chmod +x ./gradlew
-          ./gradlew --no-daemon assembleDebug assembleRelease
+          ./gradlew --no-daemon --stacktrace assembleDebug assembleRelease
 
       - name: Rename artifacts
+        shell: bash
         run: |
+          set -euo pipefail
           mkdir -p artifacts
           cp android/app/build/outputs/apk/debug/app-debug.apk \
              "artifacts/SkillSync-${{ steps.version.outputs.name }}-debug.apk"
