@@ -24,16 +24,28 @@ export function TodayHero({ className }: { className?: string }) {
   const planner = useAppStore((s) => s.planner);
   const coding = useAppStore((s) => s.coding.problems);
   const sessions = useAppStore((s) => s.focus.sessions);
+  const modules = useAppStore((s) => s.preferences.modules);
 
   const input = useMemo(
-    () => ({ goals, habits, habitLogs, planner, coding, focusSessions: sessions }),
-    [goals, habits, habitLogs, planner, coding, sessions],
+    () => ({
+      goals,
+      habits: modules.habits ? habits : [],
+      habitLogs: modules.habits ? habitLogs : [],
+      planner: modules.planner ? planner : [],
+      coding: modules.coding ? coding : [],
+      focusSessions: modules.focus ? sessions : [],
+    }),
+    [goals, habits, habitLogs, planner, coding, sessions, modules],
   );
 
   const summary = useMemo(() => todaySummary(input), [input]);
   const strip = useMemo(() => activityStrip(input, new Date(), 7), [input]);
-
-  const onTrack = summary.habitPct >= 60 || summary.focusPct >= 60;
+  const hasActivitySignals = modules.habits || modules.focus || modules.coding;
+  const tileCount = [modules.focus, modules.coding, modules.planner, modules.habits].filter(
+    Boolean,
+  ).length;
+  const onTrack =
+    (modules.habits && summary.habitPct >= 60) || (modules.focus && summary.focusPct >= 60);
 
   return (
     <section
@@ -64,83 +76,107 @@ export function TodayHero({ className }: { className?: string }) {
         </span>
       </div>
 
-      <div className="relative mt-4 grid gap-4 lg:grid-cols-[auto_1fr] lg:gap-6">
-        {/* Rings */}
-        <div className="flex items-center justify-center gap-4 sm:justify-start">
-          <Ring
-            value={hydrated ? summary.habitPct : 0}
-            label={`${hydrated ? summary.habitsDone : 0}/${summary.habitsTotal || 0}`}
-            sublabel="Habits"
-          />
-          <Ring
-            value={hydrated ? summary.focusPct : 0}
-            label={`${hydrated ? summary.focusMinutes : 0}m`}
-            sublabel="Focus"
-          />
-        </div>
-
-        {/* Telemetry */}
-        <div className="grid grid-cols-2 gap-2.5 sm:grid-cols-4">
-          <Tile
-            icon={Timer}
-            label="Deep work"
-            value={hydrated ? summary.focusMinutes : 0}
-            suffix=" min"
-            hint={`Goal ${summary.focusGoalMinutes} min`}
-          />
-          <Tile
-            icon={BrainCircuit}
-            label="Solved"
-            value={hydrated ? summary.solvesToday : 0}
-            hint={`${hydrated ? summary.solvesWeek : 0} this week`}
-          />
-          <Tile
-            icon={Trophy}
-            label="Tasks today"
-            value={hydrated ? summary.tasksDoneToday : 0}
-            suffix={`/${summary.tasksToday}`}
-            hint={summary.tasksToday === 0 ? "Nothing due" : "Planner"}
-          />
-          <Tile
-            icon={Flame}
-            label="Best streak"
-            value={hydrated ? summary.bestStreak : 0}
-            suffix="d"
-            hint={`${hydrated ? summary.habitsActiveThisWeek : 0} habits active`}
-          />
-        </div>
-      </div>
-
-      {/* 7-day activity strip */}
-      <div className="relative mt-4">
-        <div className="mb-2 flex items-baseline justify-between">
-          <span className="text-[10.5px] font-semibold uppercase tracking-[0.16em] text-muted-foreground">
-            Last 7 days
-          </span>
-          <span className="text-[11px] text-muted-foreground/80">habits · focus · solves</span>
-        </div>
-        <div className="flex h-14 items-end gap-1.5">
-          {strip.map((day, i) => (
-            <div key={day.date} className="group flex min-w-0 flex-1 flex-col items-center gap-1">
-              <div
-                className="flex h-10 w-full items-end overflow-hidden rounded-[6px] bg-white/[0.05]"
-                title={`${day.label} · ${day.habitsDone} habits · ${day.focusMinutes} min · ${day.solves} solved`}
-              >
-                <div
-                  className="animate-rise w-full rounded-[6px] gradient-primary transition-[height] duration-700 ease-[var(--ease-out-soft)]"
-                  style={riseStyle(i + 3, {
-                    height: `${Math.max(4, day.intensity)}%`,
-                    opacity: day.intensity === 0 ? 0.25 : 1,
-                  })}
+      {modules.habits || modules.focus || tileCount > 0 ? (
+        <div className="relative mt-4 grid gap-4 lg:grid-cols-[auto_1fr] lg:gap-6">
+          {/* Only surface rings for the modules the learner has enabled. */}
+          {modules.habits || modules.focus ? (
+            <div className="flex items-center justify-center gap-4 sm:justify-start">
+              {modules.habits ? (
+                <Ring
+                  value={hydrated ? summary.habitPct : 0}
+                  label={`${hydrated ? summary.habitsDone : 0}/${summary.habitsTotal || 0}`}
+                  sublabel="Habits"
                 />
-              </div>
-              <span className="truncate text-[9.5px] uppercase tracking-wide text-muted-foreground/70">
-                {day.label}
-              </span>
+              ) : null}
+              {modules.focus ? (
+                <Ring
+                  value={hydrated ? summary.focusPct : 0}
+                  label={`${hydrated ? summary.focusMinutes : 0}m`}
+                  sublabel="Focus"
+                />
+              ) : null}
             </div>
-          ))}
+          ) : null}
+
+          {/* Telemetry cards disappear with their owning modules. */}
+          {tileCount > 0 ? (
+            <div className="grid grid-cols-2 gap-2.5 sm:grid-cols-4">
+              {modules.focus ? (
+                <Tile
+                  icon={Timer}
+                  label="Deep work"
+                  value={hydrated ? summary.focusMinutes : 0}
+                  suffix=" min"
+                  hint={`Goal ${summary.focusGoalMinutes} min`}
+                />
+              ) : null}
+              {modules.coding ? (
+                <Tile
+                  icon={BrainCircuit}
+                  label="Solved"
+                  value={hydrated ? summary.solvesToday : 0}
+                  hint={`${hydrated ? summary.solvesWeek : 0} this week`}
+                />
+              ) : null}
+              {modules.planner ? (
+                <Tile
+                  icon={Trophy}
+                  label="Tasks today"
+                  value={hydrated ? summary.tasksDoneToday : 0}
+                  suffix={`/${summary.tasksToday}`}
+                  hint={summary.tasksToday === 0 ? "Nothing due" : "Planner"}
+                />
+              ) : null}
+              {modules.habits ? (
+                <Tile
+                  icon={Flame}
+                  label="Best streak"
+                  value={hydrated ? summary.bestStreak : 0}
+                  suffix="d"
+                  hint={`${hydrated ? summary.habitsActiveThisWeek : 0} habits active`}
+                />
+              ) : null}
+            </div>
+          ) : null}
         </div>
-      </div>
+      ) : null}
+
+      {/* 7-day activity strip includes only enabled habit/focus/coding data. */}
+      {hasActivitySignals ? (
+        <div className="relative mt-4">
+          <div className="mb-2 flex items-baseline justify-between">
+            <span className="text-[10.5px] font-semibold uppercase tracking-[0.16em] text-muted-foreground">
+              Last 7 days
+            </span>
+            <span className="text-[11px] text-muted-foreground/80">
+              {[modules.habits && "habits", modules.focus && "focus", modules.coding && "solves"]
+                .filter(Boolean)
+                .join(" · ")}
+            </span>
+          </div>
+          <div className="flex h-14 items-end gap-1.5">
+            {strip.map((day, i) => (
+              <div key={day.date} className="group flex min-w-0 flex-1 flex-col items-center gap-1">
+                <div
+                  className="flex h-10 w-full items-end overflow-hidden rounded-[6px] bg-white/[0.05]"
+                  title={`${day.label}${modules.habits ? ` · ${day.habitsDone} habits` : ""}${modules.focus ? ` · ${day.focusMinutes} min focus` : ""}${modules.coding ? ` · ${day.solves} solved` : ""}`}
+                >
+                  <div
+                    className="animate-rise w-full rounded-[6px] gradient-primary transition-[height] duration-700 ease-[var(--ease-out-soft)]"
+                    style={riseStyle(i + 3, {
+                      height: `${Math.max(4, day.intensity)}%`,
+                      opacity: day.intensity === 0 ? 0.25 : 1,
+                    })}
+                  />
+                </div>
+                <span className="truncate text-[9.5px] uppercase tracking-wide text-muted-foreground/70">
+                  {day.label}
+                </span>
+              </div>
+            ))}
+          </div>
+        </div>
+      ) : null}
 
       {/* Aims + actions */}
       <div className="relative mt-4 flex flex-wrap items-center gap-2">
@@ -167,17 +203,43 @@ export function TodayHero({ className }: { className?: string }) {
             <Target className="h-3.5 w-3.5" strokeWidth={1.9} />
             Aims
           </Link>
-          <Link
-            to="/focus"
-            className="pressable gradient-primary inline-flex h-8 items-center gap-1.5 rounded-full px-3.5 text-[11.5px] font-semibold text-white shadow-[var(--shadow-glow)] transition-transform hover:brightness-110"
-          >
-            Start focus
-            <ArrowUpRight className="h-3.5 w-3.5" strokeWidth={2.2} />
-          </Link>
+          {modules.focus ? (
+            <Link
+              to="/focus"
+              className="pressable gradient-primary inline-flex h-8 items-center gap-1.5 rounded-full px-3.5 text-[11.5px] font-semibold text-white shadow-[var(--shadow-glow)] transition-transform hover:brightness-110"
+            >
+              Start focus
+              <ArrowUpRight className="h-3.5 w-3.5" strokeWidth={2.2} />
+            </Link>
+          ) : modules.habits ? (
+            <Link
+              to="/habits"
+              className="pressable gradient-primary inline-flex h-8 items-center gap-1.5 rounded-full px-3.5 text-[11.5px] font-semibold text-white shadow-[var(--shadow-glow)] transition-transform hover:brightness-110"
+            >
+              Check habits
+              <ArrowUpRight className="h-3.5 w-3.5" strokeWidth={2.2} />
+            </Link>
+          ) : modules.coding ? (
+            <Link
+              to="/coding"
+              className="pressable gradient-primary inline-flex h-8 items-center gap-1.5 rounded-full px-3.5 text-[11.5px] font-semibold text-white shadow-[var(--shadow-glow)] transition-transform hover:brightness-110"
+            >
+              Log a solve
+              <ArrowUpRight className="h-3.5 w-3.5" strokeWidth={2.2} />
+            </Link>
+          ) : modules.planner ? (
+            <Link
+              to="/planner"
+              className="pressable gradient-primary inline-flex h-8 items-center gap-1.5 rounded-full px-3.5 text-[11.5px] font-semibold text-white shadow-[var(--shadow-glow)] transition-transform hover:brightness-110"
+            >
+              Open planner
+              <ArrowUpRight className="h-3.5 w-3.5" strokeWidth={2.2} />
+            </Link>
+          ) : null}
         </div>
       </div>
 
-      {hydrated && habits.length === 0 ? (
+      {hydrated && modules.habits && habits.length === 0 ? (
         <p className="relative mt-3 text-[11.5px] text-muted-foreground">
           Nothing tracked yet — add a habit to light this panel up.{" "}
           <Link
@@ -192,10 +254,17 @@ export function TodayHero({ className }: { className?: string }) {
       {/* Status line, tuned to how the day is actually going. */}
       <p className="relative mt-3 text-[11.5px] text-muted-foreground">
         {onTrack
-          ? "You are on pace today. Keep the streak honest."
-          : summary.habitsDone + summary.focusMinutes + summary.solvesToday === 0
-            ? "Fresh day, clean slate. One habit is enough to start."
-            : "Momentum is building — a short focus block would round today out."}
+          ? "You are on pace today. Keep the momentum honest."
+          : summary.habitsDone + summary.focusMinutes + summary.solvesToday === 0 &&
+              summary.tasksDoneToday === 0
+            ? modules.habits
+              ? "Fresh day, clean slate. One small habit is enough to start."
+              : modules.focus
+                ? "Fresh day, clean slate. A short focus block is enough to start."
+                : modules.coding
+                  ? "Fresh day, clean slate. One solved problem is progress."
+                  : "Your workspace is ready when you are."
+            : "Momentum is building — keep the next step small and deliberate."}
       </p>
     </section>
   );

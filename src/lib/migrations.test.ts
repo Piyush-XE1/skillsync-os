@@ -31,16 +31,21 @@ describe("migrate", () => {
     };
     const result = migrate(v1);
     expect(result.habits[0].startDate).toBeTruthy();
-    expect(result.attendance).toEqual({ subjects: [] });
-    expect(result.expenses).toEqual({ transactions: [] });
+    expect(result.expenses).toEqual({ transactions: [], monthlyBudget: 0 });
     expect(result.preferences.modules).toEqual({
-      attendance: false,
       expenses: false,
       focus: true,
       cgpa: true,
       coding: true,
       career: true,
+      habits: true,
+      notes: true,
+      roadmaps: true,
+      projects: true,
+      planner: true,
     });
+    expect(result.preferences.hasCompletedFirstLaunch).toBe(true);
+    expect(result.preferences.onboardingCompleted).toBe(true);
     expect(result.coding).toEqual({ problems: [], rating: 0, maxRating: 0, ratingHistory: [] });
     expect(result.career).toEqual({ applications: [] });
   });
@@ -118,6 +123,106 @@ describe("migrate", () => {
       goals: [{ id: "g1", title: "No fap", emoji: "🔒", note: "", createdAt: 1 }],
     });
     expect(result.goals.map((g) => g.title)).toEqual(["No fap"]);
+  });
+
+  it("migrates v12 to v13 without disturbing workspace records", () => {
+    const transaction = {
+      id: "t1",
+      title: "Coffee",
+      amount: 50,
+      type: "debit",
+      at: 1_700_000_000_000,
+    };
+    const note = {
+      id: "n1",
+      title: "Class notes",
+      body: "Keep this",
+      tags: ["college"],
+      pinned: true,
+      linkedTo: null,
+      createdAt: 1,
+      updatedAt: 2,
+    };
+    const result = migrate({
+      schemaVersion: 12,
+      preferences: { background: "atelier", modules: { attendance: false, expenses: true } },
+      expenses: { transactions: [transaction] },
+      notes: [note],
+    });
+
+    expect(result.schemaVersion).toBe(CURRENT_SCHEMA_VERSION);
+    expect(result.preferences.hasCompletedFirstLaunch).toBe(true);
+    expect(result.preferences.onboardingCompleted).toBe(true);
+    expect(result.preferences.graphicsQuality).toBe("automatic");
+    expect(result.preferences.background).toBe("atelier");
+    expect(result.preferences.modules).not.toHaveProperty("attendance");
+    expect(result.preferences.modules.expenses).toBe(true);
+    expect(result.preferences.modules.notes).toBe(true);
+    expect(result.expenses.monthlyBudget).toBe(0);
+    expect(result.expenses.transactions[0]).toMatchObject({
+      id: "t1",
+      title: "Coffee",
+      amount: 50,
+    });
+    expect(result.notes[0]).toMatchObject({
+      id: "n1",
+      title: "Class notes",
+      body: "Keep this",
+      pinned: true,
+    });
+  });
+
+  it("migrates v13 to v14: retires Attendance without disturbing other workspace data", () => {
+    const v13 = {
+      schemaVersion: 13,
+      preferences: { modules: { attendance: true, expenses: true, notes: false } },
+      attendance: { subjects: [{ id: "s1", name: "Math", present: 4, absent: 1 }] },
+      notes: [{ id: "n1", title: "Keep me", body: "Local record", createdAt: 1, updatedAt: 1 }],
+      notifications: {
+        settings: {
+          categories: {
+            attendance: { enabled: true, time: "18:00" },
+            habits: { enabled: false, time: "21:00" },
+          },
+        },
+        items: [
+          { id: "a1", createdAt: 1, category: "attendance", title: "Class risk" },
+          { id: "h1", createdAt: 2, category: "habits", title: "Habit check" },
+        ],
+        scheduled: [
+          { id: "as1", category: "attendance", title: "Class risk", dueAt: 1 },
+          { id: "hs1", category: "habits", title: "Habit reminder", dueAt: 2 },
+        ],
+      },
+    };
+
+    const result = migrate(v13);
+    expect(result.schemaVersion).toBe(CURRENT_SCHEMA_VERSION);
+    expect(result).not.toHaveProperty("attendance");
+    expect(result.preferences.modules).not.toHaveProperty("attendance");
+    expect(result.preferences.modules.expenses).toBe(true);
+    expect(result.preferences.modules.notes).toBe(false);
+    expect(result.notes[0]).toMatchObject({ id: "n1", title: "Keep me", body: "Local record" });
+    expect(result.notifications.items.map((item) => item.id)).toEqual(["h1"]);
+    expect(result.notifications.scheduled.map((item) => item.id)).toEqual(["hs1"]);
+    expect(result.notifications.settings.categories).not.toHaveProperty("attendance");
+    expect(result.notifications.settings.categories.habits.enabled).toBe(false);
+  });
+
+  it("migrates v14 habit logs to typed check-ins for emergency freeze support", () => {
+    const result = migrate({
+      schemaVersion: 14,
+      habits: [{ id: "h1", title: "Walk", emoji: "🚶", createdAt: 1, startDate: "2025-01-01" }],
+      habitLogs: [
+        { habitId: "h1", date: "2025-01-01" },
+        { habitId: "h1", date: "2025-01-02", kind: "freeze" },
+      ],
+    });
+    expect(result.schemaVersion).toBe(CURRENT_SCHEMA_VERSION);
+    expect(result.habitLogs).toEqual([
+      { habitId: "h1", date: "2025-01-01", kind: "check-in" },
+      { habitId: "h1", date: "2025-01-02", kind: "freeze", freezeUsedAt: "2025-01-02" },
+    ]);
   });
 
   it("migrates v11 to v12: drops the resume module and its data", () => {

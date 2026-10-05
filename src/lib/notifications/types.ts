@@ -7,7 +7,6 @@ import { z } from "zod";
 export const NOTIFICATION_CATEGORIES = [
   "learn",
   "habits",
-  "attendance",
   "planner",
   "projects",
   "expenses",
@@ -24,7 +23,7 @@ export type CategoryMeta = {
   /** lucide-react icon name rendered by the UI map. */
   icon: string;
   /** Optional module flag this category depends on. */
-  module?: "attendance" | "expenses";
+  module?: "expenses";
   /** Whether the category supports a daily reminder time. */
   timed: boolean;
   defaultTime?: string;
@@ -46,15 +45,6 @@ export const CATEGORY_META: Record<CategoryKey, CategoryMeta> = {
     icon: "flame",
     timed: true,
     defaultTime: "21:00",
-  },
-  attendance: {
-    key: "attendance",
-    label: "Attendance",
-    description: "Alerts when a subject drops below its minimum",
-    icon: "school",
-    module: "attendance",
-    timed: true,
-    defaultTime: "18:00",
   },
   planner: {
     key: "planner",

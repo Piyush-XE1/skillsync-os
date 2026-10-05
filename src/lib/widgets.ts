@@ -10,7 +10,8 @@
  * through the registry), and drag-to-reorder reuses `DragSortList`.
  */
 
-export type ModuleKey = "attendance" | "expenses" | "focus" | "cgpa" | "coding" | "career";
+import type { ModuleKey } from "@/lib/schema";
+export type { ModuleKey } from "@/lib/schema";
 
 /** How much of the grid a widget occupies. */
 export type WidgetSize = "tile" | "wide" | "full";
@@ -27,7 +28,6 @@ export const WIDGET_IDS = [
   "expenses",
   "cgpa",
   "career",
-  "attendance",
   "rating",
   "continueLearning",
   "today",
@@ -67,8 +67,8 @@ export type WidgetDefinition = {
   defaultSize: WidgetSize;
   /** Sizes this widget can be resized to, in cycle order. */
   sizes: WidgetSize[];
-  /** Only offered when the matching optional module is switched on. */
-  module?: ModuleKey;
+  /** A widget appears only when its module (or any contributing module) is enabled. */
+  module?: ModuleKey | readonly ModuleKey[];
   /** Off-by-default widgets stay in the catalogue, just not on the grid. */
   defaultVisible: boolean;
 };
@@ -97,6 +97,7 @@ export const WIDGET_DEFINITIONS: WidgetDefinition[] = [
     hint: "Check-ins completed today",
     defaultSize: "tile",
     sizes: ["tile", "wide"],
+    module: "habits",
     defaultVisible: true,
   },
   {
@@ -105,6 +106,7 @@ export const WIDGET_DEFINITIONS: WidgetDefinition[] = [
     hint: "Seven-day effort sparkline",
     defaultSize: "tile",
     sizes: ["tile", "wide"],
+    module: ["habits", "planner", "focus", "coding", "roadmaps"],
     defaultVisible: true,
   },
   {
@@ -153,15 +155,6 @@ export const WIDGET_DEFINITIONS: WidgetDefinition[] = [
     defaultVisible: false,
   },
   {
-    id: "attendance",
-    title: "Attendance",
-    hint: "Overall attendance percentage",
-    defaultSize: "tile",
-    sizes: ["tile", "wide"],
-    module: "attendance",
-    defaultVisible: false,
-  },
-  {
     id: "rating",
     title: "Contest rating",
     hint: "Current and peak rating",
@@ -176,6 +169,7 @@ export const WIDGET_DEFINITIONS: WidgetDefinition[] = [
     hint: "The next topic waiting for you",
     defaultSize: "full",
     sizes: ["wide", "full"],
+    module: "roadmaps",
     defaultVisible: true,
   },
   {
@@ -184,6 +178,7 @@ export const WIDGET_DEFINITIONS: WidgetDefinition[] = [
     hint: "Smart queue of today's tasks",
     defaultSize: "wide",
     sizes: ["wide", "full"],
+    module: "planner",
     defaultVisible: true,
   },
   {
@@ -192,6 +187,7 @@ export const WIDGET_DEFINITIONS: WidgetDefinition[] = [
     hint: "Tap a habit to log today",
     defaultSize: "wide",
     sizes: ["wide", "full"],
+    module: "habits",
     defaultVisible: true,
   },
   {
@@ -200,6 +196,7 @@ export const WIDGET_DEFINITIONS: WidgetDefinition[] = [
     hint: "Effort score and grade",
     defaultSize: "wide",
     sizes: ["wide", "full"],
+    module: ["habits", "planner", "focus", "coding", "roadmaps"],
     defaultVisible: true,
   },
   {
@@ -216,6 +213,18 @@ export const WIDGET_DEFINITIONS: WidgetDefinition[] = [
     hint: "Jump straight into a module",
     defaultSize: "full",
     sizes: ["wide", "full"],
+    module: [
+      "expenses",
+      "focus",
+      "cgpa",
+      "coding",
+      "career",
+      "habits",
+      "notes",
+      "roadmaps",
+      "projects",
+      "planner",
+    ],
     defaultVisible: true,
   },
   {
@@ -224,6 +233,7 @@ export const WIDGET_DEFINITIONS: WidgetDefinition[] = [
     hint: "Roadmap completion bars",
     defaultSize: "wide",
     sizes: ["wide", "full"],
+    module: "roadmaps",
     defaultVisible: true,
   },
   {
@@ -232,6 +242,7 @@ export const WIDGET_DEFINITIONS: WidgetDefinition[] = [
     hint: "What you are building",
     defaultSize: "full",
     sizes: ["wide", "full"],
+    module: "projects",
     defaultVisible: true,
   },
   {
@@ -240,6 +251,7 @@ export const WIDGET_DEFINITIONS: WidgetDefinition[] = [
     hint: "Latest captures",
     defaultSize: "wide",
     sizes: ["wide", "full"],
+    module: "notes",
     defaultVisible: true,
   },
 ];
@@ -309,15 +321,22 @@ export function normalizeWidgetLayout(input: unknown): WidgetPlacement[] {
 }
 
 /** What the grid should actually render, given the enabled optional modules. */
+function hasEnabledModule(
+  requirement: ModuleKey | readonly ModuleKey[] | undefined,
+  modules: Partial<Record<ModuleKey, boolean>>,
+): boolean {
+  if (!requirement) return true;
+  if (typeof requirement === "string") return modules[requirement] === true;
+  return requirement.some((key) => modules[key] === true);
+}
+
 export function visibleWidgets(
   layout: WidgetPlacementInput[],
   modules: Partial<Record<ModuleKey, boolean>>,
 ): WidgetPlacement[] {
   return normalizeWidgetLayout(layout).filter((entry) => {
     if (!entry.visible) return false;
-    const def = WIDGET_BY_ID[entry.id];
-    if (def.module && !modules[def.module]) return false;
-    return true;
+    return hasEnabledModule(WIDGET_BY_ID[entry.id].module, modules);
   });
 }
 
@@ -409,5 +428,5 @@ export function resetWidgetLayout(): WidgetPlacement[] {
 
 /** Catalogue entries the settings sheet should offer for these module flags. */
 export function availableWidgets(modules: Partial<Record<ModuleKey, boolean>>): WidgetDefinition[] {
-  return WIDGET_DEFINITIONS.filter((def) => !def.module || modules[def.module]);
+  return WIDGET_DEFINITIONS.filter((def) => hasEnabledModule(def.module, modules));
 }

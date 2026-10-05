@@ -1,5 +1,12 @@
 import { describe, it, expect } from "vitest";
-import { habitStreak, habitAlive, allHabitStreaks } from "@/lib/habit-streaks";
+import {
+  allHabitStreaks,
+  canUseEmergencyFreeze,
+  emergencyFreezeCandidate,
+  firstRecoveryHabit,
+  habitAlive,
+  habitStreak,
+} from "@/lib/habit-streaks";
 import { todayISO, addDaysISO } from "@/lib/date";
 
 const today = todayISO();
@@ -45,6 +52,52 @@ describe("habitStreak", () => {
     const l = [...logs("h1", [daysAgo(0), daysAgo(1)]), ...logs("h2", [daysAgo(0)])];
     expect(habitStreak("h1", l).current).toBe(2);
     expect(habitStreak("h2", l).current).toBe(1);
+  });
+
+  it("uses the injected ISO day instead of the system clock", () => {
+    const l = logs("h1", ["2025-03-09", "2025-03-10"]);
+    expect(habitStreak("h1", l, "2025-03-11")).toEqual({ current: 2, best: 2 });
+    expect(habitAlive("h1", l, "2025-03-11")).toBe(true);
+    expect(habitStreak("h1", l, "2025-03-20").current).toBe(0);
+  });
+});
+
+describe("habit recovery and emergency freeze", () => {
+  const habits = [{ id: "h1", title: "Walk", startDate: "2025-01-01" }];
+
+  it("prompts a gentle restart after two missed full days, but not for a new habit", () => {
+    const history = logs("h1", ["2025-03-08"]);
+    expect(firstRecoveryHabit(habits, history, "2025-03-11")?.id).toBe("h1");
+    expect(
+      firstRecoveryHabit([{ id: "new", title: "New", startDate: "2025-03-10" }], [], "2025-03-11"),
+    ).toBeNull();
+    expect(firstRecoveryHabit(habits, logs("h1", ["2025-03-10"]), "2025-03-11")).toBeNull();
+  });
+
+  it("offers a freeze only when it bridges one missed day, then cools down for 14 days", () => {
+    const history = logs("h1", ["2025-03-09"]);
+    expect(emergencyFreezeCandidate(habits, history, "2025-03-11")).toEqual({
+      habitId: "h1",
+      habitTitle: "Walk",
+      date: "2025-03-10",
+    });
+    expect(emergencyFreezeCandidate(habits, logs("h1", ["2025-03-08"]), "2025-03-11")).toBeNull();
+
+    const used = [
+      { habitId: "h1", date: "2025-03-09", kind: "freeze" as const, freezeUsedAt: "2025-03-01" },
+    ];
+    expect(canUseEmergencyFreeze(used, "2025-03-14")).toBe(false);
+    expect(canUseEmergencyFreeze(used, "2025-03-15")).toBe(true);
+    expect(emergencyFreezeCandidate(habits, used, "2025-03-14")).toBeNull();
+  });
+
+  it("counts a freeze toward streak continuity without treating it as a check-in kind", () => {
+    const protectedLogs = [
+      { habitId: "h1", date: "2025-03-08" },
+      { habitId: "h1", date: "2025-03-09", kind: "freeze" as const, freezeUsedAt: "2025-03-10" },
+      { habitId: "h1", date: "2025-03-10" },
+    ];
+    expect(habitStreak("h1", protectedLogs, "2025-03-10")).toEqual({ current: 3, best: 3 });
   });
 });
 

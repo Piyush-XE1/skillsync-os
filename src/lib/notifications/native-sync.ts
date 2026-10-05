@@ -38,7 +38,7 @@ function nextAt(time: string, weekday?: number): number {
 
 export function desiredReminders(
   settings: NotificationSettings,
-  modules: { attendance?: boolean; expenses?: boolean } | undefined,
+  modules: { expenses?: boolean } | undefined,
 ): DesiredReminder[] {
   if (!settings.enabled) return [];
   const out: DesiredReminder[] = [];
@@ -83,7 +83,7 @@ function signatureOf(reminders: DesiredReminder[]): string {
 /** Reconciles native alarms with the current settings. Safe to call often. */
 export async function syncNativeSchedules(
   settings: NotificationSettings,
-  modules: { attendance?: boolean; expenses?: boolean } | undefined,
+  modules: { expenses?: boolean } | undefined,
   force = false,
 ): Promise<{ synced: boolean; count: number }> {
   const bridge = nativeBridge();

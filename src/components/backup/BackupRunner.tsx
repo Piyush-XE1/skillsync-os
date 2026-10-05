@@ -7,7 +7,7 @@
  */
 
 import { useEffect } from "react";
-import { startAutoScheduler } from "@/store/useBackupStore";
+import { startAutoScheduler, stopAutoScheduler } from "@/store/useBackupStore";
 import { useAppStore } from "@/store/useAppStore";
 
 export function BackupRunner() {
@@ -18,6 +18,7 @@ export function BackupRunner() {
     // loaded would back up empty data and then claim success.
     if (!hydrated) return;
     void startAutoScheduler();
+    return stopAutoScheduler;
   }, [hydrated]);
 
   return null;

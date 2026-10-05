@@ -1004,8 +1004,13 @@ function scheduleIdle(run: () => void) {
 }
 
 let schedulerStarted = false;
-let schedulerTimer: ReturnType<typeof setInterval> | null = null;
-let changeDebounce: ReturnType<typeof setTimeout> | null = null;
+let schedulerGeneration = 0;
+let schedulerTimer: number | null = null;
+let startupTick: number | null = null;
+let visibilityTick: number | null = null;
+let changeDebounce: number | null = null;
+let visibilityHandler: (() => void) | null = null;
+let appStoreUnsubscribe: (() => void) | null = null;
 
 /**
  * Starts the single auto-backup timer. Safe to call repeatedly; only the first
@@ -1015,28 +1020,41 @@ let changeDebounce: ReturnType<typeof setTimeout> | null = null;
 export async function startAutoScheduler(): Promise<void> {
   if (schedulerStarted || typeof window === "undefined") return;
   schedulerStarted = true;
+  const generation = ++schedulerGeneration;
 
   await useBackupStore.getState().init();
+  // The root component may have unmounted while IndexedDB was opening.
+  if (!schedulerStarted || generation !== schedulerGeneration) return;
 
   const tick = () => {
     if (document.visibilityState === "hidden") return;
     void useBackupStore.getState().maybeAutoBackup("interval");
   };
-  schedulerTimer = setInterval(tick, 60_000);
-  setTimeout(tick, 6000);
+  schedulerTimer = window.setInterval(tick, 60_000);
+  startupTick = window.setTimeout(() => {
+    startupTick = null;
+    tick();
+  }, 6000);
 
-  document.addEventListener("visibilitychange", () => {
-    if (document.visibilityState === "visible") setTimeout(tick, 2000);
-  });
+  visibilityHandler = () => {
+    if (document.visibilityState !== "visible") return;
+    if (visibilityTick) window.clearTimeout(visibilityTick);
+    visibilityTick = window.setTimeout(() => {
+      visibilityTick = null;
+      tick();
+    }, 2000);
+  };
+  document.addEventListener("visibilitychange", visibilityHandler);
 
   // "Back up after significant changes" — deliberately coarse (10 minutes of
   // quiet) so typing, dragging and route changes never touch the disk.
   let lastChangeAt = 0;
-  useAppStore.subscribe(() => {
+  appStoreUnsubscribe = useAppStore.subscribe(() => {
     if (!useBackupStore.getState().auto.backupOnChanges) return;
     lastChangeAt = Date.now();
-    if (changeDebounce) clearTimeout(changeDebounce);
-    changeDebounce = setTimeout(() => {
+    if (changeDebounce) window.clearTimeout(changeDebounce);
+    changeDebounce = window.setTimeout(() => {
+      changeDebounce = null;
       if (Date.now() - lastChangeAt < 9_500) return;
       void useBackupStore.getState().maybeAutoBackup("changes");
     }, 10 * 60_000);
@@ -1044,9 +1062,20 @@ export async function startAutoScheduler(): Promise<void> {
 }
 
 export function stopAutoScheduler(): void {
-  if (schedulerTimer) clearInterval(schedulerTimer);
-  schedulerTimer = null;
+  schedulerGeneration++;
   schedulerStarted = false;
+  if (schedulerTimer) window.clearInterval(schedulerTimer);
+  if (startupTick) window.clearTimeout(startupTick);
+  if (visibilityTick) window.clearTimeout(visibilityTick);
+  if (changeDebounce) window.clearTimeout(changeDebounce);
+  if (visibilityHandler) document.removeEventListener("visibilitychange", visibilityHandler);
+  appStoreUnsubscribe?.();
+  schedulerTimer = null;
+  startupTick = null;
+  visibilityTick = null;
+  changeDebounce = null;
+  visibilityHandler = null;
+  appStoreUnsubscribe = null;
 }
 
 /** Convenience selector for the status line used in several places. */

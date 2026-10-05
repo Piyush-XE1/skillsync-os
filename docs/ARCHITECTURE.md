@@ -99,8 +99,8 @@ No analytics event is stored twice. Charts derive from source records:
 ## 6. Notifications
 
 The rule engine (`src/lib/notifications/engine.ts`) generates due candidates
-from workspace state (habits, planner, attendance, backup age, weekly
-summary). Delivery adapts to the platform:
+from workspace state (habits, planner, backup age, weekly summary). Delivery
+adapts to the platform:
 
 - **Android (Capacitor)** — native local notifications via the bridge.
 - **Browser** — service worker + Web Notifications.

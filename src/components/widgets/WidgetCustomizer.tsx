@@ -227,7 +227,9 @@ export function WidgetCustomizer({ open, onClose }: { open: boolean; onClose: ()
                     <div className="min-w-0 flex-1">
                       <div className="truncate text-[12.5px] font-medium">{def.title}</div>
                       <div className="truncate text-[11px] text-muted-foreground">
-                        Turn on the {def.module} module to use it
+                        {typeof def.module === "string"
+                          ? `Turn on the ${def.module} module to use it`
+                          : "Enable a contributing module to use it"}
                       </div>
                     </div>
                   </div>

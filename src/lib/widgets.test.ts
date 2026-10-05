@@ -19,20 +19,28 @@ import {
 } from "./widgets";
 
 const ALL_MODULES = {
-  attendance: true,
   expenses: true,
   focus: true,
   cgpa: true,
   coding: true,
   career: true,
+  habits: true,
+  notes: true,
+  roadmaps: true,
+  projects: true,
+  planner: true,
 };
 const NO_MODULES = {
-  attendance: false,
   expenses: false,
   focus: false,
   cgpa: false,
   coding: false,
   career: false,
+  habits: false,
+  notes: false,
+  roadmaps: false,
+  projects: false,
+  planner: false,
 };
 
 const ids = (layout: WidgetPlacement[]) => layout.map((entry) => entry.id);
@@ -108,7 +116,21 @@ describe("visibleWidgets", () => {
     expect(shown).not.toContain("expenses");
     expect(shown).not.toContain("focusToday");
     expect(shown).not.toContain("solved");
+    expect(shown).not.toContain("momentum");
+    expect(shown).not.toContain("weekReview");
+    expect(shown).not.toContain("quickAccess");
     expect(shown).toContain("goals");
+  });
+
+  it("keeps aggregate widgets only when at least one contributing module is enabled", () => {
+    const layout = defaultWidgetLayout().map((e) => ({ ...e, visible: true }));
+    const codingOnly = { ...NO_MODULES, coding: true };
+    const shown = ids(visibleWidgets(layout, codingOnly));
+    expect(shown).toContain("momentum");
+    expect(shown).toContain("weekReview");
+    expect(shown).not.toContain("habits");
+    expect(shown).not.toContain("today");
+    expect(shown).toContain("quickAccess");
   });
 
   it("respects per-widget visibility", () => {

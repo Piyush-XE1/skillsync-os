@@ -8,7 +8,7 @@ project is put together and how to make safe, reviewable changes.
 ## What this project is
 
 SkillSync OS is a **local-first** personal productivity app. Everything the user
-creates — roadmaps, notes, projects, planner tasks, habits, attendance, expenses,
+creates — roadmaps, notes, projects, planner tasks, habits, expenses,
 notifications — lives in the browser's `localStorage` (or the native Android
 WebView) and never leaves the device unless the user explicitly exports a backup.
 

@@ -680,61 +680,6 @@ function focusSessions(now: Date) {
   return out;
 }
 
-const attendance = () => ({
-  subjects: [
-    {
-      id: "demo-att-1",
-      semester: 7,
-      name: "Compiler Design",
-      faculty: "Dr. Rao",
-      minRequired: 75,
-      present: 34,
-      absent: 5,
-      createdAt: 0,
-    },
-    {
-      id: "demo-att-2",
-      semester: 7,
-      name: "Machine Learning",
-      faculty: "Dr. Meenakshi",
-      minRequired: 75,
-      present: 31,
-      absent: 8,
-      createdAt: 0,
-    },
-    {
-      id: "demo-att-3",
-      semester: 7,
-      name: "Cloud Computing",
-      faculty: "Prof. Iyer",
-      minRequired: 75,
-      present: 36,
-      absent: 2,
-      createdAt: 0,
-    },
-    {
-      id: "demo-att-4",
-      semester: 7,
-      name: "Computer Graphics",
-      faculty: "Dr. Kulkarni",
-      minRequired: 70,
-      present: 27,
-      absent: 11,
-      createdAt: 0,
-    },
-    {
-      id: "demo-att-5",
-      semester: 7,
-      name: "Open Elective — Finance",
-      faculty: "Prof. Sharma",
-      minRequired: 60,
-      present: 22,
-      absent: 3,
-      createdAt: 0,
-    },
-  ],
-});
-
 function expenses(now: Date) {
   const rows: Array<[string, number, "credit" | "debit", string]> = [
     ["Hostel mess", 4200, "debit", "monthly"],
@@ -762,6 +707,7 @@ function expenses(now: Date) {
       position: i,
       updatedAt: 0,
     })),
+    monthlyBudget: 18000,
   };
 }
 
@@ -835,13 +781,20 @@ export function createDemoData(now: Date = new Date()): AppData {
       notifications: true,
       developerMode: false,
       modules: {
-        attendance: true,
         expenses: true,
         focus: true,
         cgpa: true,
         coding: true,
         career: true,
+        habits: true,
+        notes: true,
+        roadmaps: true,
+        projects: true,
+        planner: true,
       },
+      hasCompletedFirstLaunch: true,
+      onboardingCompleted: true,
+      graphicsQuality: "automatic",
       background: "aurora",
       haptics: true,
       hapticIntensity: "standard",
@@ -882,7 +835,6 @@ export function createDemoData(now: Date = new Date()): AppData {
         sound: true,
       },
     },
-    attendance: attendance(),
     expenses: expenses(now),
     notifications: notifications(now),
     widgets: defaultWidgetLayout(),

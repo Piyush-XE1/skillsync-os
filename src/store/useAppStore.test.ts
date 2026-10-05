@@ -69,6 +69,26 @@ describe("useAppStore", () => {
     expect(s.habitLogs.some((l) => l.habitId === habitId && l.date === "2026-08-27")).toBe(false);
   });
 
+  it("uses one emergency freeze to bridge a missed day, then enforces the cooldown", () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date(2025, 2, 11, 12, 0));
+    useAppStore.setState({
+      habits: [
+        { id: "h-freeze", title: "Walk", emoji: "🚶", createdAt: 1, startDate: "2025-01-01" },
+      ],
+      habitLogs: [{ habitId: "h-freeze", date: "2025-03-09", kind: "check-in" }],
+    });
+
+    expect(useAppStore.getState().applyEmergencyFreeze("h-freeze")).toBe(true);
+    expect(useAppStore.getState().habitLogs).toContainEqual({
+      habitId: "h-freeze",
+      date: "2025-03-10",
+      kind: "freeze",
+      freezeUsedAt: "2025-03-11",
+    });
+    expect(useAppStore.getState().applyEmergencyFreeze("h-freeze")).toBe(false);
+  });
+
   it("creates, updates, and deletes a note", () => {
     const note = useAppStore.getState().addNote({ title: "Idea", body: "hello" });
     expect(useAppStore.getState().notes[0].id).toBe(note.id);

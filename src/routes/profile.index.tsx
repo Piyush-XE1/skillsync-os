@@ -20,13 +20,14 @@ import {
   AlertTriangle,
   Save,
   SlidersHorizontal,
-  GraduationCap,
   Wallet,
   Vibrate,
   Volume2,
   Timer,
   Award,
   Target,
+  Gauge,
+  RotateCcw,
 } from "lucide-react";
 import { AppShell, AppFooter, PageHeader } from "@/components/layout/AppShell";
 import { Card, Chip, SectionHeader } from "@/components/ui/primitives";
@@ -44,6 +45,8 @@ import { APP_VERSION } from "@/lib/version";
 import { haptics, hapticsSupported, type HapticIntensity } from "@/lib/haptics";
 import { SOUND_CUES, previewSound, sound, soundSupported, type SoundCue } from "@/lib/sound";
 import { focusTotals } from "@/lib/focus";
+import type { GraphicsQuality } from "@/lib/schema";
+import { useUiStore } from "@/store/useUiStore";
 
 export const Route = createFileRoute("/profile/")({
   head: () => ({
@@ -71,6 +74,24 @@ const PREVIEW_CUES: SoundCue[] = [
   "streak",
   "chime",
   "error",
+];
+
+const GRAPHICS_OPTIONS: { id: GraphicsQuality; label: string; description: string }[] = [
+  {
+    id: "automatic",
+    label: "Automatic",
+    description: "Adapts to reduced motion and device capability.",
+  },
+  {
+    id: "high-fidelity",
+    label: "High Fidelity",
+    description: "Keep ambient motion and glass surfaces enabled.",
+  },
+  {
+    id: "battery-saver",
+    label: "Battery Saver",
+    description: "Matte surfaces, still backgrounds, lower GPU work.",
+  },
 ];
 
 async function fileToResizedDataUrl(file: File, max = 256): Promise<string> {
@@ -106,6 +127,7 @@ function ProfilePage() {
   const habits = useAppStore((s) => s.habits);
   const updateProfile = useAppStore((s) => s.updateProfile);
   const updatePreferences = useAppStore((s) => s.updatePreferences);
+  const requestLaunchReplay = useUiStore((s) => s.requestLaunchReplay);
   const exportJSON = useAppStore((s) => s.exportJSON);
   const resetAll = useAppStore((s) => s.resetAll);
   const focusSessions = useAppStore((s) => s.focus.sessions);
@@ -379,23 +401,6 @@ function ProfilePage() {
             </div>
             <ChevronRight className="h-4 w-4 text-muted-foreground/60" />
           </Link>
-          {preferences.modules.attendance ? (
-            <Link
-              to="/attendance"
-              className="card-surface flex items-center gap-3 p-4 transition-all active:scale-[0.98]"
-            >
-              <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-white/[0.04]">
-                <GraduationCap className="h-5 w-5 text-muted-foreground" strokeWidth={1.75} />
-              </div>
-              <div className="min-w-0 flex-1">
-                <div className="text-[14px] font-semibold tracking-tight">College Attendance</div>
-                <div className="text-[12px] text-muted-foreground">
-                  Semester-wise attendance tracker
-                </div>
-              </div>
-              <ChevronRight className="h-4 w-4 text-muted-foreground/60" />
-            </Link>
-          ) : null}
           {preferences.modules.expenses ? (
             <Link
               to="/expenses"
@@ -504,7 +509,7 @@ function ProfilePage() {
             <div className="min-w-0 flex-1">
               <div className="text-[14px] font-semibold tracking-tight">Optional modules</div>
               <div className="text-[12px] text-muted-foreground">
-                Enable Attendance, Expenses and more
+                Enable or hide workspace modules
               </div>
             </div>
             <ChevronRight className="h-4 w-4 text-muted-foreground/60" />
@@ -570,13 +575,13 @@ function ProfilePage() {
               >
                 <SettingRow
                   icon={Sparkles}
-                  label="Appearance & accent"
+                  label="Appearance & graphics"
                   right={
                     <span className="flex items-center gap-2">
                       <span className="text-[13px] text-muted-foreground">
                         {
-                          BACKGROUND_OPTIONS.find(
-                            (o) => o.id === (preferences.background ?? "aurora"),
+                          GRAPHICS_OPTIONS.find(
+                            (option) => option.id === (preferences.graphicsQuality ?? "automatic"),
                           )?.label
                         }
                       </span>
@@ -691,6 +696,28 @@ function ProfilePage() {
               Built for daily use. No accounts, no tracking, no cloud — every roadmap, note and
               habit stays on your device.
             </p>
+            <button
+              type="button"
+              onClick={() => {
+                haptics.impact();
+                sound.open();
+                requestLaunchReplay();
+              }}
+              className="pressable relative mt-4 flex w-full items-center gap-3 rounded-[16px] border border-white/[0.08] bg-white/[0.03] p-3.5 text-left transition-colors hover:border-[color-mix(in_oklab,var(--primary)_30%,transparent)]"
+            >
+              <span className="flex h-9 w-9 items-center justify-center rounded-[13px] bg-white/[0.05]">
+                <RotateCcw className="h-4 w-4 text-muted-foreground" strokeWidth={1.8} />
+              </span>
+              <span className="min-w-0 flex-1">
+                <span className="block text-[13px] font-semibold tracking-tight">
+                  Replay opening experience
+                </span>
+                <span className="block text-[11.5px] text-muted-foreground">
+                  Play the full SkillSync brand sequence
+                </span>
+              </span>
+              <ChevronRight className="h-4 w-4 text-muted-foreground/60" />
+            </button>
             <Link
               to="/showcase"
               className="pressable relative mt-4 flex items-center gap-3 rounded-[16px] border border-white/[0.08] bg-white/[0.03] p-3.5 transition-colors hover:border-[color-mix(in_oklab,var(--primary)_30%,transparent)]"
@@ -901,6 +928,57 @@ function ProfilePage() {
               </button>
             );
           })}
+        </div>
+
+        <div className="!mt-6 border-t border-white/[0.06] pt-5">
+          <div className="mb-3 flex items-center gap-2">
+            <Gauge className="h-4 w-4 text-[var(--primary-glow)]" />
+            <div className="text-[12px] font-semibold uppercase tracking-[0.1em] text-muted-foreground">
+              Graphics quality
+            </div>
+          </div>
+          <p className="mb-3 text-[12.5px] leading-relaxed text-muted-foreground">
+            Choose how much ambient motion and glass rendering the app uses. Atelier colours and
+            contrast stay intact.
+          </p>
+          <div className="space-y-2">
+            {GRAPHICS_OPTIONS.map((option) => {
+              const active = (preferences.graphicsQuality ?? "automatic") === option.id;
+              return (
+                <button
+                  key={option.id}
+                  type="button"
+                  aria-pressed={active}
+                  onClick={() => {
+                    haptics.selection();
+                    updatePreferences({ graphicsQuality: option.id });
+                  }}
+                  className={
+                    "flex w-full items-center justify-between gap-3 rounded-[15px] border px-3.5 py-3 text-left transition-colors " +
+                    (active
+                      ? "border-[color-mix(in_oklab,var(--primary)_45%,transparent)] bg-[color-mix(in_oklab,var(--primary)_9%,var(--surface))]"
+                      : "border-border bg-white/[0.02]")
+                  }
+                >
+                  <span className="min-w-0">
+                    <span className="block text-[13px] font-semibold">{option.label}</span>
+                    <span className="mt-0.5 block text-[11.5px] leading-relaxed text-muted-foreground">
+                      {option.description}
+                    </span>
+                  </span>
+                  <span
+                    className={
+                      "h-4 w-4 shrink-0 rounded-full border " +
+                      (active
+                        ? "border-[5px] border-[var(--primary)] bg-transparent"
+                        : "border-border-strong bg-transparent")
+                    }
+                    aria-hidden="true"
+                  />
+                </button>
+              );
+            })}
+          </div>
         </div>
 
         <div className="!mt-6 border-t border-white/[0.06] pt-5">

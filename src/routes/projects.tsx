@@ -1,4 +1,4 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, Navigate } from "@tanstack/react-router";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Plus, FolderKanban, Trash2, ExternalLink } from "lucide-react";
 import { AppShell, PageHeader } from "@/components/layout/AppShell";
@@ -32,6 +32,7 @@ type Filter = "all" | "planning" | "active" | "done";
 
 function ProjectsPage() {
   const hydrated = useHydrated();
+  const enabled = useAppStore((s) => s.preferences.modules.projects);
   const projects = useAppStore((s) => s.projects);
   const addProject = useAppStore((s) => s.addProject);
   const updateProject = useAppStore((s) => s.updateProject);
@@ -67,6 +68,8 @@ function ProjectsPage() {
   );
 
   const current = editing ? (projects.find((p) => p.id === editing.id) ?? editing) : null;
+
+  if (hydrated && !enabled) return <Navigate to="/profile/modules" />;
 
   return (
     <AppShell>

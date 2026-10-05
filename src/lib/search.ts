@@ -21,7 +21,6 @@ export type SearchResult =
   | { kind: "note"; id: string; title: string; subtitle: string }
   | { kind: "planner"; id: string; title: string; subtitle: string; done: boolean }
   | { kind: "habit"; id: string; title: string; subtitle: string }
-  | { kind: "subject"; id: string; title: string; subtitle: string }
   | { kind: "coding"; id: string; title: string; subtitle: string; difficulty: string }
   | { kind: "job"; id: string; title: string; subtitle: string; status: string }
   | { kind: "page"; to: string; title: string; subtitle: string };
@@ -38,7 +37,6 @@ const PAGES: SearchResult[] = [
   { kind: "page", to: "/cgpa", title: "CGPA", subtitle: "Grade tracker" },
   { kind: "page", to: "/analytics", title: "Analytics", subtitle: "Trends & heatmaps" },
   { kind: "page", to: "/notifications", title: "Notifications", subtitle: "Alerts & digest" },
-  { kind: "page", to: "/attendance", title: "Attendance", subtitle: "Class attendance" },
   { kind: "page", to: "/expenses", title: "Expenses", subtitle: "Spending tracker" },
   { kind: "page", to: "/coding", title: "Code", subtitle: "DSA problem solving" },
   { kind: "page", to: "/career", title: "Career", subtitle: "Job & placement tracking" },
@@ -132,13 +130,6 @@ export function searchAll(data: AppData, query: string, limit = 30): SearchResul
     add(
       { kind: "habit", id: h.id, title: `${h.emoji} ${h.title}`, subtitle: "Habit" },
       score(h.title, q),
-    );
-  }
-
-  for (const s of data.attendance.subjects) {
-    add(
-      { kind: "subject", id: s.id, title: s.name, subtitle: `Attendance · Sem ${s.semester}` },
-      score(s.name, q),
     );
   }
 

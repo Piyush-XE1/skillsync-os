@@ -2,6 +2,7 @@ import { useEffect } from "react";
 import { useAppStore } from "@/store/useAppStore";
 import { nativeSetTheme } from "@/lib/native/bridge";
 import { applyAccent, defaultAccentFor, safeAccent } from "@/lib/accent";
+import { shouldUseBatterySaver } from "@/lib/graphics-quality";
 
 /**
  * SkillSync owns its appearance. The Android/OS colour scheme is intentionally
@@ -37,7 +38,27 @@ const APPEARANCE_KEY = "skillsync:data:v1";
  * value the same way the store does and sets the class + colour scheme + status
  * bar colour synchronously, before any frame is produced.
  */
-export const APPEARANCE_INIT_SCRIPT = `(function(){try{var raw=window.localStorage.getItem(${JSON.stringify(APPEARANCE_KEY)});var bg="aurora";var accent=null;if(raw){var st=JSON.parse(raw);var prefs=st&&st.state?st.state.preferences:null;var val=prefs?prefs.background:null;if(${JSON.stringify(VALID_BACKGROUNDS)}.indexOf(val)>=0)bg=val;if(prefs&&typeof prefs.accent==="string"&&/^#([0-9a-fA-F]{3}|[0-9a-fA-F]{6}|[0-9a-fA-F]{8})$/.test(prefs.accent))accent=prefs.accent;}var map=${JSON.stringify(APPEARANCE)};var a=map[bg]||map.aurora;var el=document.documentElement;el.classList.remove(${MANAGED_CLASSES.map((c) => JSON.stringify(c)).join(",")});el.classList.add(a.cls);el.style.colorScheme=a.scheme;if(accent){el.style.setProperty("--primary",accent);el.style.setProperty("--primary-glow","color-mix(in oklab, "+accent+" 62%, white)");el.style.setProperty("--secondary","color-mix(in oklab, "+accent+" 58%, #0b0b12)");}var m=document.querySelector('meta[name="theme-color"]');if(m)m.setAttribute("content",a.themeColor);}catch(e){}})();`;
+export const APPEARANCE_INIT_SCRIPT = `(function(){try{
+  var raw=window.localStorage.getItem(${JSON.stringify(APPEARANCE_KEY)});
+  var bg="aurora",accent=null,prefs=null,quality="automatic";
+  if(raw){
+    var st=JSON.parse(raw);
+    prefs=st&&st.state?st.state.preferences:null;
+    var val=prefs?prefs.background:null;
+    if(${JSON.stringify(VALID_BACKGROUNDS)}.indexOf(val)>=0)bg=val;
+    if(prefs&&typeof prefs.accent==="string"&&/^#([0-9a-fA-F]{3}|[0-9a-fA-F]{6}|[0-9a-fA-F]{8})$/.test(prefs.accent))accent=prefs.accent;
+    if(prefs&&["automatic","high-fidelity","battery-saver"].indexOf(prefs.graphicsQuality)>=0)quality=prefs.graphicsQuality;
+  }
+  var map=${JSON.stringify(APPEARANCE)},a=map[bg]||map.aurora,el=document.documentElement;
+  el.classList.remove(${MANAGED_CLASSES.map((c) => JSON.stringify(c)).join(",")});
+  el.classList.add(a.cls);el.style.colorScheme=a.scheme;el.dataset.graphicsQuality=quality;
+  var low=typeof navigator.hardwareConcurrency==="number"&&navigator.hardwareConcurrency<=4;
+  var reduced=!!(window.matchMedia&&window.matchMedia("(prefers-reduced-motion: reduce)").matches);
+  var saver=quality==="battery-saver"||reduced||(quality==="automatic"&&low);
+  if(saver)el.classList.add("battery-saver");else el.classList.remove("battery-saver");
+  if(accent){el.style.setProperty("--primary",accent);el.style.setProperty("--primary-glow","color-mix(in oklab, "+accent+" 62%, white)");el.style.setProperty("--secondary","color-mix(in oklab, "+accent+" 58%, #0b0b12)");}
+  var m=document.querySelector('meta[name="theme-color"]');if(m)m.setAttribute("content",a.themeColor);
+}catch(e){}})();`;
 
 /** Maps a background preference onto the resolved light/dark visual system. */
 export function resolveTheme(background: string | undefined): ResolvedTheme {
@@ -85,6 +106,7 @@ function applyAccentSafe(accent: string | undefined) {
 export function useTheme(): ResolvedTheme {
   const background = useAppStore((s) => s.preferences.background);
   const accent = useAppStore((s) => s.preferences.accent);
+  const graphicsQuality = useAppStore((s) => s.preferences.graphicsQuality);
   const resolved = resolveTheme(background);
 
   useEffect(() => {
@@ -98,6 +120,23 @@ export function useTheme(): ResolvedTheme {
   useEffect(() => {
     applyAccentSafe(accent);
   }, [accent, background]);
+
+  useEffect(() => {
+    const root = document.documentElement;
+    const reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)");
+    const applyGraphicsMode = () => {
+      const saver = shouldUseBatterySaver(
+        graphicsQuality,
+        typeof navigator !== "undefined" ? navigator.hardwareConcurrency : undefined,
+        reducedMotion.matches,
+      );
+      root.classList.toggle("battery-saver", saver);
+      root.dataset.graphicsQuality = graphicsQuality;
+    };
+    applyGraphicsMode();
+    reducedMotion.addEventListener("change", applyGraphicsMode);
+    return () => reducedMotion.removeEventListener("change", applyGraphicsMode);
+  }, [graphicsQuality]);
 
   return resolved;
 }
