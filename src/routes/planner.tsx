@@ -1,4 +1,4 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, Navigate } from "@tanstack/react-router";
 import { useMemo, useRef, useState } from "react";
 import { ChevronLeft, ChevronRight, Plus, Trash2, CalendarClock } from "lucide-react";
 import { AppShell, PageHeader } from "@/components/layout/AppShell";
@@ -31,6 +31,7 @@ const weekdays = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
 
 function PlannerPage() {
   const hydrated = useHydrated();
+  const enabled = useAppStore((s) => s.preferences.modules.planner);
   const planner = useAppStore((s) => s.planner);
   const addTask = useAppStore((s) => s.addPlannerTask);
   const updateTask = useAppStore((s) => s.updatePlannerTask);
@@ -70,6 +71,8 @@ function PlannerPage() {
     [weekDates, planner],
   );
   const maxCount = Math.max(1, ...weekCounts);
+
+  if (hydrated && !enabled) return <Navigate to="/profile/modules" />;
 
   return (
     <AppShell>

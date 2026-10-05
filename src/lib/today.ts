@@ -97,7 +97,7 @@ export function todaySummary(input: TodayInput, now: Date = new Date()): TodaySu
   const tasksDoneToday = tasksToday.filter((t) => t.done).length;
 
   const bestStreak = input.habits.reduce((best, habit) => {
-    const { current } = habitStreak(habit.id, input.habitLogs);
+    const { current } = habitStreak(habit.id, input.habitLogs, today);
     return Math.max(best, current);
   }, 0);
 

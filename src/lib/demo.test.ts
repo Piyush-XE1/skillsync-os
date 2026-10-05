@@ -39,7 +39,6 @@ describe("createDemoData", () => {
     expect(data.coding.problems.length).toBeGreaterThan(100);
     expect(data.cgpa.semesters.length).toBe(6);
     expect(data.career.applications.length).toBeGreaterThanOrEqual(6);
-    expect(data.attendance.subjects.length).toBe(5);
     expect(data.expenses.transactions.length).toBeGreaterThan(10);
     expect(data.focus.sessions.length).toBeGreaterThan(20);
     expect(data.notifications.items.length).toBeGreaterThanOrEqual(3);

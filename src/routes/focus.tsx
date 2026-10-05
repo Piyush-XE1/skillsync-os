@@ -1,4 +1,4 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, Navigate } from "@tanstack/react-router";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
 import {
@@ -46,6 +46,7 @@ const RING = 2 * Math.PI * 120;
 
 function FocusPage() {
   const hydrated = useHydrated();
+  const enabled = useAppStore((s) => s.preferences.modules.focus);
   const sessions = useAppStore((s) => s.focus.sessions);
   const settings = useAppStore((s) => s.focus.settings);
   const addFocusSession = useAppStore((s) => s.addFocusSession);
@@ -186,6 +187,8 @@ function FocusPage() {
 
   const progress = totalSeconds > 0 ? (totalSeconds - left) / totalSeconds : 0;
   const isFocus = phase === "focus";
+
+  if (hydrated && !enabled) return <Navigate to="/profile/modules" />;
 
   return (
     <AppShell>

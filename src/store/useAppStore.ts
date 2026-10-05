@@ -14,7 +14,6 @@ import type {
   Habit,
   Preferences,
   Profile,
-  Subject,
   Transaction,
   Goal,
   FocusSession,
@@ -26,14 +25,16 @@ import type {
   JobApplication,
   InterviewRound,
   WidgetPlacement,
+  ModuleKey,
 } from "@/lib/schema";
-import { AppDataSchema } from "@/lib/schema";
+import { AppDataSchema, CURRENT_SCHEMA_VERSION } from "@/lib/schema";
 import { createInitialData } from "@/lib/seed";
 import { clearDemoSnapshot, createDemoData, readDemoSnapshot, saveDemoSnapshot } from "@/lib/demo";
 import { migrate } from "@/lib/migrations";
 import { setLastBackupMeta } from "@/lib/backup/advanced-backup";
 import { newId } from "@/lib/id";
 import { todayISO } from "@/lib/date";
+import { emergencyFreezeCandidate } from "@/lib/habit-streaks";
 import { errorMessage } from "@/lib/utils";
 import { topicPct } from "@/lib/progress";
 import { applyOrder } from "@/lib/drag-sort";
@@ -55,8 +56,6 @@ import {
   type NotificationSettings,
   type ScheduledNotification,
 } from "@/lib/notifications/types";
-
-type ModuleKey = "attendance" | "expenses" | "focus" | "cgpa" | "coding" | "career";
 
 type State = AppData & {
   _hydrated: boolean;
@@ -159,6 +158,8 @@ type State = AppData & {
   updateHabit: (id: string, patch: Partial<Habit>) => void;
   deleteHabit: (id: string) => void;
   toggleHabitToday: (id: string, dateISO?: string) => void;
+  /** Protect one missed yesterday per workspace, no more than once every 14 days. */
+  applyEmergencyFreeze: (habitId: string, missedDateISO?: string) => boolean;
 
   // goals (aims)
   addGoal: (input: { title: string; emoji?: string; note?: string }) => Goal;
@@ -214,19 +215,13 @@ type State = AppData & {
   ) => void;
   deleteInterviewRound: (applicationId: string, roundId: string) => void;
 
-  // attendance
-  addSubject: (
-    partial: Omit<Subject, "id" | "createdAt" | "present" | "absent"> & Partial<Subject>,
-  ) => Subject;
-  updateSubject: (id: string, patch: Partial<Subject>) => void;
-  deleteSubject: (id: string) => void;
-
   // expenses
   addTransaction: (
     partial: Pick<Transaction, "title" | "amount" | "type"> & Partial<Transaction>,
   ) => Transaction;
   updateTransaction: (id: string, patch: Partial<Omit<Transaction, "id">>) => void;
   deleteTransaction: (id: string) => void;
+  setMonthlyExpenseBudget: (amount: number) => void;
   /**
    * Persist a manual order for the given transaction ids.
    *
@@ -399,7 +394,6 @@ export function toAppData(state: AppData): AppData {
     goals: state.goals,
     profile: state.profile,
     preferences: state.preferences,
-    attendance: state.attendance,
     expenses: state.expenses,
     focus: state.focus,
     cgpa: state.cgpa,
@@ -797,12 +791,34 @@ export const useAppStore = create<State>()(
             habitLogs: s.habitLogs.filter((l) => !(l.habitId === id && l.date === date)),
           }));
         } else {
-          set((s) => ({ habitLogs: [...s.habitLogs, { habitId: id, date }] }));
+          set((s) => ({ habitLogs: [...s.habitLogs, { habitId: id, date, kind: "check-in" }] }));
         }
+      },
+      applyEmergencyFreeze: (habitId, missedDateISO) => {
+        const state = get();
+        const today = todayISO();
+        const candidate = emergencyFreezeCandidate(state.habits, state.habitLogs, today);
+        const missedDate = missedDateISO ?? candidate?.date;
+        if (!candidate || candidate.habitId !== habitId || candidate.date !== missedDate)
+          return false;
+        set((s) => ({
+          habitLogs: [
+            ...s.habitLogs,
+            { habitId, date: candidate.date, kind: "freeze", freezeUsedAt: today },
+          ],
+        }));
+        return true;
       },
 
       updateProfile: (patch) => set((s) => ({ profile: { ...s.profile, ...patch } })),
-      updatePreferences: (patch) => set((s) => ({ preferences: { ...s.preferences, ...patch } })),
+      updatePreferences: (patch) =>
+        set((s) => ({
+          preferences: {
+            ...s.preferences,
+            ...patch,
+            modules: { ...s.preferences.modules, ...(patch.modules ?? {}) },
+          },
+        })),
       setModuleEnabled: (key, enabled) =>
         set((s) => ({
           preferences: {
@@ -1058,40 +1074,6 @@ export const useAppStore = create<State>()(
           },
         })),
 
-      addSubject: (partial) => {
-        const subject: Subject = {
-          id: newId(),
-          semester: partial.semester,
-          name: partial.name,
-          faculty: partial.faculty ?? "",
-          minRequired: partial.minRequired ?? 75,
-          present: partial.present ?? 0,
-          absent: partial.absent ?? 0,
-          createdAt: Date.now(),
-        };
-        set((s) => ({
-          attendance: {
-            ...s.attendance,
-            subjects: [...s.attendance.subjects, subject],
-          },
-        }));
-        return subject;
-      },
-      updateSubject: (id, patch) =>
-        set((s) => ({
-          attendance: {
-            ...s.attendance,
-            subjects: s.attendance.subjects.map((x) => (x.id === id ? { ...x, ...patch } : x)),
-          },
-        })),
-      deleteSubject: (id) =>
-        set((s) => ({
-          attendance: {
-            ...s.attendance,
-            subjects: s.attendance.subjects.filter((x) => x.id !== id),
-          },
-        })),
-
       addTransaction: (partial) => {
         const existing = get().expenses.transactions;
         const minPos = existing.reduce((m, t) => Math.min(m, t.position ?? 0), 0);
@@ -1136,6 +1118,13 @@ export const useAppStore = create<State>()(
           expenses: {
             ...s.expenses,
             transactions: s.expenses.transactions.filter((t) => t.id !== id),
+          },
+        })),
+      setMonthlyExpenseBudget: (amount) =>
+        set((s) => ({
+          expenses: {
+            ...s.expenses,
+            monthlyBudget: Number.isFinite(amount) ? Math.max(0, amount) : 0,
           },
         })),
 
@@ -1301,7 +1290,7 @@ export const useAppStore = create<State>()(
     }),
     {
       name: STORAGE_KEY,
-      version: 12,
+      version: CURRENT_SCHEMA_VERSION,
       storage: createJSONStorage(() =>
         // No storage during SSR — persist skips hydration when this is undefined.
         typeof window !== "undefined"

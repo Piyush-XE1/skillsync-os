@@ -218,6 +218,96 @@ const migrators: Record<number, (data: LegacyData) => LegacyData> = {
     next.preferences = { ...prefs, modules };
     return next;
   },
+  /**
+   * v12 -> v13: adds the first-run launch/onboarding flags, modular focus
+   * switches, graphics quality, and an optional monthly expense budget. Existing
+   * installs have already completed their first launch, so they skip the new
+   * onboarding flow; all previously visible core workspaces stay enabled. No
+   * user records are removed or rewritten.
+   */
+  12: (data) => {
+    const prefs = (data.preferences ?? {}) as LegacyData;
+    const modules = {
+      attendance: false,
+      expenses: false,
+      focus: true,
+      cgpa: true,
+      coding: true,
+      career: true,
+      habits: true,
+      notes: true,
+      roadmaps: true,
+      projects: true,
+      planner: true,
+      ...(prefs.modules ?? {}),
+    };
+    const expenses = (data.expenses ?? {}) as LegacyData;
+    return {
+      ...data,
+      preferences: {
+        ...prefs,
+        modules,
+        hasCompletedFirstLaunch: true,
+        onboardingCompleted: true,
+        graphicsQuality: prefs.graphicsQuality ?? "automatic",
+      },
+      expenses: {
+        ...expenses,
+        monthlyBudget:
+          typeof expenses.monthlyBudget === "number" && expenses.monthlyBudget >= 0
+            ? expenses.monthlyBudget
+            : 0,
+      },
+    };
+  },
+  /**
+   * v13 -> v14: Attendance is retired. Old class logs and scheduled reminders
+   * are discarded before the schema parse, and its module flag is removed. All
+   * remaining user records and preferences pass through unchanged.
+   */
+  13: (data) => {
+    const prefs = { ...((data.preferences ?? {}) as LegacyData) };
+    const modules = { ...((prefs.modules ?? {}) as LegacyData) };
+    delete modules.attendance;
+    prefs.modules = modules;
+
+    const next: LegacyData = { ...data, preferences: prefs };
+    delete next.attendance;
+
+    const notifications = next.notifications as LegacyData | undefined;
+    if (notifications && typeof notifications === "object") {
+      if (Array.isArray(notifications.items)) {
+        notifications.items = notifications.items.filter(
+          (item: LegacyData) => item?.category !== "attendance",
+        );
+      }
+      if (Array.isArray(notifications.scheduled)) {
+        notifications.scheduled = notifications.scheduled.filter(
+          (item: LegacyData) => item?.category !== "attendance",
+        );
+      }
+      const settings = notifications.settings as LegacyData | undefined;
+      const categories = settings?.categories as LegacyData | undefined;
+      if (categories) delete categories.attendance;
+    }
+    return next;
+  },
+  /**
+   * v14 -> v15: habit check-ins gain an explicit kind so an emergency freeze
+   * can protect one missed day while remaining distinguishable in exports.
+   */
+  14: (data) => ({
+    ...data,
+    habitLogs: Array.isArray(data.habitLogs)
+      ? data.habitLogs.map((entry: LegacyData) => ({
+          ...entry,
+          kind: entry?.kind === "freeze" ? "freeze" : "check-in",
+          ...(entry?.kind === "freeze" && typeof entry.freezeUsedAt !== "string"
+            ? { freezeUsedAt: entry.date }
+            : {}),
+        }))
+      : [],
+  }),
 };
 
 export function migrate(input: unknown): AppData {
@@ -241,12 +331,16 @@ export function migrate(input: unknown): AppData {
     accent: defaultAccentFor((data.preferences ?? {}).background as string | undefined),
     ...(data.preferences ?? {}),
     modules: {
-      attendance: false,
       expenses: false,
       focus: true,
       cgpa: true,
       coding: true,
       career: true,
+      habits: true,
+      notes: true,
+      roadmaps: true,
+      projects: true,
+      planner: true,
       ...((data.preferences ?? {}).modules ?? {}),
     },
   };
@@ -269,6 +363,11 @@ export function migrate(input: unknown): AppData {
     if (typeof prefs.sound !== "boolean") prefs.sound = true;
     prefs.soundVolume =
       typeof prefs.soundVolume === "number" ? clampVolume(prefs.soundVolume) : DEFAULT_SOUND_VOLUME;
+    if (typeof prefs.hasCompletedFirstLaunch !== "boolean") prefs.hasCompletedFirstLaunch = false;
+    if (typeof prefs.onboardingCompleted !== "boolean") prefs.onboardingCompleted = false;
+    if (!["automatic", "high-fidelity", "battery-saver"].includes(prefs.graphicsQuality)) {
+      prefs.graphicsQuality = "automatic";
+    }
   }
 
   // Widget layout: repair whatever was persisted (unknown ids, duplicates,
@@ -280,8 +379,13 @@ export function migrate(input: unknown): AppData {
   // workspace that really carries a goals array of its own keeps it.
   if (!Array.isArray((input as LegacyData).goals)) data.goals = [];
 
-  data.attendance = data.attendance ?? { subjects: [] };
-  data.expenses = data.expenses ?? { transactions: [] };
+  data.expenses = data.expenses ?? { transactions: [], monthlyBudget: 0 };
+  data.expenses.monthlyBudget =
+    typeof data.expenses.monthlyBudget === "number" &&
+    Number.isFinite(data.expenses.monthlyBudget) &&
+    data.expenses.monthlyBudget >= 0
+      ? data.expenses.monthlyBudget
+      : 0;
   // Expense Manager V2: description / tags / position / updatedAt
   data.expenses.transactions = (data.expenses.transactions ?? []).map(
     (t: LegacyData, i: number) => ({

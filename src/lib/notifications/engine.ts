@@ -147,28 +147,6 @@ export function buildDueCandidates(
     }
   }
 
-  // Attendance — subjects below the required minimum.
-  if (eligible("attendance")) {
-    const risky = (data.attendance?.subjects ?? []).filter((s) => {
-      const total = s.present + s.absent;
-      if (total === 0) return false;
-      return (s.present / total) * 100 < s.minRequired;
-    });
-    if (risky.length > 0) {
-      out.push({
-        category: "attendance",
-        title: `${risky.length} subject${risky.length === 1 ? "" : "s"} below minimum`,
-        body: risky
-          .slice(0, 3)
-          .map((s) => s.name)
-          .join(" · "),
-        priority: "high",
-        action: { kind: "route", to: "/attendance" },
-        sourceId: `attendance:risk:${today}`,
-      });
-    }
-  }
-
   // Expenses — nothing logged today.
   if (eligible("expenses")) {
     const start = new Date(now);

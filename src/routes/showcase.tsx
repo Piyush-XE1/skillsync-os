@@ -87,7 +87,7 @@ const FEATURES = [
   {
     icon: GraduationCap,
     title: "Seven study modules",
-    body: "Roadmaps with phases/topics/checklists, CGPA with a target simulator, attendance, coding prep, placement pipeline, planner, notes and expenses.",
+    body: "Roadmaps with phases/topics/checklists, CGPA with a target simulator, coding prep, placement pipeline, planner, notes and expenses.",
   },
   {
     icon: Gauge,

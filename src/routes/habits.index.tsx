@@ -10,6 +10,7 @@ import { TextField } from "@/components/edit/Fields";
 import { ActionButton } from "@/components/edit/Buttons";
 import { useAppStore, useHydrated } from "@/store/useAppStore";
 import { todayISO, addDaysISO } from "@/lib/date";
+import { emergencyFreezeCandidate, habitStreak } from "@/lib/habit-streaks";
 import { cn } from "@/lib/utils";
 import { haptics } from "@/lib/haptics";
 import { sound } from "@/lib/sound";
@@ -36,6 +37,7 @@ function HabitsPage() {
   const habitLogs = useAppStore((s) => s.habitLogs);
   const addHabit = useAppStore((s) => s.addHabit);
   const toggleHabitToday = useAppStore((s) => s.toggleHabitToday);
+  const applyEmergencyFreeze = useAppStore((s) => s.applyEmergencyFreeze);
 
   const [open, setOpen] = useState(false);
   const [title, setTitle] = useState("");
@@ -51,17 +53,11 @@ function HabitsPage() {
     () => Array.from({ length: 7 }).map((_, i) => addDaysISO(today, -6 + i)),
     [today],
   );
-
-  const streakFor = (habitId: string) => {
-    let streak = 0;
-    for (let i = 0; ; i++) {
-      const d = addDaysISO(today, -i);
-      const hit = habitLogs.some((l) => l.habitId === habitId && l.date === d);
-      if (hit) streak++;
-      else break;
-    }
-    return streak;
-  };
+  const freezeCandidate = useMemo(
+    () => emergencyFreezeCandidate(habits, habitLogs, today),
+    [habits, habitLogs, today],
+  );
+  const streakFor = (habitId: string) => habitStreak(habitId, habitLogs, today).current;
 
   return (
     <AppShell>
@@ -87,6 +83,35 @@ function HabitsPage() {
           Tap a habit to view stats. Tap the emoji to check in.
         </p>
       </div>
+
+      {hydrated && freezeCandidate ? (
+        <Card className="mx-5 mb-4 flex items-center gap-3 border-[color-mix(in_oklab,var(--primary)_28%,transparent)] p-4 lg:mx-2">
+          <div className="min-w-0 flex-1">
+            <div className="text-[12px] font-semibold uppercase tracking-[0.12em] text-[var(--primary-glow)]">
+              Emergency freeze
+            </div>
+            <p className="mt-1 text-[12px] leading-relaxed text-muted-foreground">
+              Protect {freezeCandidate.habitTitle}&apos;s streak for yesterday. One use every 14
+              days.
+            </p>
+          </div>
+          <button
+            type="button"
+            onClick={() => {
+              if (applyEmergencyFreeze(freezeCandidate.habitId, freezeCandidate.date)) {
+                haptics.success();
+                sound.streak();
+              } else {
+                haptics.error();
+                sound.error();
+              }
+            }}
+            className="shrink-0 rounded-full border border-[color-mix(in_oklab,var(--primary)_40%,transparent)] bg-[color-mix(in_oklab,var(--primary)_12%,var(--surface))] px-3.5 py-2 text-[12px] font-semibold text-foreground transition-colors hover:bg-[color-mix(in_oklab,var(--primary)_18%,var(--surface))] active:scale-95"
+          >
+            Use freeze
+          </button>
+        </Card>
+      ) : null}
 
       <div className="auto-grid px-5 lg:px-2">
         {hydrated && habits.length === 0 ? (

@@ -4,7 +4,6 @@ import {
   Activity,
   Braces,
   Briefcase,
-  CalendarCheck2,
   CalendarClock,
   CalendarRange,
   CheckCircle2,
@@ -22,7 +21,6 @@ import {
 import type { WidgetId } from "@/lib/widgets";
 import type { WidgetProps } from "./WidgetFrame";
 import {
-  AttendanceWidget,
   CareerWidget,
   CgpaWidget,
   DeepWorkWidget,
@@ -63,7 +61,6 @@ export const WIDGET_COMPONENTS: Record<WidgetId, ComponentType<WidgetProps>> = {
   expenses: ExpensesWidget,
   cgpa: CgpaWidget,
   career: CareerWidget,
-  attendance: AttendanceWidget,
   rating: RatingWidget,
   continueLearning: ContinueLearningWidget,
   today: TodayWidget,
@@ -86,7 +83,6 @@ export const WIDGET_ICONS: Record<WidgetId, LucideIcon> = {
   expenses: Wallet,
   cgpa: GraduationCap,
   career: Briefcase,
-  attendance: CalendarCheck2,
   rating: Trophy,
   continueLearning: LayoutGrid,
   today: CalendarClock,

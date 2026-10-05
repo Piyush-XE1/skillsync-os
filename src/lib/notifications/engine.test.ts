@@ -68,44 +68,6 @@ describe("notifications engine - buildDueCandidates", () => {
     expect(candidates.some((c) => c.category === "habits")).toBe(false);
   });
 
-  it("respects module gating for attendance", () => {
-    const data = createInitialData();
-    data.preferences.modules.attendance = true;
-    data.attendance.subjects = [
-      {
-        id: "s1",
-        semester: 1,
-        name: "Math",
-        faculty: "",
-        minRequired: 75,
-        present: 3,
-        absent: 5,
-        createdAt: 0,
-      },
-    ];
-    const candidates = buildDueCandidates(data, settings(), now);
-    expect(candidates.some((c) => c.category === "attendance")).toBe(true);
-  });
-
-  it("ignores attendance when the module is disabled", () => {
-    const data = createInitialData();
-    // leave module disabled but add a subject below minimum
-    data.attendance.subjects = [
-      {
-        id: "s1",
-        semester: 1,
-        name: "Math",
-        faculty: "",
-        minRequired: 75,
-        present: 3,
-        absent: 5,
-        createdAt: 0,
-      },
-    ];
-    const candidates = buildDueCandidates(data, settings(), now);
-    expect(candidates.some((c) => c.category === "attendance")).toBe(false);
-  });
-
   it("applies quiet hours to rules that fire during them", () => {
     const data = createInitialData();
     const s = settings({ quietHours: { enabled: true, from: "22:00", to: "07:00" } });

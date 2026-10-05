@@ -110,7 +110,7 @@ describe("todaySummary", () => {
     expect(Number.isFinite(summary.focusPct)).toBe(true);
   });
 
-  it("reports the longest currently-alive habit streak", () => {
+  it("reports the longest currently-alive habit streak relative to the injected date", () => {
     const logs = [
       ...["2026-09-25", "2026-09-24", "2026-09-23"].map((d) => log("gym", d)),
       ...["2026-09-25", "2026-09-24"].map((d) => log("read", d)),
@@ -118,6 +118,12 @@ describe("todaySummary", () => {
     const summary = todaySummary({ ...base, habitLogs: logs }, NOW);
     expect(summary.bestStreak).toBe(3);
     expect(summary.habitsActiveThisWeek).toBe(2);
+
+    const yesterdayOnly = todaySummary(
+      { ...base, habits: [habit("gym")], habitLogs: [log("gym", "2026-09-24")] },
+      NOW,
+    );
+    expect(yesterdayOnly.bestStreak).toBe(1);
   });
 
   it("tracks how far through the week we are", () => {

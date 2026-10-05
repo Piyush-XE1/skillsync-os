@@ -781,6 +781,57 @@ html.light .gradient-primary [class*="text-white"] {
   }
 }
 
+/* Battery Saver: replace translucent glass with crisp, matte Atelier-compatible surfaces. */
+html.battery-saver .glass {
+  background: color-mix(in oklab, var(--surface) 94%, var(--foreground) 6%);
+  border: 1px solid var(--border-strong);
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+  box-shadow: none;
+}
+html.battery-saver [class*="backdrop-blur"] {
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+}
+html.battery-saver .card-surface,
+html.battery-saver .card-elevated {
+  background: var(--card);
+  border: 1px solid var(--border-strong);
+  box-shadow: none;
+}
+html.battery-saver [style*="blur("] {
+  display: none !important;
+  filter: none !important;
+}
+html.battery-saver svg [filter] {
+  filter: none !important;
+}
+html.battery-saver .blur-3xl,
+html.battery-saver .blur-2xl,
+html.battery-saver .blur-xl {
+  display: none !important;
+  filter: none !important;
+}
+html.battery-saver .animate-drift,
+html.battery-saver .animate-breathe,
+html.battery-saver .widget-jiggle > * {
+  animation: none !important;
+  transform: none !important;
+  will-change: auto !important;
+}
+html.battery-saver .sheen::after {
+  display: none !important;
+  animation: none !important;
+}
+html.battery-saver .ss-aurora [style*="animation"],
+html.battery-saver .ss-atelier [style*="animation"],
+html.battery-saver [style*="ss-light-drift"] {
+  display: none !important;
+  animation: none !important;
+  transform: none !important;
+  will-change: auto !important;
+}
+
 @media (prefers-reduced-motion: reduce) {
   *,
   *::before,
@@ -789,6 +840,49 @@ html.light .gradient-primary [class*="text-white"] {
     animation-iteration-count: 1 !important;
     transition-duration: 0.01ms !important;
     scroll-behavior: auto !important;
+  }
+  html .glass {
+    background: color-mix(in oklab, var(--surface) 94%, var(--foreground) 6%);
+    border: 1px solid var(--border-strong);
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+  }
+  html [class*="backdrop-blur"] {
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+  }
+  html [style*="blur("] {
+    display: none !important;
+    filter: none !important;
+  }
+  html svg [filter] {
+    filter: none !important;
+  }
+  html [class*="blur-"]:not([class*="backdrop-blur"]) {
+    display: none !important;
+    filter: none !important;
+  }
+  html [class*="filter-"] {
+    filter: none !important;
+  }
+  html .ss-aurora [style*="animation"],
+  html .ss-atelier [style*="animation"],
+  html [style*="ss-light-drift"] {
+    display: none !important;
+    animation: none !important;
+    transform: none !important;
+    will-change: auto !important;
+  }
+  html .animate-drift,
+  html .animate-breathe,
+  html .widget-jiggle > *,
+  html .sheen::after {
+    animation: none !important;
+    transform: none !important;
+    will-change: auto !important;
+  }
+  html .sheen::after {
+    display: none !important;
   }
 }
 
@@ -924,4 +1018,26 @@ html.atelier .gradient-mesh {
 }
 html.light .heat-cell[data-level="4"] {
   box-shadow: 0 1px 6px -2px color-mix(in oklab, var(--primary) 60%, transparent);
+}
+
+/* Keep Battery Saver surfaces matte even after light/Atelier theme refinements. */
+html.battery-saver .glass {
+  background: color-mix(in oklab, var(--surface) 94%, var(--foreground) 6%) !important;
+  border: 1px solid var(--border-strong);
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+  box-shadow: none;
+}
+html.battery-saver .card-surface,
+html.battery-saver .card-elevated {
+  background: var(--card) !important;
+  border: 1px solid var(--border-strong);
+  box-shadow: none;
+}
+html.battery-saver [class*="blur-"]:not([class*="backdrop-blur"]) {
+  display: none !important;
+  filter: none !important;
+}
+html.battery-saver [class*="filter-"] {
+  filter: none !important;
 }

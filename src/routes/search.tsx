@@ -43,7 +43,6 @@ const KIND_META: Record<SearchResult["kind"], { label: string; icon: typeof Layo
   note: { label: "Note", icon: FileText },
   planner: { label: "Task", icon: ListTodo },
   habit: { label: "Habit", icon: Flame },
-  subject: { label: "Subject", icon: GraduationCap },
   coding: { label: "Problem", icon: Braces },
   job: { label: "Application", icon: Briefcase },
   page: { label: "Page", icon: LayoutDashboard },
@@ -71,8 +70,6 @@ function resultHref(r: SearchResult): {
       return { to: "/planner" };
     case "habit":
       return { to: "/habits/$habitId", params: { habitId: r.id } };
-    case "subject":
-      return { to: "/attendance" };
     case "coding":
       return { to: "/coding" };
     case "job":

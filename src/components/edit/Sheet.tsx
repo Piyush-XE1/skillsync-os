@@ -42,6 +42,7 @@ export function BottomSheet({
   children,
   className,
   footer,
+  showClose = true,
 }: {
   open: boolean;
   onClose: () => void;
@@ -52,6 +53,8 @@ export function BottomSheet({
   className?: string;
   /** Sticky action row pinned above the keyboard. */
   footer?: ReactNode;
+  /** Mandatory onboarding surfaces can hide dismissal until the user completes them. */
+  showClose?: boolean;
 }) {
   useOverlaySound(open);
   const kb = useKeyboardInset();
@@ -115,14 +118,16 @@ export function BottomSheet({
                 </p>
               ) : null}
             </div>
-            <button
-              type="button"
-              onClick={onClose}
-              aria-label="Close"
-              className="pressable flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-white/[0.05] text-muted-foreground transition-colors hover:bg-white/[0.09] hover:text-foreground"
-            >
-              <X className="h-4 w-4" strokeWidth={1.75} />
-            </button>
+            {showClose ? (
+              <button
+                type="button"
+                onClick={onClose}
+                aria-label="Close"
+                className="pressable flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-white/[0.05] text-muted-foreground transition-colors hover:bg-white/[0.09] hover:text-foreground"
+              >
+                <X className="h-4 w-4" strokeWidth={1.75} />
+              </button>
+            ) : null}
           </div>
           <div
             ref={bodyRef}

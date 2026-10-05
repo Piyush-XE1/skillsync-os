@@ -4,7 +4,7 @@ import { defaultAccentFor, DEFAULT_ACCENT } from "./accent";
 import { DEFAULT_SOUND_VOLUME } from "./sound";
 import { defaultWidgetLayout } from "./widgets";
 
-export const CURRENT_SCHEMA_VERSION = 12;
+export const CURRENT_SCHEMA_VERSION = 15;
 
 export const ChecklistItemSchema = z.object({
   id: z.string(),
@@ -118,6 +118,10 @@ export const HabitSchema = z.object({
 export const HabitLogSchema = z.object({
   habitId: z.string(),
   date: z.string(),
+  /** A freeze protects a missed day; it counts for streaks, but remains distinguishable. */
+  kind: z.enum(["check-in", "freeze"]).optional(),
+  /** Actual day the freeze was applied, used for the 14-day cooldown. */
+  freezeUsedAt: z.string().optional(),
 });
 
 /**
@@ -142,26 +146,56 @@ export const ProfileSchema = z.object({
   avatar: z.string().default(""),
 });
 
+export const MODULE_KEYS = [
+  "expenses",
+  "focus",
+  "cgpa",
+  "coding",
+  "career",
+  "habits",
+  "notes",
+  "roadmaps",
+  "projects",
+  "planner",
+] as const;
+
+export type ModuleKey = (typeof MODULE_KEYS)[number];
+
 export const ModuleFlagsSchema = z.object({
-  attendance: z.boolean().default(false),
   expenses: z.boolean().default(false),
   focus: z.boolean().default(true),
   cgpa: z.boolean().default(true),
   coding: z.boolean().default(true),
   career: z.boolean().default(true),
+  habits: z.boolean().default(true),
+  notes: z.boolean().default(true),
+  roadmaps: z.boolean().default(true),
+  projects: z.boolean().default(true),
+  planner: z.boolean().default(true),
 });
+
+export const GraphicsQualitySchema = z.enum(["automatic", "high-fidelity", "battery-saver"]);
 
 export const PreferencesSchema = z.object({
   notifications: z.boolean().default(true),
   developerMode: z.boolean().default(false),
   modules: ModuleFlagsSchema.default({
-    attendance: false,
     expenses: false,
     focus: true,
     cgpa: true,
     coding: true,
     career: true,
+    habits: true,
+    notes: true,
+    roadmaps: true,
+    projects: true,
+    planner: true,
   }),
+  /** First-run launch experience and focus selection are completed independently. */
+  hasCompletedFirstLaunch: z.boolean().default(false),
+  onboardingCompleted: z.boolean().default(false),
+  /** Controls visual effects without changing the selected Atelier/background palette. */
+  graphicsQuality: GraphicsQualitySchema.default("automatic"),
   /**
    * The single source of truth for the app's appearance. "light" activates the
    * Minimalist Light visual system; every other value is a dark variant.
@@ -195,21 +229,6 @@ export const WidgetPlacementSchema = z.object({
   visible: z.boolean().default(true),
 });
 
-export const SubjectSchema = z.object({
-  id: z.string(),
-  semester: z.number().int().min(1).max(8),
-  name: z.string(),
-  faculty: z.string().default(""),
-  minRequired: z.number().min(0).max(100).default(75),
-  present: z.number().int().min(0).default(0),
-  absent: z.number().int().min(0).default(0),
-  createdAt: z.number(),
-});
-
-export const AttendanceSchema = z.object({
-  subjects: z.array(SubjectSchema).default([]),
-});
-
 export const TransactionSchema = z.object({
   id: z.string(),
   title: z.string(),
@@ -226,6 +245,8 @@ export const TransactionSchema = z.object({
 
 export const ExpensesSchema = z.object({
   transactions: z.array(TransactionSchema).default([]),
+  /** User-set monthly spending limit; zero means no budget has been configured. */
+  monthlyBudget: z.number().min(0).default(0),
 });
 
 /* ------------------------------------------------------------------ *
@@ -408,13 +429,20 @@ export const AppDataSchema = z.object({
     notifications: true,
     developerMode: false,
     modules: {
-      attendance: false,
       expenses: false,
       focus: true,
       cgpa: true,
       coding: true,
       career: true,
+      habits: true,
+      notes: true,
+      roadmaps: true,
+      projects: true,
+      planner: true,
     },
+    hasCompletedFirstLaunch: false,
+    onboardingCompleted: false,
+    graphicsQuality: "automatic",
     background: "aurora",
     accent: defaultAccentFor("aurora"),
     haptics: true,
@@ -423,8 +451,7 @@ export const AppDataSchema = z.object({
     soundVolume: DEFAULT_SOUND_VOLUME,
   }),
   widgets: z.array(WidgetPlacementSchema).default(() => defaultWidgetLayout()),
-  attendance: AttendanceSchema.default({ subjects: [] }),
-  expenses: ExpensesSchema.default({ transactions: [] }),
+  expenses: ExpensesSchema.default({ transactions: [], monthlyBudget: 0 }),
   focus: FocusSchema.default({ sessions: [], settings: createDefaultFocusSettings() }),
   cgpa: CgpaSchema.default({ semesters: [] }),
   notifications: NotificationsStateSchema.default(() => createDefaultNotifications()),
@@ -447,9 +474,9 @@ export type Habit = z.infer<typeof HabitSchema>;
 export type HabitLog = z.infer<typeof HabitLogSchema>;
 export type Goal = z.infer<typeof GoalSchema>;
 export type Profile = z.infer<typeof ProfileSchema>;
+export type ModuleFlags = z.infer<typeof ModuleFlagsSchema>;
+export type GraphicsQuality = z.infer<typeof GraphicsQualitySchema>;
 export type Preferences = z.infer<typeof PreferencesSchema>;
-export type Subject = z.infer<typeof SubjectSchema>;
-export type Attendance = z.infer<typeof AttendanceSchema>;
 export type Transaction = z.infer<typeof TransactionSchema>;
 export type Expenses = z.infer<typeof ExpensesSchema>;
 export type FocusSession = z.infer<typeof FocusSessionSchema>;

@@ -36,7 +36,6 @@ is `src/routes/__root.tsx`.
 | Aims / Goals        | `goals.tsx`                                                                                                                             |
 | Notes               | `notes.tsx` · `notes.index.tsx` · `notes.$noteId.tsx` · `notes.$noteId_.edit.tsx`                                                       |
 | Analytics           | `analytics.tsx`                                                                                                                         |
-| Attendance          | `attendance.tsx` · `attendance.index.tsx` · `attendance.$semester.tsx`                                                                  |
 | Expenses            | `expenses.tsx` · `expenses.index.tsx`                                                                                                   |
 | Code (DSA prep)     | `coding.tsx` · `coding.index.tsx`                                                                                                       |
 | Career (placements) | `career.tsx` · `career.index.tsx`                                                                                                       |

@@ -4,7 +4,6 @@ import {
   Activity,
   Braces,
   Briefcase,
-  CalendarCheck2,
   CheckCircle2,
   ChevronRight,
   GraduationCap,
@@ -17,6 +16,7 @@ import { Sparkline, getAxisLabel } from "@/components/common/Charts";
 import { StatValue, WidgetFrame, type WidgetProps } from "./WidgetFrame";
 import { useAppStore, useHydrated } from "@/store/useAppStore";
 import { focusTotals } from "@/lib/focus";
+import { dataForEnabledModules } from "@/lib/modules";
 import { effortByDay, focusDaily } from "@/lib/trends";
 import { codingStats } from "@/lib/coding";
 import { careerStats } from "@/lib/career";
@@ -134,11 +134,15 @@ export function MomentumWidget({ size, ...chrome }: WidgetProps) {
   const focusSessions = useAppStore((s) => s.focus.sessions);
   const codingProblems = useAppStore((s) => s.coding.problems);
   const roadmaps = useAppStore((s) => s.roadmaps);
+  const modules = useAppStore((s) => s.preferences.modules);
   const week = useMemo(() => {
     const data = useAppStore.getState() as unknown as AppData;
-    return effortByDay(data, 7).map((d) => ({ label: getAxisLabel(d.label), value: d.value }));
+    return effortByDay(dataForEnabledModules(data, modules), 7).map((d) => ({
+      label: getAxisLabel(d.label),
+      value: d.value,
+    }));
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [habitLogs, planner, focusSessions, codingProblems, roadmaps]);
+  }, [habitLogs, planner, focusSessions, codingProblems, roadmaps, modules]);
   const total = week.reduce((sum, d) => sum + d.value, 0);
   return (
     <WidgetFrame
@@ -391,71 +395,6 @@ export function CareerWidget({ size, ...chrome }: WidgetProps) {
           <Chip tone="success">{stats.offers} offers</Chip>
           <Chip tone="primary">{stats.referrals} referrals</Chip>
           <Chip>{stats.responseRate}% response</Chip>
-        </div>
-      ) : null}
-    </WidgetFrame>
-  );
-}
-
-/* ------------------------------- attendance ------------------------------ */
-
-export function AttendanceWidget({ size, ...chrome }: WidgetProps) {
-  const hydrated = useHydrated();
-  const subjects = useAppStore((s) => s.attendance.subjects);
-  const summary = useMemo(() => {
-    let present = 0;
-    let absent = 0;
-    for (const s of subjects) {
-      present += s.present;
-      absent += s.absent;
-    }
-    const total = present + absent;
-    return {
-      present,
-      total,
-      pct: total > 0 ? Math.round((present / total) * 100) : 0,
-      atRisk: subjects.filter((s) => {
-        const t = s.present + s.absent;
-        return t > 0 && (s.present / t) * 100 < s.minRequired;
-      }).length,
-    };
-  }, [subjects]);
-  const tone = summary.pct >= 75 ? "success" : summary.pct >= 65 ? "warning" : "danger";
-  return (
-    <WidgetFrame
-      size={size}
-      title="Attendance"
-      icon={<CalendarCheck2 className="h-3.5 w-3.5" strokeWidth={2} />}
-      action={
-        <Link
-          to="/attendance"
-          className="inline-flex items-center gap-0.5 text-[11px] text-muted-foreground transition-colors hover:text-foreground"
-        >
-          Open <ChevronRight className="h-3 w-3" />
-        </Link>
-      }
-      {...chrome}
-    >
-      <StatValue
-        value={hydrated && summary.total > 0 ? `${summary.pct}%` : "—"}
-        footnote={
-          hydrated ? (
-            summary.total > 0 ? (
-              <span>
-                {summary.present}/{summary.total} classes
-                {summary.atRisk > 0 ? ` · ${summary.atRisk} at risk` : ""}
-              </span>
-            ) : (
-              "Add subjects to track"
-            )
-          ) : (
-            "Loading…"
-          )
-        }
-      />
-      {hydrated && summary.total > 0 ? (
-        <div className="mt-3">
-          <ProgressBar value={summary.pct} tone={tone === "success" ? "success" : tone} />
         </div>
       ) : null}
     </WidgetFrame>

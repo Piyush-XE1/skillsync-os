@@ -14,6 +14,7 @@ import { useAppStore, useHydrated } from "@/store/useAppStore";
 import { haptics } from "@/lib/haptics";
 import { sound } from "@/lib/sound";
 import { cn } from "@/lib/utils";
+import { formatRupees, monthlySpendingPace } from "@/lib/expenses";
 import type { Transaction } from "@/lib/schema";
 
 export const Route = createFileRoute("/expenses/")({
@@ -326,12 +327,16 @@ function ExpensesPage() {
   const hydrated = useHydrated();
   const enabled = useAppStore((s) => s.preferences.modules.expenses);
   const transactions = useAppStore((s) => s.expenses.transactions);
+  const monthlyBudget = useAppStore((s) => s.expenses.monthlyBudget);
+  const setMonthlyExpenseBudget = useAppStore((s) => s.setMonthlyExpenseBudget);
   const addTransaction = useAppStore((s) => s.addTransaction);
   const updateTransaction = useAppStore((s) => s.updateTransaction);
   const deleteTransaction = useAppStore((s) => s.deleteTransaction);
   const setTransactionOrder = useAppStore((s) => s.setTransactionOrder);
 
   const [addOpen, setAddOpen] = useState(false);
+  const [budgetOpen, setBudgetOpen] = useState(false);
+  const [budgetDraft, setBudgetDraft] = useState("");
   const [title, setTitle] = useState("");
   const [amount, setAmount] = useState("");
   const [type, setType] = useState<"credit" | "debit">("debit");
@@ -407,6 +412,27 @@ function ExpensesPage() {
         return { key, label: monthLabel(key), list, credit, debit, balance: credit - debit };
       });
   }, [transactions, query, filter]);
+
+  const pace = monthlySpendingPace(transactions, monthlyBudget);
+  const paceLabel = !pace
+    ? "Set a monthly budget to see your daily pace."
+    : pace.remaining < 0
+      ? `${formatRupees(Math.abs(pace.remaining))} over budget this month`
+      : `${formatRupees(pace.perDay)}/day remaining for the next ${pace.daysRemaining} days`;
+
+  const saveBudget = () => {
+    const value = budgetDraft.trim() === "" ? 0 : Number(budgetDraft);
+    if (!Number.isFinite(value) || value < 0) {
+      haptics.error();
+      sound.error();
+      toast.error("Enter a valid monthly budget");
+      return;
+    }
+    setMonthlyExpenseBudget(value);
+    setBudgetOpen(false);
+    haptics.success();
+    sound.success();
+  };
 
   const submit = () => {
     if (addGuard.current) return;
@@ -485,7 +511,37 @@ function ExpensesPage() {
         <PrimaryAction label="Add Expense" onClick={() => setAddOpen(true)} />
       </header>
 
-      <div className="space-y-4 px-5 lg:px-2 pb-24">
+      <div className="space-y-4 px-5 pb-24 lg:px-2">
+        <div className="card-surface flex items-center gap-3 rounded-[17px] px-4 py-3.5">
+          <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-[color-mix(in_oklab,var(--primary)_12%,transparent)] text-[var(--primary-glow)]">
+            <TrendingDown className="h-4 w-4" strokeWidth={1.8} />
+          </span>
+          <div className="min-w-0 flex-1" role="status" aria-live="polite">
+            <div className="text-[10px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">
+              Monthly spending pace
+            </div>
+            <div
+              title={paceLabel}
+              className={cn(
+                "truncate text-[12.5px] font-medium",
+                pace && pace.remaining < 0 ? "text-[var(--danger)]" : "text-foreground",
+              )}
+            >
+              {paceLabel}
+            </div>
+          </div>
+          <button
+            type="button"
+            onClick={() => {
+              setBudgetDraft(monthlyBudget > 0 ? String(monthlyBudget) : "");
+              setBudgetOpen(true);
+            }}
+            className="pressable shrink-0 rounded-full border border-border px-3 py-2 text-[11px] font-semibold text-[var(--primary-glow)] transition-colors hover:bg-white/[0.04]"
+          >
+            {monthlyBudget > 0 ? "Edit budget" : "Set budget"}
+          </button>
+        </div>
+
         <div className="relative">
           <Search
             className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground/70"
@@ -665,6 +721,31 @@ function ExpensesPage() {
           </div>
           <ActionButton className="w-full" onClick={submit}>
             Save
+          </ActionButton>
+        </div>
+      </BottomSheet>
+
+      <BottomSheet
+        open={budgetOpen}
+        onClose={() => setBudgetOpen(false)}
+        title="Monthly spending budget"
+        description="Set a monthly cap to see your safe daily pace. Set 0 to clear it."
+      >
+        <div className="space-y-3 pb-2">
+          <label className="block space-y-1.5">
+            <span className="text-[12px] text-muted-foreground">Budget · ₹</span>
+            <TextField
+              autoFocus
+              type="number"
+              inputMode="decimal"
+              min="0"
+              value={budgetDraft}
+              onChange={(event) => setBudgetDraft(event.target.value)}
+              placeholder="e.g. 12000"
+            />
+          </label>
+          <ActionButton className="w-full" onClick={saveBudget}>
+            Save monthly budget
           </ActionButton>
         </div>
       </BottomSheet>

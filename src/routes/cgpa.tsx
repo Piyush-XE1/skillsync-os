@@ -1,4 +1,4 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { createFileRoute, Link, Navigate } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
 import { toast } from "sonner";
 import {
@@ -39,6 +39,7 @@ export const Route = createFileRoute("/cgpa")({
 
 function CgpaPage() {
   const hydrated = useHydrated();
+  const enabled = useAppStore((s) => s.preferences.modules.cgpa);
   const semesters = useAppStore((s) => s.cgpa.semesters);
   const addCgpaSemester = useAppStore((s) => s.addCgpaSemester);
   const deleteCgpaSemester = useAppStore((s) => s.deleteCgpaSemester);
@@ -85,6 +86,8 @@ function CgpaPage() {
     sound.success();
     toast.success(`Semester ${next} added`);
   };
+
+  if (hydrated && !enabled) return <Navigate to="/profile/modules" />;
 
   return (
     <AppShell>

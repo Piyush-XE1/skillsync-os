@@ -19,7 +19,6 @@ import {
   Timer,
   Trophy,
   Wallet,
-  CalendarCheck2,
 } from "lucide-react";
 import { toast } from "sonner";
 import { Card, Chip, ProgressBar } from "@/components/ui/primitives";
@@ -30,6 +29,7 @@ import { roadmapPct, topicPct } from "@/lib/progress";
 import { todayISO } from "@/lib/date";
 import { dailyQuote } from "@/lib/quotes";
 import { composeReview } from "@/lib/review";
+import { dataForEnabledModules } from "@/lib/modules";
 import { GOAL_PRESETS, unusedPresets } from "@/lib/goals";
 import { habitStreak } from "@/lib/habit-streaks";
 import { fireConfetti } from "@/lib/confetti";
@@ -340,12 +340,13 @@ export function WeekReviewWidget({ size, ...chrome }: WidgetProps) {
   const focusSessions = useAppStore((s) => s.focus.sessions);
   const codingProblems = useAppStore((s) => s.coding.problems);
   const roadmaps = useAppStore((s) => s.roadmaps);
+  const modules = useAppStore((s) => s.preferences.modules);
 
   const review = useMemo(() => {
     const data = useAppStore.getState() as unknown as AppData;
-    return composeReview(data);
+    return composeReview(dataForEnabledModules(data, modules));
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [habitLogs, planner, focusSessions, codingProblems, roadmaps]);
+  }, [habitLogs, planner, focusSessions, codingProblems, roadmaps, modules]);
 
   const maxScore = Math.max(1, ...review.days.map((d) => d.score));
 
@@ -552,19 +553,17 @@ type Shortcut = { icon: typeof BookOpen; label: string; to: string };
 export function QuickAccessWidget({ size, ...chrome }: WidgetProps) {
   const modules = useAppStore((s) => s.preferences.modules);
   const shortcuts = useMemo<Shortcut[]>(() => {
-    const base: Shortcut[] = [
-      { icon: BookOpen, label: "Learn", to: "/learn" },
-      { icon: FolderKanban, label: "Projects", to: "/projects" },
-      { icon: StickyNote, label: "Notes", to: "/notes" },
-      { icon: CalendarClock, label: "Planner", to: "/planner" },
-    ];
+    const base: Shortcut[] = [];
+    if (modules.roadmaps) base.push({ icon: BookOpen, label: "Roadmaps", to: "/learn" });
+    if (modules.projects) base.push({ icon: FolderKanban, label: "Projects", to: "/projects" });
+    if (modules.notes) base.push({ icon: StickyNote, label: "Notes", to: "/notes" });
+    if (modules.planner) base.push({ icon: CalendarClock, label: "Planner", to: "/planner" });
+    if (modules.habits) base.push({ icon: Sparkles, label: "Habits", to: "/habits" });
     if (modules.focus) base.push({ icon: Timer, label: "Focus", to: "/focus" });
-    if (modules.coding) base.push({ icon: Braces, label: "DSA", to: "/coding" });
+    if (modules.coding) base.push({ icon: Braces, label: "LeetCode", to: "/coding" });
     if (modules.career) base.push({ icon: Briefcase, label: "Career", to: "/career" });
     if (modules.cgpa) base.push({ icon: GraduationCap, label: "CGPA", to: "/cgpa" });
     if (modules.expenses) base.push({ icon: Wallet, label: "Expenses", to: "/expenses" });
-    if (modules.attendance)
-      base.push({ icon: CalendarCheck2, label: "Attendance", to: "/attendance" });
     return base;
   }, [modules]);
 

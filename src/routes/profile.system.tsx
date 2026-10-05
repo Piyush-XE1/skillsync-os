@@ -110,7 +110,6 @@ function SystemPage() {
             <Row label="Focus sessions" value={snapshot.records.focusSessions} />
             <Row label="Focus minutes" value={snapshot.records.focusMinutes} />
             <Row label="CGPA semesters" value={snapshot.records.cgpaSemesters} />
-            <Row label="Attendance subjects" value={snapshot.records.subjects} />
             <Row label="Transactions" value={snapshot.records.transactions} />
             <Row label="Notifications" value={snapshot.records.notifications} />
           </Card>

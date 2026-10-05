@@ -23,7 +23,6 @@ export type SystemSnapshot = {
     habits: number;
     habitCheckIns: number;
     goals: number;
-    subjects: number;
     transactions: number;
     focusSessions: number;
     focusMinutes: number;
@@ -68,7 +67,6 @@ export function systemSnapshot(data: AppData): SystemSnapshot {
       habits: data.habits.length,
       habitCheckIns: data.habitLogs.length,
       goals: data.goals.length,
-      subjects: data.attendance.subjects.length,
       transactions: data.expenses.transactions.length,
       focusSessions: focus.totalSessions,
       focusMinutes: focus.totalMinutes,

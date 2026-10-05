@@ -7,7 +7,6 @@ import {
   GraduationCap,
   FolderKanban,
   CalendarRange,
-  CalendarCheck,
   Flame,
   Wallet,
   User,
@@ -21,11 +20,14 @@ import {
   Target,
   CalendarHeart,
   Sparkles,
+  Plus,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { haptics } from "@/lib/haptics";
 import { sound } from "@/lib/sound";
 import { useAppStore } from "@/store/useAppStore";
+import { useUiStore } from "@/store/useUiStore";
+import type { ModuleKey } from "@/lib/schema";
 
 type Item = {
   to:
@@ -33,8 +35,8 @@ type Item = {
     | "/learn"
     | "/projects"
     | "/planner"
-    | "/attendance"
     | "/habits"
+    | "/notes"
     | "/expenses"
     | "/focus"
     | "/cgpa"
@@ -49,19 +51,19 @@ type Item = {
   icon: typeof LayoutDashboard;
   exact?: boolean;
   /** Module flag that gates this entry. */
-  module?: "attendance" | "expenses" | "focus" | "cgpa" | "coding" | "career";
+  module?: ModuleKey;
   kbd?: string;
 };
 
 const items: Item[] = [
   { to: "/", label: "Dashboard", icon: LayoutDashboard, exact: true },
-  { to: "/learn", label: "Learn", icon: GraduationCap },
+  { to: "/learn", label: "Roadmaps", icon: GraduationCap, module: "roadmaps" },
   { to: "/focus", label: "Focus", icon: Timer, module: "focus", kbd: "F" },
-  { to: "/projects", label: "Projects", icon: FolderKanban },
-  { to: "/planner", label: "Planner", icon: CalendarRange },
+  { to: "/projects", label: "Projects", icon: FolderKanban, module: "projects" },
+  { to: "/planner", label: "Planner", icon: CalendarRange, module: "planner" },
   { to: "/cgpa", label: "CGPA", icon: Award, module: "cgpa" },
-  { to: "/attendance", label: "Attendance", icon: CalendarCheck, module: "attendance" },
-  { to: "/habits", label: "Habits", icon: Flame },
+  { to: "/habits", label: "Habits", icon: Flame, module: "habits" },
+  { to: "/notes", label: "Notes", icon: Sparkles, module: "notes" },
   { to: "/expenses", label: "Expenses", icon: Wallet, module: "expenses" },
   { to: "/coding", label: "Code", icon: Braces, module: "coding", kbd: "C" },
   { to: "/career", label: "Career", icon: Briefcase, module: "career" },
@@ -87,6 +89,7 @@ function readCollapsed(): boolean {
 export function SideNav() {
   const pathname = useRouterState({ select: (s) => s.location.pathname });
   const modules = useAppStore((s) => s.preferences.modules);
+  const openQuickCapture = useUiStore((s) => s.openQuickCapture);
   // Lazy initial state: AppShell remounts on every navigation, so reading the
   // persisted value in an effect made the sidebar flash expanded for a frame
   // on every route change. Initializing synchronously keeps it stable.
@@ -197,6 +200,24 @@ export function SideNav() {
           );
         })}
       </nav>
+
+      <button
+        type="button"
+        title={collapsed ? "Quick capture" : undefined}
+        aria-label="Quick capture"
+        onClick={() => {
+          haptics.tap();
+          sound.open();
+          openQuickCapture();
+        }}
+        className={cn(
+          "pressable mt-2 flex items-center gap-3 rounded-[14px] border border-[color-mix(in_oklab,var(--primary)_28%,transparent)] bg-[color-mix(in_oklab,var(--primary)_8%,var(--surface))] px-3 py-3 text-[var(--primary-glow)] transition-colors hover:bg-[color-mix(in_oklab,var(--primary)_14%,var(--surface))]",
+          collapsed && "justify-center px-0",
+        )}
+      >
+        <Plus className="h-[18px] w-[18px] shrink-0" strokeWidth={2} />
+        {collapsed ? null : <span className="text-[13px] font-semibold">Quick capture</span>}
+      </button>
     </aside>
   );
 }

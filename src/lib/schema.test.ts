@@ -24,18 +24,25 @@ describe("schema", () => {
     expect(parsed.preferences.background).toBe("aurora");
     expect(parsed.preferences.accent).toBe("#7c3aed");
     expect(parsed.preferences.modules).toEqual({
-      attendance: false,
       expenses: false,
       focus: true,
       cgpa: true,
       coding: true,
       career: true,
+      habits: true,
+      notes: true,
+      roadmaps: true,
+      projects: true,
+      planner: true,
     });
+    expect(parsed.preferences.hasCompletedFirstLaunch).toBe(false);
+    expect(parsed.preferences.onboardingCompleted).toBe(false);
+    expect(parsed.preferences.graphicsQuality).toBe("automatic");
     // The reward system is gone: no XP, levels or badges anywhere.
     expect(parsed.goals).toEqual([]);
     expect("stats" in parsed).toBe(false);
-    expect(parsed.attendance).toEqual({ subjects: [] });
-    expect(parsed.expenses).toEqual({ transactions: [] });
+    expect(parsed).not.toHaveProperty("attendance");
+    expect(parsed.expenses).toEqual({ transactions: [], monthlyBudget: 0 });
     expect(parsed.focus.sessions).toEqual([]);
     expect(parsed.cgpa.semesters).toEqual([]);
     // The Resume builder was removed in v12: no record block anywhere.

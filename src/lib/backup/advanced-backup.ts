@@ -463,7 +463,6 @@ const CHANGE_MODULES: Array<{ key: keyof AppData; hasId: boolean }> = [
   { key: "preferences", hasId: false },
   { key: "widgets", hasId: false },
   { key: "goals", hasId: true },
-  { key: "attendance", hasId: false },
   { key: "expenses", hasId: false },
   { key: "focus", hasId: false },
   { key: "cgpa", hasId: false },
@@ -1098,7 +1097,6 @@ export function countRecords(data: AppData): Record<string, number> {
   counts.plannerTasks = data?.planner?.length ?? 0;
   counts.habits = data?.habits?.length ?? 0;
   counts.habitLogs = data?.habitLogs?.length ?? 0;
-  counts.subjects = data?.attendance?.subjects?.length ?? 0;
   counts.transactions = data?.expenses?.transactions?.length ?? 0;
   counts.focusSessions = data?.focus?.sessions?.length ?? 0;
   counts.cgpaSubjects =
@@ -1116,7 +1114,6 @@ const SUMMARY_LABELS: Array<[keyof AppData | string, string]> = [
   ["projects", "Projects"],
   ["planner", "Planner tasks"],
   ["habits", "Habits"],
-  ["attendance", "Attendance"],
   ["expenses", "Expenses"],
   ["focus", "Focus"],
   ["cgpa", "CGPA"],
@@ -1144,7 +1141,6 @@ export function getBackupSummary(data: AppData): {
     { key: "projects", label: "Projects", count: counts.projects },
     { key: "planner", label: "Planner", count: counts.plannerTasks },
     { key: "habits", label: "Habits", count: counts.habits + counts.habitLogs },
-    { key: "attendance", label: "Attendance", count: counts.subjects },
     { key: "expenses", label: "Expenses", count: counts.transactions },
     { key: "focus", label: "Focus", count: counts.focusSessions },
     { key: "cgpa", label: "CGPA", count: counts.cgpaSubjects },

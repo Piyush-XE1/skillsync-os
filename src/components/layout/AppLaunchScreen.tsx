@@ -1,13 +1,13 @@
 import { useEffect, useRef, useState } from "react";
-import { MARK_RIBBON_PATH, MARK_CREST_PATH, MARK_VIEWBOX } from "@/components/brand/SkillSyncLogo";
-
-/**
- * Module-scope guard. A fresh document load (cold app launch, PWA/APK relaunch
- * after termination, hard reload) creates a fresh module instance, so the opening
- * sequence plays. React re-mounts, route changes, tab switches, modals, theme
- * switches and foreground returns reuse this module, so they never replay it.
- */
-let launchPlayed = false;
+import {
+  MARK_RIBBON_PATH,
+  MARK_CREST_PATH,
+  MARK_VIEWBOX,
+  SkillSyncLogo,
+} from "@/components/brand/SkillSyncLogo";
+import { useAppStore, useHydrated } from "@/store/useAppStore";
+import { useUiStore } from "@/store/useUiStore";
+import { shouldUseBatterySaver } from "@/lib/graphics-quality";
 
 /**
  * Cinematic phase timings (ms).
@@ -29,6 +29,8 @@ const P = {
 const EXIT_MS = 450;
 const REDUCED_TIMELINE = 550;
 const REDUCED_EXIT = 220;
+const FAST_WARMUP_MS = 145;
+const FAST_EXIT_MS = 115;
 const MAX_WAIT = 5000;
 
 function prefersReducedMotion() {
@@ -52,52 +54,146 @@ function appReady(): Promise<void> {
  *
  * Choreography:
  *  - Quantum singularity spark ignites the dark atmospheric void
- *  - Dual energetic streamers (amethyst violet & electric cyan) orbit in counter-harmony
+ *  - Dual champagne-brass streamers orbit in counter-harmony
  *  - Streamers converge and trace the iconic SkillSync S-ribbon geometry
  *  - Harmonic sync lock: Coronal plasma burst + diagonal specular glass sweep
  *  - Kinetic typographic reveal: SKILLSYNC OS + ALIGN • CONNECT • ELEVATE
  *  - Celestial iris dissolve into the live interactive Dashboard
  */
 export function AppLaunchScreen() {
+  const hydrated = useHydrated();
+  const replayToken = useUiStore((state) => state.launchReplayToken);
   const [visible, setVisible] = useState(false);
   const [leaving, setLeaving] = useState(false);
-  const reduced = useRef(false);
+  const [cinematic, setCinematic] = useState(false);
+  const [reduced, setReduced] = useState(false);
+  const initialStarted = useRef(false);
+  const handledReplayToken = useRef(0);
 
   useEffect(() => {
-    if (launchPlayed) return;
-    launchPlayed = true;
-    reduced.current = prefersReducedMotion();
+    if (!hydrated) return;
+
+    const manualReplay = replayToken !== handledReplayToken.current;
+    if (manualReplay) {
+      handledReplayToken.current = replayToken;
+    } else {
+      if (initialStarted.current) return;
+      initialStarted.current = true;
+    }
+
+    const firstLaunch =
+      !manualReplay && !useAppStore.getState().preferences.hasCompletedFirstLaunch;
+    const playCinematic = manualReplay || firstLaunch;
+    const preferences = useAppStore.getState().preferences;
+    const useReducedSequence =
+      typeof window !== "undefined" &&
+      shouldUseBatterySaver(
+        preferences.graphicsQuality,
+        typeof navigator !== "undefined" ? navigator.hardwareConcurrency : undefined,
+        prefersReducedMotion(),
+      );
+    const duration = playCinematic
+      ? useReducedSequence
+        ? REDUCED_TIMELINE
+        : P.exit
+      : FAST_WARMUP_MS;
+    const exitDuration = playCinematic
+      ? useReducedSequence
+        ? REDUCED_EXIT
+        : EXIT_MS
+      : FAST_EXIT_MS;
+    const runFirstLaunch = firstLaunch;
+
+    setCinematic(playCinematic);
+    setReduced(useReducedSequence);
+    setLeaving(false);
     setVisible(true);
 
-    const timeline = reduced.current ? REDUCED_TIMELINE : P.exit;
-    const started = performance.now();
     let done = false;
+    let disposed = false;
+    let finishTimer: number | undefined;
+    let hideTimer: number | undefined;
+    let minWaitTimer: number | undefined;
+    const started = performance.now();
 
     const finish = () => {
-      if (done) return;
+      if (done || disposed) return;
       done = true;
       setLeaving(true);
-      window.setTimeout(() => setVisible(false), reduced.current ? REDUCED_EXIT : EXIT_MS);
+      hideTimer = window.setTimeout(() => {
+        setVisible(false);
+        if (runFirstLaunch) {
+          useAppStore.getState().updatePreferences({ hasCompletedFirstLaunch: true });
+        }
+      }, exitDuration);
     };
 
-    const minWait = new Promise<void>((res) => window.setTimeout(res, timeline));
-    const cap = window.setTimeout(finish, MAX_WAIT);
+    if (!playCinematic) {
+      finishTimer = window.setTimeout(finish, duration);
+    } else {
+      const minWait = new Promise<void>((resolve) => {
+        minWaitTimer = window.setTimeout(resolve, duration);
+      });
+      const cap = window.setTimeout(finish, MAX_WAIT);
+      void Promise.all([minWait, appReady()]).then(() => {
+        if (disposed) return;
+        window.clearTimeout(cap);
+        const elapsed = performance.now() - started;
+        finishTimer = window.setTimeout(finish, Math.max(0, duration - elapsed));
+      });
+      return () => {
+        disposed = true;
+        window.clearTimeout(cap);
+        if (finishTimer !== undefined) window.clearTimeout(finishTimer);
+        if (hideTimer !== undefined) window.clearTimeout(hideTimer);
+        if (minWaitTimer !== undefined) window.clearTimeout(minWaitTimer);
+      };
+    }
 
-    void Promise.all([minWait, appReady()]).then(() => {
-      const elapsed = performance.now() - started;
-      window.setTimeout(finish, Math.max(0, timeline - elapsed));
-    });
-
-    return () => window.clearTimeout(cap);
-  }, []);
+    return () => {
+      disposed = true;
+      if (finishTimer !== undefined) window.clearTimeout(finishTimer);
+      if (hideTimer !== undefined) window.clearTimeout(hideTimer);
+    };
+  }, [hydrated, replayToken]);
 
   if (!visible) return null;
-  const r = reduced.current;
+  const r = reduced;
+
+  if (!cinematic) {
+    return (
+      <div
+        aria-hidden="true"
+        className="pointer-events-none fixed inset-0 z-[95] flex flex-col items-center justify-center bg-background px-6 select-none"
+        style={{
+          paddingBottom: "env(safe-area-inset-bottom)",
+          opacity: leaving ? 0 : 1,
+          transform: leaving ? "scale(1.018)" : "scale(1)",
+          transition: `opacity ${FAST_EXIT_MS}ms cubic-bezier(0.2, 0.8, 0.2, 1), transform ${FAST_EXIT_MS}ms cubic-bezier(0.2, 0.8, 0.2, 1)`,
+          willChange: "opacity, transform",
+        }}
+      >
+        <style>{`@keyframes ssx-fast-warmup-in { from { opacity: 0; transform: scale(.975); } to { opacity: 1; transform: scale(1); } }`}</style>
+        <div
+          className="flex flex-col items-center"
+          style={{ animation: "ssx-fast-warmup-in 90ms ease-out both" }}
+        >
+          <SkillSyncLogo size={46} />
+          <div className="mt-4 text-[15px] font-semibold tracking-[0.18em] text-foreground">
+            SkillSync <span className="text-[var(--primary)]">OS</span>
+          </div>
+          <div className="mt-1.5 text-[9px] font-semibold uppercase tracking-[0.32em] text-muted-foreground/75">
+            Your workspace, ready
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div
       aria-hidden="true"
-      className="pointer-events-none fixed inset-0 z-[95] flex flex-col items-center justify-center overflow-hidden bg-[#040714] px-6 select-none"
+      className="pointer-events-none fixed inset-0 z-[95] flex flex-col items-center justify-center overflow-hidden bg-[#0d0d0f] px-6 select-none"
       style={{
         paddingBottom: "env(safe-area-inset-bottom)",
         opacity: leaving ? 0 : 1,
@@ -111,7 +207,7 @@ export function AppLaunchScreen() {
         className="pointer-events-none absolute left-1/2 top-1/2 h-[min(130vw,600px)] w-[min(130vw,600px)] rounded-full"
         style={{
           background:
-            "radial-gradient(circle, rgba(124,58,237,0.32) 0%, rgba(6,182,212,0.20) 35%, rgba(16,185,129,0.08) 55%, transparent 72%)",
+            "radial-gradient(circle, rgba(201,163,92,0.22) 0%, rgba(201,163,92,0.10) 35%, rgba(255,255,255,0.025) 55%, transparent 72%)",
           filter: "blur(48px)",
           transform: "translate(-50%, -50%)",
           opacity: "var(--launch-glow, 1)",
@@ -126,13 +222,13 @@ export function AppLaunchScreen() {
       {!r ? (
         <>
           <div
-            className="pointer-events-none absolute left-1/2 top-1/2 h-[180px] w-[180px] -translate-x-1/2 -translate-y-1/2 rounded-full border border-cyan-400/30"
+            className="pointer-events-none absolute left-1/2 top-1/2 h-[180px] w-[180px] -translate-x-1/2 -translate-y-1/2 rounded-full border border-[color-mix(in_oklab,var(--primary)_30%,transparent)]"
             style={{
               animation: `ssx-shockwave-1 1200ms cubic-bezier(0.1, 0.8, 0.2, 1) ${P.orbit}ms both`,
             }}
           />
           <div
-            className="pointer-events-none absolute left-1/2 top-1/2 h-[260px] w-[260px] -translate-x-1/2 -translate-y-1/2 rounded-full border border-violet-500/25"
+            className="pointer-events-none absolute left-1/2 top-1/2 h-[260px] w-[260px] -translate-x-1/2 -translate-y-1/2 rounded-full border border-[color-mix(in_oklab,var(--primary)_22%,transparent)]"
             style={{
               animation: `ssx-shockwave-2 1500ms cubic-bezier(0.1, 0.8, 0.2, 1) ${P.orbit + 180}ms both`,
             }}
@@ -153,20 +249,19 @@ export function AppLaunchScreen() {
       >
         <svg viewBox={MARK_VIEWBOX} className="h-auto w-full overflow-visible" role="presentation">
           <defs>
-            {/* Upper Amethyst-Violet Gradient */}
+            {/* Warm Atelier brass, with restrained champagne highlights. */}
             <linearGradient id="ssx-grad-a" x1="0.1" y1="0" x2="0.9" y2="1">
-              <stop offset="0%" stopColor="#c084fc" />
-              <stop offset="35%" stopColor="#a855f7" />
-              <stop offset="70%" stopColor="#7c3aed" />
-              <stop offset="100%" stopColor="#3b82f6" />
+              <stop offset="0%" stopColor="#f3dfb3" />
+              <stop offset="35%" stopColor="#dfc17f" />
+              <stop offset="70%" stopColor="#c9a35c" />
+              <stop offset="100%" stopColor="#8c6f3d" />
             </linearGradient>
 
-            {/* Lower Cyan-Azure Gradient */}
             <linearGradient id="ssx-grad-b" x1="0.9" y1="1" x2="0.1" y2="0">
-              <stop offset="0%" stopColor="#67e8f9" />
-              <stop offset="35%" stopColor="#22d3ee" />
-              <stop offset="70%" stopColor="#0ea5e9" />
-              <stop offset="100%" stopColor="#3b82f6" />
+              <stop offset="0%" stopColor="#f7e8c7" />
+              <stop offset="35%" stopColor="#d8bd83" />
+              <stop offset="70%" stopColor="#a98549" />
+              <stop offset="100%" stopColor="#66502f" />
             </linearGradient>
 
             {/* Specular Ridge Glint */}
@@ -216,7 +311,7 @@ export function AppLaunchScreen() {
                   y1="46"
                   x2="60"
                   y2="74"
-                  stroke="#e0f2fe"
+                  stroke="#ead8b1"
                   strokeWidth="1.2"
                   strokeLinecap="round"
                 />
@@ -225,14 +320,14 @@ export function AppLaunchScreen() {
                   y1="60"
                   x2="74"
                   y2="60"
-                  stroke="#e0f2fe"
+                  stroke="#ead8b1"
                   strokeWidth="1.2"
                   strokeLinecap="round"
                 />
               </g>
 
               {/* Phase 2: Dual Orbital Energy Arcs */}
-              {/* Upper Violet Orbital Stream */}
+              {/* Upper Brass Orbital Stream */}
               <circle
                 cx="60"
                 cy="60"
@@ -248,7 +343,7 @@ export function AppLaunchScreen() {
                   animation: `ssx-orbit-a 950ms cubic-bezier(0.35, 0, 0.25, 1) ${P.orbit}ms both`,
                 }}
               />
-              {/* Lower Cyan Orbital Stream */}
+              {/* Lower Champagne Orbital Stream */}
               <circle
                 cx="60"
                 cy="60"
@@ -269,13 +364,13 @@ export function AppLaunchScreen() {
 
           {/* Phase 3 & 4: Dual Ribbon Construction + Solidification */}
           <g filter="url(#ssx-luminous-glow)">
-            {/* Half A (Upper Violet Ribbon) */}
+            {/* Half A (Upper Brass Ribbon) */}
             <g>
               {!r ? (
                 <path
                   d={MARK_RIBBON_PATH}
                   fill="none"
-                  stroke="#c084fc"
+                  stroke="#c9a35c"
                   strokeWidth="1.8"
                   strokeLinecap="round"
                   pathLength={100}
@@ -308,13 +403,13 @@ export function AppLaunchScreen() {
               />
             </g>
 
-            {/* Half B (Lower Cyan Ribbon, Rotated 180) */}
+            {/* Half B (Lower Champagne Ribbon, Rotated 180) */}
             <g transform="rotate(180 60 60)">
               {!r ? (
                 <path
                   d={MARK_RIBBON_PATH}
                   fill="none"
-                  stroke="#67e8f9"
+                  stroke="#e6d3aa"
                   strokeWidth="1.8"
                   strokeLinecap="round"
                   pathLength={100}
@@ -393,12 +488,8 @@ export function AppLaunchScreen() {
             : `ssx-brand-unveil 650ms cubic-bezier(0.16, 1, 0.3, 1) ${P.brand}ms both`,
         }}
       >
-        <span className="bg-gradient-to-r from-white via-white/95 to-white/80 bg-clip-text text-transparent">
-          SkillSync
-        </span>{" "}
-        <span className="bg-gradient-to-r from-violet-400 via-fuchsia-400 to-cyan-400 bg-clip-text font-black text-transparent drop-shadow-[0_0_12px_rgba(168,85,247,0.4)]">
-          OS
-        </span>
+        <span className="text-white/95">SkillSync</span>{" "}
+        <span className="font-black text-[var(--primary)]">OS</span>
       </div>
 
       {/* 5. Subtitle Tagline Reveal */}
@@ -411,9 +502,9 @@ export function AppLaunchScreen() {
         }}
       >
         <span>Align</span>
-        <span className="h-1 w-1 rounded-full bg-violet-400 shadow-[0_0_6px_#a855f7]" />
+        <span className="h-1 w-1 rounded-full bg-[var(--primary)]" />
         <span>Connect</span>
-        <span className="h-1 w-1 rounded-full bg-cyan-400 shadow-[0_0_6px_#22d3ee]" />
+        <span className="h-1 w-1 rounded-full bg-[color-mix(in_oklab,var(--primary)_65%,white)]" />
         <span>Elevate</span>
       </div>
 
