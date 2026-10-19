@@ -1299,7 +1299,12 @@ export async function disconnectCloud(
   opts: { forget?: boolean } = {},
 ): Promise<void> {
   if (opts.forget !== false) await saveCloudToken(provider, null);
-  setCloudBackupConfig({ provider, enabled: false, lastSyncAt: undefined });
+  setCloudBackupConfig({
+    provider,
+    enabled: false,
+    lastSyncAt: undefined,
+    ...(opts.forget !== false ? { refreshToken: undefined, tokenExpiresAt: undefined } : {}),
+  });
 }
 
 export async function currentToken(provider: CloudProvider): Promise<string | null> {

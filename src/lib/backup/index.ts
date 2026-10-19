@@ -155,6 +155,8 @@ export {
   disconnectCloud,
   currentToken,
   requestGoogleToken,
+  connectGoogleHandsFree,
+  googleHandsFreeConfig,
   startDropboxSignIn,
   consumeCloudRedirect,
   cloudRedirectTarget,
