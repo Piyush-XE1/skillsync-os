@@ -8,3 +8,5 @@
 > Commits you push to the connected branch sync back to Lovable and show up in
 > the editor, so keep the branch in a working state.
 <!-- LOVABLE:END -->
+
+- Google Drive hands-free backup: the client secret lives only in server functions (`src/lib/backup/google-oauth.functions.ts`), which are stateless token swaps; refresh tokens stay on the device. Why: keeps local-first while allowing unattended uploads.
