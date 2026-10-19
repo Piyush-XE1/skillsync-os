@@ -37,6 +37,8 @@ import {
   describeCloudProvider,
   getCloudExtras,
   requestGoogleToken,
+  connectGoogleHandsFree,
+  googleHandsFreeConfig,
   startDropboxSignIn,
   type CloudField,
 } from "@/lib/backup/cloud";
@@ -299,6 +301,18 @@ function CloudSetupSheet({
   const [values, setValues] = useState<FormValues>({});
   const [secretSaved, setSecretSaved] = useState(false);
   const [signingIn, setSigningIn] = useState(false);
+  const [handsFree, setHandsFree] = useState<{ clientId: string } | null>(null);
+
+  useEffect(() => {
+    if (provider !== "google-drive") return;
+    let alive = true;
+    void googleHandsFreeConfig().then((config) => {
+      if (alive) setHandsFree(config);
+    });
+    return () => {
+      alive = false;
+    };
+  }, [provider]);
 
   useEffect(() => {
     let alive = true;
@@ -322,7 +336,11 @@ function CloudSetupSheet({
   if (!descriptor) return null;
 
   const requiredMissing = descriptor.fields.some(
-    (field) => field.required && !values[field.key] && !(field.secret && secretSaved),
+    (field) =>
+      field.required &&
+      !values[field.key] &&
+      !(field.secret && secretSaved) &&
+      !(handsFree && field.key === "clientId"),
   );
 
   const save = async () => {
@@ -339,8 +357,10 @@ function CloudSetupSheet({
   const googleSignIn = async () => {
     setSigningIn(true);
     try {
-      const clientId = (values.clientId ?? "").trim();
-      const result = await requestGoogleToken(clientId);
+      const clientId = handsFree?.clientId ?? (values.clientId ?? "").trim();
+      const result = handsFree
+        ? await connectGoogleHandsFree(clientId)
+        : await requestGoogleToken(clientId);
       if (!result.ok) {
         toast.error(result.hint ? `${result.error} ${result.hint}` : result.error);
         return;
@@ -395,7 +415,7 @@ function CloudSetupSheet({
           <Button
             variant="outline"
             className="w-full"
-            disabled={signingIn || !(values.clientId ?? "").trim()}
+            disabled={signingIn || !(handsFree || (values.clientId ?? "").trim())}
             onClick={() => void googleSignIn()}
           >
             {signingIn ? (
@@ -405,6 +425,12 @@ function CloudSetupSheet({
             )}
             Connect with Google
           </Button>
+        )}
+        {provider === "google-drive" && handsFree && (
+          <p className="text-xs text-muted-foreground">
+            Stays signed in: automatic copies upload to Drive on schedule without asking again.
+            No client id needed.
+          </p>
         )}
         {provider === "dropbox" && (
           <Button

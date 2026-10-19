@@ -514,6 +514,92 @@ export async function requestGoogleToken(
   });
 }
 
+async function refreshGoogleDriveToken(refreshToken: string): Promise<string | null> {
+  try {
+    const { refreshGoogleToken } = await import("./google-oauth.functions");
+    const reply = await refreshGoogleToken({ data: { refreshToken } });
+    await saveCloudToken("google-drive", reply.access_token);
+    setCloudBackupConfig({
+      provider: "google-drive",
+      tokenExpiresAt: Date.now() + (reply.expires_in ?? 3600) * 1000,
+    });
+    return reply.access_token;
+  } catch {
+    return null;
+  }
+}
+
+/** Whether this deployment can keep Google Drive signed in on its own. */
+export async function googleHandsFreeConfig(): Promise<{ clientId: string } | null> {
+  try {
+    const { getGoogleDriveConfig } = await import("./google-oauth.functions");
+    const config = await getGoogleDriveConfig();
+    return config.available && config.clientId ? { clientId: config.clientId } : null;
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Hands-free sign-in: Google returns a one-time code in a popup, the server
+ * swaps it for a refresh token, and the refresh token stays on this device so
+ * automatic uploads keep working without asking again.
+ */
+export async function connectGoogleHandsFree(
+  clientId: string,
+): Promise<CloudResult<{ token: string }>> {
+  if (!(await loadGis())) {
+    return {
+      ok: false,
+      error: "Google's sign-in library could not be loaded.",
+      hint: "Check that accounts.google.com is reachable (ad blockers sometimes block it).",
+    };
+  }
+  const oauth2 = window.google?.accounts?.oauth2 as unknown as {
+    initCodeClient?: (o: {
+      client_id: string;
+      scope: string;
+      ux_mode: "popup";
+      access_type?: string;
+      prompt?: string;
+      callback: (r: { code?: string; error?: string }) => void;
+      error_callback?: (e: unknown) => void;
+    }) => { requestCode: () => void };
+  };
+  if (!oauth2?.initCodeClient)
+    return { ok: false, error: "Google sign-in is unavailable in this browser." };
+
+  const code = await new Promise<{ code?: string; error?: string }>((resolve) => {
+    oauth2
+      .initCodeClient!({
+        client_id: clientId,
+        scope: DRIVE_SCOPE,
+        ux_mode: "popup",
+        access_type: "offline",
+        prompt: "consent",
+        callback: (r) => resolve(r),
+        error_callback: () => resolve({ error: "Sign-in was cancelled." }),
+      })
+      .requestCode();
+  });
+  if (!code.code) return { ok: false, error: code.error || "Google did not return a code." };
+
+  try {
+    const { exchangeGoogleCode } = await import("./google-oauth.functions");
+    const reply = await exchangeGoogleCode({ data: { code: code.code } });
+    await saveCloudToken("google-drive", reply.access_token);
+    setCloudBackupConfig({
+      provider: "google-drive",
+      clientId,
+      refreshToken: reply.refresh_token,
+      tokenExpiresAt: Date.now() + (reply.expires_in ?? 3600) * 1000,
+    });
+    return { ok: true, token: reply.access_token };
+  } catch (error) {
+    return { ok: false, error: error instanceof Error ? error.message : "Google sign-in failed." };
+  }
+}
+
 // ============================================================================
 // PROVIDER: GITHUB GIST (personal access token)
 // ============================================================================
@@ -1213,7 +1299,12 @@ export async function disconnectCloud(
   opts: { forget?: boolean } = {},
 ): Promise<void> {
   if (opts.forget !== false) await saveCloudToken(provider, null);
-  setCloudBackupConfig({ provider, enabled: false, lastSyncAt: undefined });
+  setCloudBackupConfig({
+    provider,
+    enabled: false,
+    lastSyncAt: undefined,
+    ...(opts.forget !== false ? { refreshToken: undefined, tokenExpiresAt: undefined } : {}),
+  });
 }
 
 export async function currentToken(provider: CloudProvider): Promise<string | null> {
@@ -1221,6 +1312,13 @@ export async function currentToken(provider: CloudProvider): Promise<string | nu
     const { tokenExpiresAt } = getCloudBackupConfig("dropbox");
     if (tokenExpiresAt && tokenExpiresAt - Date.now() < 60_000) {
       const refreshed = await refreshDropboxToken();
+      if (refreshed) return refreshed;
+    }
+  }
+  if (provider === "google-drive") {
+    const { tokenExpiresAt, refreshToken } = getCloudBackupConfig("google-drive");
+    if (refreshToken && (!tokenExpiresAt || tokenExpiresAt - Date.now() < 120_000)) {
+      const refreshed = await refreshGoogleDriveToken(refreshToken);
       if (refreshed) return refreshed;
     }
   }
