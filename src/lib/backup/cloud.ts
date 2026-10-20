@@ -524,7 +524,8 @@ async function refreshGoogleDriveToken(refreshToken: string): Promise<string | n
       tokenExpiresAt: Date.now() + (reply.expires_in ?? 3600) * 1000,
     });
     return reply.access_token;
-  } catch {
+  } catch (error) {
+    console.warn("Google Drive token refresh failed", error);
     return null;
   }
 }
@@ -591,7 +592,7 @@ export async function connectGoogleHandsFree(
     setCloudBackupConfig({
       provider: "google-drive",
       clientId,
-      refreshToken: reply.refresh_token,
+      ...(reply.refresh_token ? { refreshToken: reply.refresh_token } : {}),
       tokenExpiresAt: Date.now() + (reply.expires_in ?? 3600) * 1000,
     });
     return { ok: true, token: reply.access_token };
@@ -1439,12 +1440,36 @@ export function providerOps(
   return OPS[provider] ?? null;
 }
 
+/**
+ * Google access tokens last an hour. If the provider still says 401/403, swap
+ * the stored refresh token for a fresh access token once and retry.
+ */
+async function withAuthRetry<T extends { ok: boolean; needsAuth?: boolean }>(
+  provider: CloudProvider,
+  run: (c: Call) => Promise<T>,
+): Promise<T> {
+  const first = await run(await call(provider));
+  if (first.ok || !first.needsAuth || provider !== "google-drive") return first;
+  const { refreshToken } = getCloudBackupConfig("google-drive");
+  if (!refreshToken) return first;
+  const fresh = await refreshGoogleDriveToken(refreshToken);
+  if (!fresh) {
+    return {
+      ok: false,
+      error: "Your Google Drive sign-in has expired.",
+      hint: "Tap Connect with Google to sign in again.",
+      needsAuth: true,
+    } as unknown as T;
+  }
+  return run(await call(provider));
+}
+
 export async function cloudList(
   provider: CloudProvider,
 ): Promise<CloudResult<{ items: CloudItem[] }>> {
   const ops = providerOps(provider);
   if (!ops) return { ok: false, error: "That cloud provider is not available." };
-  return ops.list(await call(provider));
+  return withAuthRetry(provider, (c) => ops.list(c));
 }
 
 export async function cloudUpload(
@@ -1453,7 +1478,7 @@ export async function cloudUpload(
 ): Promise<CloudResult<{ fileId: string; url?: string }>> {
   const ops = providerOps(provider);
   if (!ops) return { ok: false, error: "That cloud provider is not available." };
-  return ops.upload(await call(provider), input);
+  return withAuthRetry(provider, (c) => ops.upload(c, input));
 }
 
 export async function cloudDownload(
@@ -1462,19 +1487,19 @@ export async function cloudDownload(
 ): Promise<CloudResult<{ text: string; name: string }>> {
   const ops = providerOps(provider);
   if (!ops) return { ok: false, error: "That cloud provider is not available." };
-  return ops.download(await call(provider), fileId);
+  return withAuthRetry(provider, (c) => ops.download(c, fileId));
 }
 
 export async function cloudDelete(provider: CloudProvider, fileId: string): Promise<CloudResult> {
   const ops = providerOps(provider);
   if (!ops) return { ok: false, error: "That cloud provider is not available." };
-  return ops.remove(await call(provider), fileId);
+  return withAuthRetry(provider, (c) => ops.remove(c, fileId));
 }
 
 export async function cloudVerify(provider: CloudProvider): Promise<CloudResult<CloudVerifyInfo>> {
   const ops = providerOps(provider);
   if (!ops) return { ok: false, error: "That cloud provider is not available." };
-  return ops.verify(await call(provider));
+  return withAuthRetry(provider, (c) => ops.verify(c));
 }
 
 /**
