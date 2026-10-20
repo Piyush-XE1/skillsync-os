@@ -1,22 +1,15 @@
 // @vitest-environment jsdom
-/**
- * Route-level smoke test for /profile/backup: the page has to mount through the
- * real router and expose the whole feature on one screen. Interactions are
- * covered in src/components/profile/BackupSection.test.tsx — mounting the app
- * tree per test leaves overlay animations running in jsdom, and React's act()
- * then waits forever for work that never ends.
- */
 
-import { describe, it, expect, beforeAll, vi } from "vitest";
+import { beforeAll, describe, expect, it, vi } from "vitest";
 import { act } from "react";
 import { createRoot } from "react-dom/client";
 import { webcrypto } from "node:crypto";
 import { RouterProvider } from "@tanstack/react-router";
 import { getRouter } from "@/router";
-import { useAppStore } from "@/store/useAppStore";
-import { useBackupStore } from "@/store/useBackupStore";
 import { clearVault } from "@/lib/backup/vault";
 import { createInitialData } from "@/lib/seed";
+import { useAppStore } from "@/store/useAppStore";
+import { useBackupStore } from "@/store/useBackupStore";
 
 vi.mock("@/lib/lovable-error-reporter", () => ({ reportLovableError: vi.fn() }));
 vi.mock("sonner", () => ({
@@ -29,10 +22,14 @@ beforeAll(() => {
 });
 
 describe("/profile/backup", () => {
-  it("renders the whole backup feature on the route", async () => {
+  it("renders exactly the two supported destination experiences", async () => {
     localStorage.clear();
     await clearVault();
     useAppStore.setState({ ...createInitialData(), _hydrated: true });
+    useBackupStore.setState({
+      ready: false,
+      cloud: { items: {}, status: {}, busy: null, error: null },
+    });
     await useBackupStore.getState().init();
 
     window.history.pushState({}, "", "/profile/backup");
@@ -42,19 +39,19 @@ describe("/profile/backup", () => {
 
     await act(async () => {
       root.render(<RouterProvider router={getRouter()} />);
-      await new Promise((r) => setTimeout(r, 80));
+      await new Promise((resolve) => setTimeout(resolve, 100));
     });
 
     const text = document.body.textContent ?? "";
     expect(text).toContain("Backup & Restore");
-    expect(text).toContain("Create backup");
-    expect(text).toContain("On this device");
-    expect(text).toContain("Cloud copies");
-    expect(text).toContain("Automatic copies");
+    expect(text).toContain("Save to device");
+    expect(text).toContain("Backup sync with Google Drive");
+    expect(text).toContain("Restore from a file");
+    expect(text).not.toContain("Automatic copies");
+    expect(text).not.toContain("GitHub Gist");
+    expect(text).not.toContain("Reset SkillSync");
 
-    await act(async () => {
-      root.unmount();
-    });
+    await act(async () => root.unmount());
     container.remove();
   }, 20000);
 });

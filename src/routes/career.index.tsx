@@ -13,7 +13,7 @@ import {
   Users,
   Mic,
 } from "lucide-react";
-import { AppShell } from "@/components/layout/AppShell";
+import { AppShell, PageHeader } from "@/components/layout/AppShell";
 import { PrimaryAction } from "@/components/layout/PrimaryAction";
 import { Card, Chip, ProgressBar, SectionHeader } from "@/components/ui/primitives";
 import { EmptyState } from "@/components/common/EmptyState";
@@ -137,24 +137,17 @@ function CareerPage() {
 
   return (
     <AppShell>
-      <header className="mb-4 flex items-center gap-3 px-5 lg:px-2 pt-1">
-        <Link
-          to="/profile"
-          className="glass flex h-10 w-10 items-center justify-center rounded-full active:scale-95"
-          aria-label="Back"
-        >
-          <ArrowLeft className="h-[17px] w-[17px] text-muted-foreground" strokeWidth={1.75} />
-        </Link>
-        <div className="min-w-0 flex-1">
-          <div className="text-[11px] uppercase tracking-[0.14em] text-muted-foreground">
-            Placements
-          </div>
-          <h1 className="truncate text-[22px] font-semibold leading-tight tracking-[-0.02em]">
-            Career.
-          </h1>
-        </div>
-        <PrimaryAction label="Add Application" onClick={() => setAddOpen(true)} />
-      </header>
+      <PageHeader
+        eyebrow={
+          <Link to="/profile" className="page-back-link" aria-label="Back to profile">
+            <ArrowLeft className="h-3.5 w-3.5" strokeWidth={1.75} />
+            <span className="truncate">Placements / pipeline</span>
+          </Link>
+        }
+        title="Career."
+        subtitle="Track every application, referral, interview, and offer in one private record."
+        right={<PrimaryAction label="Add Application" onClick={() => setAddOpen(true)} />}
+      />
 
       <div className="space-y-5 px-5 pb-24 lg:auto-grid-wide lg:space-y-0 lg:px-2 lg:items-start">
         {/* Stat row */}

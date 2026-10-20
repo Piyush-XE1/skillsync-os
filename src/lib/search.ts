@@ -1,5 +1,6 @@
 import type { AppData } from "./schema";
 import { roadmapPct } from "./progress";
+import { noteExcerpt } from "./notes";
 
 /**
  * Unified workspace search ("command palette") across every domain.
@@ -113,9 +114,20 @@ export function searchAll(data: AppData, query: string, limit = 30): SearchResul
   }
 
   for (const n of data.notes) {
+    const plainBody = noteExcerpt(n.body, 120);
     add(
-      { kind: "note", id: n.id, title: n.title, subtitle: n.body || "Note" },
-      Math.max(score(n.title, q), score(n.body, q) * 0.4),
+      {
+        kind: "note",
+        id: n.id,
+        title: n.title,
+        subtitle: `${n.notebook}${plainBody ? ` · ${plainBody}` : ""}`,
+      },
+      Math.max(
+        score(n.title, q),
+        score(n.body, q) * 0.4,
+        score(n.notebook, q) * 0.65,
+        score(n.tags.join(" "), q) * 0.7,
+      ),
     );
   }
 
@@ -127,10 +139,7 @@ export function searchAll(data: AppData, query: string, limit = 30): SearchResul
   }
 
   for (const h of data.habits) {
-    add(
-      { kind: "habit", id: h.id, title: `${h.emoji} ${h.title}`, subtitle: "Habit" },
-      score(h.title, q),
-    );
+    add({ kind: "habit", id: h.id, title: h.title, subtitle: "Habit" }, score(h.title, q));
   }
 
   for (const p of data.coding.problems) {

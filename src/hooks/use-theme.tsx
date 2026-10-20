@@ -1,125 +1,56 @@
 import { useEffect } from "react";
 import { useAppStore } from "@/store/useAppStore";
 import { nativeSetTheme } from "@/lib/native/bridge";
-import { applyAccent, defaultAccentFor, safeAccent } from "@/lib/accent";
 import { shouldUseBatterySaver } from "@/lib/graphics-quality";
 
-/**
- * SkillSync owns its appearance. The Android/OS colour scheme is intentionally
- * NOT consulted, and there is no separate theme setting: the persisted
- * Background preference is the single source of truth. "light" (Minimalist
- * Light) is the only light appearance; every other background is dark.
- */
-export type ThemeMode = "light" | "dark";
+/** Monograph Noir is the only application appearance. */
+export type ThemeMode = "dark";
 export type ResolvedTheme = ThemeMode;
 
-/**
- * The appearance applied to <html> for each Background preference. Classes are
- * mutually exclusive — exactly one is present at a time — and each carries its
- * full design-token set in styles.css (never layered on top of another theme).
- * Unknown or retired values fall back to the flagship "aurora" appearance.
- */
-const APPEARANCE: Record<string, { cls: string; scheme: ResolvedTheme; themeColor: string }> = {
-  aurora: { cls: "dark", scheme: "dark", themeColor: "#070b19" },
-  light: { cls: "light", scheme: "light", themeColor: "#f7f6f2" },
-  atelier: { cls: "atelier", scheme: "dark", themeColor: "#12100c" },
-};
-const FALLBACK_APPEARANCE = APPEARANCE.aurora;
-const MANAGED_CLASSES = Object.values(APPEARANCE).map((a) => a.cls);
-const VALID_BACKGROUNDS = Object.keys(APPEARANCE);
 const APPEARANCE_KEY = "skillsync:data:v1";
+const THEME_COLOR = "#08080A";
 
 /**
- * Blocking, dependency-free pre-paint script rendered into <head> by the root
- * shell. Without it, the persisted background is only applied by ThemeManager's
- * first effect — AFTER the first paint — so anyone on a non-default background
- * (e.g. Minimalist Light) saw a dark flash on every cold start, and the launch
- * screen visibly flipped colours mid-animation. This reads the zustand persist
- * value the same way the store does and sets the class + colour scheme + status
- * bar colour synchronously, before any frame is produced.
+ * Runs before first paint. It applies the fixed palette synchronously and reads
+ * only the rendering-quality preference, preventing both a theme flash and an
+ * unnecessary localStorage parse after React mounts.
  */
 export const APPEARANCE_INIT_SCRIPT = `(function(){try{
-  var raw=window.localStorage.getItem(${JSON.stringify(APPEARANCE_KEY)});
-  var bg="aurora",accent=null,prefs=null,quality="automatic";
-  if(raw){
-    var st=JSON.parse(raw);
-    prefs=st&&st.state?st.state.preferences:null;
-    var val=prefs?prefs.background:null;
-    if(${JSON.stringify(VALID_BACKGROUNDS)}.indexOf(val)>=0)bg=val;
-    if(prefs&&typeof prefs.accent==="string"&&/^#([0-9a-fA-F]{3}|[0-9a-fA-F]{6}|[0-9a-fA-F]{8})$/.test(prefs.accent))accent=prefs.accent;
-    if(prefs&&["automatic","high-fidelity","battery-saver"].indexOf(prefs.graphicsQuality)>=0)quality=prefs.graphicsQuality;
-  }
-  var map=${JSON.stringify(APPEARANCE)},a=map[bg]||map.aurora,el=document.documentElement;
-  el.classList.remove(${MANAGED_CLASSES.map((c) => JSON.stringify(c)).join(",")});
-  el.classList.add(a.cls);el.style.colorScheme=a.scheme;el.dataset.graphicsQuality=quality;
+  var quality="automatic",raw=window.localStorage.getItem(${JSON.stringify(APPEARANCE_KEY)});
+  if(raw){var st=JSON.parse(raw),p=st&&st.state?st.state.preferences:null;if(p&&["automatic","high-fidelity","battery-saver"].indexOf(p.graphicsQuality)>=0)quality=p.graphicsQuality;}
+  var el=document.documentElement;
+  el.classList.remove("light","atelier","theme-transition");
+  el.classList.add("dark","monograph");
+  el.style.colorScheme="dark";
+  el.style.removeProperty("--primary");el.style.removeProperty("--primary-glow");el.style.removeProperty("--secondary");
+  el.dataset.graphicsQuality=quality;
   var low=typeof navigator.hardwareConcurrency==="number"&&navigator.hardwareConcurrency<=4;
   var reduced=!!(window.matchMedia&&window.matchMedia("(prefers-reduced-motion: reduce)").matches);
   var saver=quality==="battery-saver"||reduced||(quality==="automatic"&&low);
-  if(saver)el.classList.add("battery-saver");else el.classList.remove("battery-saver");
-  if(accent){el.style.setProperty("--primary",accent);el.style.setProperty("--primary-glow","color-mix(in oklab, "+accent+" 62%, white)");el.style.setProperty("--secondary","color-mix(in oklab, "+accent+" 58%, #0b0b12)");}
-  var m=document.querySelector('meta[name="theme-color"]');if(m)m.setAttribute("content",a.themeColor);
+  el.classList.toggle("battery-saver",saver);
+  var m=document.querySelector('meta[name="theme-color"]');if(m)m.setAttribute("content",${JSON.stringify(THEME_COLOR)});
 }catch(e){}})();`;
 
-/** Maps a background preference onto the resolved light/dark visual system. */
-export function resolveTheme(background: string | undefined): ResolvedTheme {
-  return background === "light" ? "light" : "dark";
-}
-
-function appearanceFor(background: string | undefined) {
-  return (background && APPEARANCE[background]) || FALLBACK_APPEARANCE;
-}
-
-let transitionTimer: number | undefined;
-
-function applyTheme(background: string | undefined, animate: boolean) {
-  const root = document.documentElement;
-  const next = appearanceFor(background);
-
-  // Class sets are exclusive; two backgrounds may share the same light/dark
-  // mode (aurora and atelier are both dark), so compare the actual appearance
-  // class — not just the resolved mode — or a same-mode switch would no-op.
-  const current = MANAGED_CLASSES.find((c) => root.classList.contains(c));
-  if (current === next.cls) return;
-
-  if (animate) {
-    root.classList.add("theme-transition");
-    window.clearTimeout(transitionTimer);
-    transitionTimer = window.setTimeout(() => root.classList.remove("theme-transition"), 320);
-  }
-  root.classList.remove(...MANAGED_CLASSES);
-  root.classList.add(next.cls);
-  root.style.colorScheme = next.scheme;
-
-  const meta = document.querySelector('meta[name="theme-color"]');
-  if (meta) meta.setAttribute("content", next.themeColor);
-}
-
-/**
- * Applies the appearance derived from the Background preference to <html> and
- * mirrors it onto the Android system bars. No system-preference listener: the
- * OS never flips the app's appearance.
- */
-function applyAccentSafe(accent: string | undefined) {
-  applyAccent(safeAccent(accent ?? defaultAccentFor("aurora")));
+/** Historical argument is deliberately ignored: the visual system is fixed. */
+export function resolveTheme(_legacyBackground?: string): ResolvedTheme {
+  return "dark";
 }
 
 export function useTheme(): ResolvedTheme {
-  const background = useAppStore((s) => s.preferences.background);
-  const accent = useAppStore((s) => s.preferences.accent);
-  const graphicsQuality = useAppStore((s) => s.preferences.graphicsQuality);
-  const resolved = resolveTheme(background);
+  const graphicsQuality = useAppStore((state) => state.preferences.graphicsQuality);
 
   useEffect(() => {
-    const next = appearanceFor(background);
-    applyTheme(background, true);
-    void nativeSetTheme(next.scheme, next.themeColor);
-  }, [background]);
-
-  // Accent re-themes the entire OS; re-run whenever it (or the background it
-  // defaults from) changes. applyAccentSafe guards against empty values.
-  useEffect(() => {
-    applyAccentSafe(accent);
-  }, [accent, background]);
+    const root = document.documentElement;
+    root.classList.remove("light", "atelier", "theme-transition");
+    root.classList.add("dark", "monograph");
+    root.style.colorScheme = "dark";
+    root.style.removeProperty("--primary");
+    root.style.removeProperty("--primary-glow");
+    root.style.removeProperty("--secondary");
+    const meta = document.querySelector('meta[name="theme-color"]');
+    if (meta) meta.setAttribute("content", THEME_COLOR);
+    void nativeSetTheme("dark", THEME_COLOR);
+  }, []);
 
   useEffect(() => {
     const root = document.documentElement;
@@ -138,12 +69,11 @@ export function useTheme(): ResolvedTheme {
     return () => reducedMotion.removeEventListener("change", applyGraphicsMode);
   }, [graphicsQuality]);
 
-  return resolved;
+  return "dark";
 }
 
-/** Read-only resolved theme for components that need to branch visually. */
 export function useResolvedTheme(): ResolvedTheme {
-  return resolveTheme(useAppStore((s) => s.preferences.background));
+  return "dark";
 }
 
 export function ThemeManager() {

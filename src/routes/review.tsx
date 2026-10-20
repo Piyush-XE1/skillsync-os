@@ -13,9 +13,10 @@ import {
   TrendingDown,
   Trophy,
 } from "lucide-react";
-import { AppShell } from "@/components/layout/AppShell";
-import { Card, Chip, ProgressBar, SectionHeader } from "@/components/ui/primitives";
+import { AppShell, PageHeader } from "@/components/layout/AppShell";
+import { Button, Card, Chip, ProgressBar, SectionHeader } from "@/components/ui/primitives";
 import { AreaChart, BarChart, DonutChart, Sparkline } from "@/components/common/Charts";
+import { SemanticIcon } from "@/components/common/SemanticIcon";
 import { useAppStore, useHydrated } from "@/store/useAppStore";
 import { composeReview } from "@/lib/review";
 import { focusDaily } from "@/lib/trends";
@@ -98,34 +99,22 @@ function ReviewPage() {
 
   return (
     <AppShell>
-      <header className="mb-4 flex items-center justify-between px-5 lg:px-2">
-        <Link
-          to="/profile"
-          className="glass flex h-10 w-10 items-center justify-center rounded-full active:scale-95"
-          aria-label="Back"
-        >
-          <ArrowLeft className="h-[17px] w-[17px] text-muted-foreground" strokeWidth={1.75} />
-        </Link>
-        <button
-          onClick={celebrate}
-          className="glass flex h-10 items-center gap-2 rounded-full px-4 text-[12px] font-medium text-muted-foreground transition-transform active:scale-95"
-        >
-          <Sparkles className="h-[15px] w-[15px]" strokeWidth={1.75} />
-          Celebrate
-        </button>
-      </header>
-
-      <div className="mb-6 px-5 lg:px-2">
-        <div className="text-[11px] font-medium uppercase tracking-[0.14em] text-muted-foreground">
-          Week in Review
-        </div>
-        <h1 className="mt-1.5 text-[28px] font-semibold leading-tight tracking-[-0.02em]">
-          {weekLabel(review.start, review.end)}.
-        </h1>
-        <p className="mt-1 text-[13.5px] text-muted-foreground">
-          Your growth, reviewed & measured.
-        </p>
-      </div>
+      <PageHeader
+        eyebrow={
+          <Link to="/profile" className="page-back-link" aria-label="Back to profile">
+            <ArrowLeft className="h-3.5 w-3.5" strokeWidth={1.75} />
+            <span className="truncate">Week in Review / Field Report</span>
+          </Link>
+        }
+        title={`${weekLabel(review.start, review.end)}.`}
+        subtitle="Your growth, reviewed and measured without turning it into a game."
+        right={
+          <Button variant="outline" onClick={celebrate} aria-label="Celebrate this week">
+            <Sparkles className="h-[15px] w-[15px]" strokeWidth={1.75} />
+            <span className="hidden sm:inline">Celebrate</span>
+          </Button>
+        }
+      />
 
       <div className="space-y-5 px-5 lg:px-2 lg:auto-grid-wide lg:space-y-0 lg:items-start">
         {/* HERO */}
@@ -175,7 +164,8 @@ function ReviewPage() {
               <div className="min-w-0">
                 <div className="flex items-center gap-2 text-[12px] text-muted-foreground">
                   <Trophy className="h-3.5 w-3.5 text-[var(--warning)]" strokeWidth={1.75} />
-                  {review.gradeEmoji} {review.grade}
+                  <SemanticIcon value={review.gradeIcon} className="h-3.5 w-3.5" />
+                  {review.grade}
                 </div>
                 <div className="mt-1.5 text-fluid-title font-semibold leading-[1.1] tracking-[-0.025em]">
                   {review.headline}
@@ -268,7 +258,7 @@ function ReviewPage() {
               return (
                 <Card key={m.key} className="p-4">
                   <div className="flex items-center justify-between">
-                    <span className="text-[14px]">{m.emoji}</span>
+                    <SemanticIcon value={m.icon} className="h-4 w-4 text-primary" />
                     <span
                       className={cn(
                         "flex items-center gap-1 text-[11.5px] font-medium",

@@ -1,9 +1,11 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { ArrowLeft, BookText, Check, CircleDollarSign, Flame, StickyNote } from "lucide-react";
 import { BottomSheet } from "@/components/edit/Sheet";
+import { SemanticIcon } from "@/components/common/SemanticIcon";
 import { useAppStore } from "@/store/useAppStore";
 import { useUiStore, type QuickCaptureAction } from "@/store/useUiStore";
 import { todayISO } from "@/lib/date";
+import { DEFAULT_HABIT_ICON } from "@/lib/semantic-icons";
 import type { ModuleKey } from "@/lib/schema";
 import { haptics } from "@/lib/haptics";
 import { sound } from "@/lib/sound";
@@ -290,8 +292,12 @@ export function QuickCaptureSheet() {
                         onClick={() => markHabit(habit.id)}
                         className="pressable flex min-w-[105px] shrink-0 flex-col items-center gap-2 rounded-[17px] border border-border bg-white/[0.025] px-3 py-3.5 transition-colors hover:border-[color-mix(in_oklab,var(--primary)_35%,transparent)] active:scale-[0.97]"
                       >
-                        <span className="flex h-11 w-11 items-center justify-center rounded-full bg-[color-mix(in_oklab,var(--primary)_12%,transparent)] text-[20px]">
-                          {habit.emoji}
+                        <span className="flex h-11 w-11 items-center justify-center rounded-full bg-[color-mix(in_oklab,var(--primary)_12%,transparent)] text-primary">
+                          <SemanticIcon
+                            value={habit.emoji}
+                            fallback={DEFAULT_HABIT_ICON}
+                            className="h-5 w-5"
+                          />
                         </span>
                         <span className="max-w-[100px] truncate text-[11px] font-medium">
                           {habit.title}

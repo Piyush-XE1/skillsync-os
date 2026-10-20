@@ -17,7 +17,7 @@ export const NO_AUTOFILL_PROPS = {
 } as const;
 
 const FIELD_BASE =
-  "w-full rounded-[14px] border border-border bg-white/[0.03] px-4 text-[14px] text-foreground placeholder:text-muted-foreground/60 outline-none transition-all duration-200 ease-[var(--ease-out-soft)] focus:border-[color-mix(in_oklab,var(--primary)_45%,transparent)] focus:bg-white/[0.05] focus:shadow-[0_0_0_3px_color-mix(in_oklab,var(--primary)_18%,transparent)]";
+  "w-full rounded-[5px] border border-border-strong bg-background px-4 text-[14px] text-foreground caret-primary placeholder:text-muted-foreground/65 outline-none transition-[background-color,border-color] duration-200 ease-[var(--ease-out-soft)] hover:border-[color-mix(in_oklab,var(--foreground)_24%,var(--border))] focus:border-[color-mix(in_oklab,var(--primary)_72%,var(--border))] focus:bg-card";
 
 /**
  * autoFocus only gets honoured on precise-pointer (desktop-class) devices.

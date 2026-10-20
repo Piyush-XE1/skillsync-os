@@ -59,43 +59,48 @@ const GOALS = [
   {
     id: "demo-goal-gym",
     title: "Gym 5× a week",
-    emoji: "🏋️",
+    emoji: "dumbbell",
     note: "Show up even when you don't feel like it.",
   },
   {
     id: "demo-goal-junk",
     title: "No junk food",
-    emoji: "🥗",
+    emoji: "salad",
     note: "Eat for energy, not for boredom.",
   },
   {
     id: "demo-goal-cgpa",
     title: "Finish with a 9+ CGPA",
-    emoji: "📚",
+    emoji: "graduation-cap",
     note: "Six semesters down, two to go.",
   },
-  { id: "demo-goal-fap", title: "No fap", emoji: "🔒", note: "Keep the energy. Keep the focus." },
+  {
+    id: "demo-goal-fap",
+    title: "No fap",
+    emoji: "lock-keyhole",
+    note: "Keep the energy. Keep the focus.",
+  },
   {
     id: "demo-goal-dsa",
     title: "500 DSA problems",
-    emoji: "💻",
+    emoji: "laptop",
     note: "Consistency beats intensity.",
   },
   {
     id: "demo-goal-sleep",
     title: "Sleep by 11",
-    emoji: "😴",
+    emoji: "moon",
     note: "The cheapest performance upgrade there is.",
   },
 ];
 
 const HABITS = [
-  { id: "demo-habit-gym", title: "Workout", emoji: "🏋️", rate: 0.72 },
-  { id: "demo-habit-read", title: "Read 20 pages", emoji: "📖", rate: 0.62 },
-  { id: "demo-habit-dsa", title: "Solve 2 problems", emoji: "🧠", rate: 0.84 },
-  { id: "demo-habit-water", title: "3L water", emoji: "💧", rate: 0.91 },
-  { id: "demo-habit-sleep", title: "Lights out by 11", emoji: "😴", rate: 0.55 },
-  { id: "demo-habit-journal", title: "Night journal", emoji: "✍️", rate: 0.48 },
+  { id: "demo-habit-gym", title: "Workout", emoji: "dumbbell", rate: 0.72 },
+  { id: "demo-habit-read", title: "Read 20 pages", emoji: "book-open", rate: 0.62 },
+  { id: "demo-habit-dsa", title: "Solve 2 problems", emoji: "brain", rate: 0.84 },
+  { id: "demo-habit-water", title: "3L water", emoji: "droplets", rate: 0.91 },
+  { id: "demo-habit-sleep", title: "Lights out by 11", emoji: "moon", rate: 0.55 },
+  { id: "demo-habit-journal", title: "Night journal", emoji: "pen-line", rate: 0.48 },
 ];
 
 const CHECKLIST = (items: Array<[string, boolean]>) =>
@@ -795,7 +800,8 @@ export function createDemoData(now: Date = new Date()): AppData {
       hasCompletedFirstLaunch: true,
       onboardingCompleted: true,
       graphicsQuality: "automatic",
-      background: "aurora",
+      background: "atelier",
+      accent: "#C29F62",
       haptics: true,
       hapticIntensity: "standard",
       sound: true,

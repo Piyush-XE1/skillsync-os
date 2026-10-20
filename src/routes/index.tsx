@@ -1,12 +1,16 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useState } from "react";
 import { toast } from "sonner";
-import { Activity, Bell, Check, LayoutGrid, Plus, SlidersHorizontal, X } from "lucide-react";
-import { AppShell, PageHeader } from "@/components/layout/AppShell";
+import { Bell, Check, LayoutGrid, Plus, Search, SlidersHorizontal, X } from "lucide-react";
+import { AppShell } from "@/components/layout/AppShell";
 import { WidgetGrid } from "@/components/widgets/WidgetGrid";
-import { TodayHero } from "@/components/dashboard/TodayHero";
 import { DashboardGuidance } from "@/components/dashboard/DashboardGuidance";
 import { WidgetCustomizer } from "@/components/widgets/WidgetCustomizer";
+import { TypographicQuoteObelisk } from "@/components/home/TypographicQuoteObelisk";
+import { ArchetypeSection } from "@/components/home/ArchetypeSection";
+import { AntiSelfSection } from "@/components/home/AntiSelfSection";
+import { MementoMoriSection } from "@/components/home/MementoMoriSection";
+import { UniversalStopwatchModule } from "@/components/home/UniversalStopwatchModule";
 import { useAppStore } from "@/store/useAppStore";
 import { visibleWidgets } from "@/lib/widgets";
 import { haptics } from "@/lib/haptics";
@@ -16,16 +20,16 @@ import { cn } from "@/lib/utils";
 export const Route = createFileRoute("/")({
   head: () => ({
     meta: [
-      { title: "SkillSync — Personal Growth OS" },
+      { title: "SkillSync OS — Personal Dashboard & Monograph" },
       {
         name: "description",
         content:
-          "Your personal growth operating system: roadmaps, projects, habits and daily focus in one place.",
+          "Your local-first dashboard for aims, learning, habits, projects, identity, reflection, and deliberate practice.",
       },
-      { property: "og:title", content: "SkillSync — Personal Growth OS" },
+      { property: "og:title", content: "SkillSync OS — Personal Dashboard & Monograph" },
       {
         property: "og:description",
-        content: "Roadmaps, projects, habits, and daily focus in one place.",
+        content: "The working dashboard you own, paired with a quieter personal monograph.",
       },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary" },
@@ -35,50 +39,37 @@ export const Route = createFileRoute("/")({
 });
 
 function greeting(): string {
-  const h = new Date().getHours();
-  if (h < 5) return "Still up";
-  if (h < 12) return "Good morning";
-  if (h < 17) return "Good afternoon";
-  if (h < 22) return "Good evening";
-  return "Good night";
-}
-
-function todayDateLabel(): string {
-  return new Date().toLocaleDateString(undefined, {
-    weekday: "long",
-    month: "short",
-    day: "numeric",
-  });
+  const hour = new Date().getHours();
+  if (hour < 5) return "A quiet hour";
+  if (hour < 12) return "Good morning";
+  if (hour < 17) return "Good afternoon";
+  if (hour < 22) return "Good evening";
+  return "The day closes";
 }
 
 /**
- * The dashboard is a widget grid the user owns: every panel — your aims,
- * focus, habits, streaks, week in review, projects, notes — is a widget that
- * can be hidden, resized and dragged into place; the layout persists with the
- * workspace.
- *
- * Two modes:
- *  - **Live** (default) — widgets are inert surfaces; taps and scrolls behave
- *    normally, nothing is draggable.
- *  - **Customize** — grips appear, the grid jiggles, drag/keyboard reordering
- *    is armed, and ✕ / resize controls show on every card.
+ * The working dashboard remains intact: guidance, every persisted widget,
+ * customization, drag/keyboard reordering, and quick task entry. Only the old
+ * oversized TodayHero tile is retired. The quotation and identity work lead the
+ * page, while the complete working dashboard remains directly beneath them.
  */
 function Dashboard() {
-  const profile = useAppStore((s) => s.profile);
-  const layout = useAppStore((s) => s.widgets);
-  const modules = useAppStore((s) => s.preferences.modules);
+  const profile = useAppStore((state) => state.profile);
+  const layout = useAppStore((state) => state.widgets);
+  const modules = useAppStore((state) => state.preferences.modules);
 
   const [customizing, setCustomizing] = useState(false);
   const [openCustomizer, setOpenCustomizer] = useState(false);
 
   const shownCount = visibleWidgets(layout, modules).length;
+  const firstName = profile.name.trim().split(/\s+/)[0] || "Learner";
 
   const startCustomizing = () => {
     haptics.impact();
     sound.open();
     setCustomizing(true);
     toast("Customize mode", {
-      description: "Drag a card by its grip to rearrange. Tap ✕ to remove one.",
+      description: "Drag a card by its grip to rearrange. Tap × to remove one.",
       duration: 4200,
     });
   };
@@ -91,133 +82,134 @@ function Dashboard() {
 
   return (
     <AppShell>
-      <PageHeader
-        eyebrow={todayDateLabel()}
-        title={`${greeting()}${profile.name ? `, ${profile.name.split(" ")[0]}` : ""}.`}
-        subtitle="Small steps, compounded daily."
-        right={
-          <div className="flex items-center gap-2">
-            <Link
-              to="/search"
-              aria-label="Search"
-              onClick={() => sound.select()}
-              className="glass flex h-10 items-center gap-2 rounded-full px-3.5 text-[11px] font-medium text-muted-foreground transition-transform active:scale-95"
-            >
-              <Activity className="h-[15px] w-[15px]" strokeWidth={1.75} />
-              <span className="hidden sm:inline">Search…</span>
-              <kbd className="hidden rounded border border-white/[0.1] bg-white/[0.04] px-1.5 py-0.5 text-[9.5px] sm:inline">
-                /
-              </kbd>
-            </Link>
-            <Link
-              to="/notifications"
-              aria-label="Notifications"
-              onClick={() => sound.select()}
-              className="glass relative flex h-10 w-10 items-center justify-center rounded-full transition-transform active:scale-95"
-            >
-              <Bell className="h-[17px] w-[17px] text-muted-foreground" strokeWidth={1.75} />
-              <UnreadBadge />
-            </Link>
-          </div>
-        }
-      />
+      <TypographicHomeHeader firstName={firstName} />
 
-      <div className="px-5 pb-24 lg:px-2">
+      <section aria-label="Opening personal monograph" className="border-t border-border pt-2">
+        <TypographicQuoteObelisk />
+        <ArchetypeSection />
+      </section>
+
+      <TypeRibbon />
+
+      <div className="px-5 py-12 lg:px-2 lg:py-16">
         <DashboardGuidance />
-        <TodayHero />
 
-        {/* Dashboard toolbar */}
-        <div className="mb-3 flex items-center justify-between gap-3 px-1">
-          <div className="min-w-0">
-            <div className="text-[11px] font-semibold uppercase tracking-[0.16em] text-muted-foreground">
-              {customizing ? "Customizing" : "Your dashboard"}
+        <section aria-labelledby="dashboard-heading" className="border-t border-border pt-5">
+          <div className="mb-5 flex items-end justify-between gap-4">
+            <div className="min-w-0">
+              <div className="flex items-center gap-3">
+                <span className="font-numerical text-[9px] tracking-[0.18em] text-primary">
+                  01 / LIVE SYSTEMS
+                </span>
+                <span className="h-px w-8 bg-border" aria-hidden="true" />
+              </div>
+              <h2
+                id="dashboard-heading"
+                className="font-editorial mt-2 text-[clamp(2rem,5vw,4.4rem)] font-normal leading-[0.95] tracking-[-0.045em]"
+              >
+                Your <em className="font-normal text-primary">dashboard.</em>
+              </h2>
+              <p className="mt-2 text-[11px] uppercase tracking-[0.14em] text-muted-foreground">
+                {customizing
+                  ? "Drag the grip to rearrange · × removes"
+                  : `${shownCount} working instrument${shownCount === 1 ? "" : "s"} · yours to arrange`}
+              </p>
             </div>
-            <div className="mt-0.5 truncate text-[11.5px] text-muted-foreground/70">
-              {customizing
-                ? "Drag the grip to rearrange · ✕ removes"
-                : `${shownCount} widget${shownCount === 1 ? "" : "s"} · yours to arrange`}
+
+            <div className="flex shrink-0 items-center gap-2">
+              {customizing ? (
+                <>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      haptics.tap();
+                      sound.open();
+                      setOpenCustomizer(true);
+                    }}
+                    className="pressable flex h-10 items-center gap-1.5 border border-border bg-surface px-3 text-[11px] font-semibold uppercase tracking-[0.1em]"
+                  >
+                    <SlidersHorizontal className="h-3.5 w-3.5" strokeWidth={1.75} />
+                    <span className="hidden sm:inline">Widgets</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={finishCustomizing}
+                    className="pressable gradient-primary flex h-10 items-center gap-1.5 border border-primary px-3.5 text-[11px] font-semibold uppercase tracking-[0.1em] text-primary-foreground"
+                  >
+                    <Check className="h-3.5 w-3.5" strokeWidth={2.5} />
+                    Done
+                  </button>
+                </>
+              ) : (
+                <button
+                  type="button"
+                  onClick={startCustomizing}
+                  className="pressable flex h-10 items-center gap-1.5 border border-border bg-surface px-3 text-[11px] font-semibold uppercase tracking-[0.1em] text-muted-foreground transition-colors hover:border-border-strong hover:text-foreground"
+                >
+                  <LayoutGrid className="h-3.5 w-3.5" strokeWidth={1.75} />
+                  Customize
+                </button>
+              )}
             </div>
           </div>
 
-          <div className="flex shrink-0 items-center gap-2">
-            {customizing ? (
-              <>
-                <button
-                  type="button"
-                  onClick={() => {
-                    haptics.tap();
-                    sound.open();
-                    setOpenCustomizer(true);
-                  }}
-                  className="pressable glass flex h-9 items-center gap-1.5 rounded-full px-3 text-[12px] font-medium"
-                >
-                  <SlidersHorizontal className="h-3.5 w-3.5" strokeWidth={1.75} />
-                  <span className="hidden sm:inline">Widgets</span>
-                </button>
-                <button
-                  type="button"
-                  onClick={finishCustomizing}
-                  className="pressable gradient-primary flex h-9 items-center gap-1.5 rounded-full px-3.5 text-[12px] font-semibold text-primary-foreground shadow-[var(--shadow-glow)]"
-                >
-                  <Check className="h-3.5 w-3.5" strokeWidth={2.5} />
-                  Done
-                </button>
-              </>
-            ) : (
+          {customizing ? (
+            <div className="mb-4 flex items-center gap-2 border border-dashed border-primary/40 bg-primary/[0.04] px-3.5 py-2.5 text-[12px] text-muted-foreground">
+              <LayoutGrid className="h-3.5 w-3.5 shrink-0 text-primary" strokeWidth={2} />
+              <span className="min-w-0 flex-1">
+                Drag by the grip, or focus one and press{" "}
+                <kbd className="border border-border bg-surface-2 px-1 font-numerical text-[10px]">
+                  Space
+                </kbd>{" "}
+                then the arrow keys.
+              </span>
+              <button
+                type="button"
+                onClick={() => {
+                  sound.close();
+                  setCustomizing(false);
+                }}
+                aria-label="Exit customize mode"
+                className="pressable flex h-7 w-7 items-center justify-center border border-border bg-surface-2 text-muted-foreground hover:text-foreground"
+              >
+                <X className="h-3.5 w-3.5" strokeWidth={2} />
+              </button>
+            </div>
+          ) : null}
+
+          <WidgetGrid customizing={customizing} />
+
+          {!customizing ? (
+            <div className="mt-6 flex justify-center">
               <button
                 type="button"
                 onClick={startCustomizing}
-                className="pressable glass flex h-9 items-center gap-1.5 rounded-full px-3 text-[12px] font-medium text-muted-foreground transition-colors hover:text-foreground"
+                className="pressable flex min-h-10 items-center gap-1.5 border-b border-border px-2 text-[10px] font-semibold uppercase tracking-[0.13em] text-muted-foreground transition-colors hover:border-primary hover:text-foreground"
               >
-                <LayoutGrid className="h-3.5 w-3.5" strokeWidth={1.75} />
-                Customize
+                <Plus className="h-3.5 w-3.5" strokeWidth={2} />
+                Add or arrange widgets
               </button>
-            )}
-          </div>
-        </div>
-
-        {customizing ? (
-          <div className="mb-4 flex items-center gap-2 rounded-[16px] border border-dashed border-[color-mix(in_oklab,var(--primary)_35%,transparent)] bg-[color-mix(in_oklab,var(--primary)_8%,transparent)] px-3.5 py-2.5 text-[12px] text-muted-foreground">
-            <LayoutGrid
-              className="h-3.5 w-3.5 shrink-0 text-[var(--primary-glow)]"
-              strokeWidth={2}
-            />
-            <span className="min-w-0 flex-1">
-              Drag by the grip, or focus one and press{" "}
-              <kbd className="rounded border border-white/10 bg-white/[0.05] px-1 text-[10px]">
-                Space
-              </kbd>{" "}
-              then the arrow keys.
-            </span>
-            <button
-              type="button"
-              onClick={() => {
-                sound.close();
-                setCustomizing(false);
-              }}
-              aria-label="Exit customize mode"
-              className="pressable flex h-7 w-7 items-center justify-center rounded-full bg-white/[0.06] text-muted-foreground hover:text-foreground"
-            >
-              <X className="h-3.5 w-3.5" strokeWidth={2} />
-            </button>
-          </div>
-        ) : null}
-
-        <WidgetGrid customizing={customizing} />
-
-        {!customizing ? (
-          <div className="mt-6 flex justify-center">
-            <button
-              type="button"
-              onClick={startCustomizing}
-              className="pressable flex items-center gap-1.5 rounded-full border border-white/[0.07] bg-white/[0.02] px-3.5 py-2 text-[11.5px] font-medium text-muted-foreground transition-colors hover:border-[color-mix(in_oklab,var(--primary)_35%,transparent)] hover:text-foreground"
-            >
-              <Plus className="h-3.5 w-3.5" strokeWidth={2} />
-              Add or arrange widgets
-            </button>
-          </div>
-        ) : null}
+            </div>
+          ) : null}
+        </section>
       </div>
+
+      <section aria-label="Personal monograph continuation" className="border-t border-border pt-2">
+        <AntiSelfSection />
+        <MementoMoriSection />
+        <UniversalStopwatchModule />
+      </section>
+
+      <footer className="px-5 pb-8 pt-10 lg:px-2">
+        <div className="border-t border-border pt-6 text-center">
+          <p className="font-editorial text-lg text-foreground/80">
+            Private by design. Deliberate by practice.
+          </p>
+          <p className="mt-2 text-[9px] uppercase tracking-[0.18em] text-muted-foreground">
+            Local-first · Cloud backup only when you choose
+          </p>
+        </div>
+      </footer>
 
       <WidgetCustomizer
         open={openCustomizer}
@@ -227,19 +219,19 @@ function Dashboard() {
         }}
       />
 
-      {/* Floating quick add → planner (swapped for a Done control while editing) */}
       {customizing ? (
         <button
           type="button"
           onClick={finishCustomizing}
           className={cn(
-            "fixed bottom-28 right-6 z-30 flex h-12 items-center gap-2 rounded-full gradient-primary px-5",
-            "shadow-[var(--shadow-glow)] transition-transform hover:brightness-110 active:scale-95",
-            "lg:bottom-10 lg:right-10",
+            "gradient-primary fixed bottom-28 right-6 z-30 flex h-12 items-center gap-2 border border-primary px-5",
+            "transition-transform active:scale-[0.98] lg:bottom-10 lg:right-10",
           )}
         >
-          <Check className="h-5 w-5 text-white" strokeWidth={2.25} />
-          <span className="text-[14px] font-medium text-white">Done</span>
+          <Check className="h-5 w-5 text-primary-foreground" strokeWidth={2.25} />
+          <span className="text-[12px] font-semibold uppercase tracking-[0.1em] text-primary-foreground">
+            Done
+          </span>
         </button>
       ) : (
         <Link
@@ -249,22 +241,123 @@ function Dashboard() {
             haptics.tap();
             sound.tap();
           }}
-          className="fixed bottom-28 right-6 z-30 flex h-12 w-12 items-center justify-center gap-2 rounded-full gradient-primary shadow-[var(--shadow-glow)] transition-transform hover:brightness-110 active:scale-95 lg:bottom-10 lg:right-10 lg:h-12 lg:w-auto lg:rounded-[16px] lg:px-5"
+          className="gradient-primary fixed bottom-28 right-6 z-30 flex h-12 w-12 items-center justify-center gap-2 border border-primary transition-transform active:scale-[0.98] lg:bottom-10 lg:right-10 lg:w-auto lg:px-5"
         >
-          <Plus className="h-5 w-5 text-white" strokeWidth={2.25} />
-          <span className="hidden text-[14px] font-medium text-white lg:inline">Add Task</span>
+          <Plus className="h-5 w-5 text-primary-foreground" strokeWidth={2.25} />
+          <span className="hidden text-[12px] font-semibold uppercase tracking-[0.1em] text-primary-foreground lg:inline">
+            Add task
+          </span>
         </Link>
       )}
     </AppShell>
   );
 }
 
-/** Unread pip, kept in its own component so it subscribes to the store alone. */
-function UnreadBadge() {
-  const unread = useAppStore((s) => (s.notifications?.items ?? []).filter((n) => !n.read).length);
-  if (unread <= 0) return null;
+function TypographicHomeHeader({ firstName }: { firstName: string }) {
+  const words = greeting().split(" ");
+  const lead = words.shift() ?? "Good";
+  const remainder = words.join(" ");
+
   return (
-    <span className="absolute right-1.5 top-1.5 flex h-[16px] min-w-[16px] items-center justify-center rounded-full bg-[var(--primary)] px-1 text-[9.5px] font-bold text-primary-foreground">
+    <header className="px-5 lg:px-2">
+      <div className="flex items-center justify-between gap-4 border-y border-border py-3">
+        <div className="font-numerical text-[9px] uppercase tracking-[0.18em] text-muted-foreground">
+          Index / SkillSync OS
+        </div>
+        <nav aria-label="Home utilities" className="flex items-center gap-1">
+          <Link
+            to="/search"
+            aria-label="Search SkillSync"
+            onClick={() => sound.select()}
+            className="pressable flex h-9 w-9 items-center justify-center border border-transparent text-muted-foreground hover:border-border hover:text-foreground"
+          >
+            <Search className="h-4 w-4" strokeWidth={1.6} />
+          </Link>
+          <Link
+            to="/notifications"
+            aria-label="Notifications"
+            onClick={() => sound.select()}
+            className="pressable relative flex h-9 w-9 items-center justify-center border border-transparent text-muted-foreground hover:border-border hover:text-foreground"
+          >
+            <Bell className="h-4 w-4" strokeWidth={1.6} />
+            <UnreadBadge />
+          </Link>
+        </nav>
+      </div>
+
+      <div className="py-9 sm:py-12 lg:py-16">
+        <div className="editorial-kicker mb-5">Field notes / Today</div>
+        <h1 className="text-balance leading-[0.82] tracking-[-0.065em]">
+          <span className="block font-sans text-[clamp(2.2rem,7vw,6.6rem)] font-light uppercase text-foreground/90">
+            {lead}{" "}
+            {remainder ? (
+              <em className="font-editorial normal-case font-normal text-primary">{remainder}</em>
+            ) : null}
+          </span>
+          <span className="font-editorial mt-3 block text-[clamp(4.2rem,14vw,12.5rem)] font-normal">
+            <ChromaticWord value={firstName} />
+            <span className="text-primary">.</span>
+          </span>
+        </h1>
+      </div>
+    </header>
+  );
+}
+
+const LETTER_COLOURS = [
+  "text-primary",
+  "text-foreground",
+  "text-info",
+  "text-foreground",
+  "text-success",
+  "text-foreground",
+  "text-danger",
+];
+
+function ChromaticWord({ value }: { value: string }) {
+  return (
+    <span aria-label={value}>
+      {Array.from(value).map((letter, index) => (
+        <span
+          aria-hidden="true"
+          className={LETTER_COLOURS[index % LETTER_COLOURS.length]}
+          key={`${letter}-${index}`}
+        >
+          {letter}
+        </span>
+      ))}
+    </span>
+  );
+}
+
+function TypeRibbon() {
+  const phrase = "LEARN / BUILD / FOCUS / REVIEW / ITERATE / ";
+  return (
+    <div
+      className="type-ribbon border-y border-border py-3"
+      aria-label="Learn, build, focus, review, iterate"
+    >
+      <div className="type-ribbon-track font-numerical text-[10px] font-semibold tracking-[0.2em] text-muted-foreground">
+        <span>{phrase}</span>
+        <span aria-hidden="true" className="text-primary">
+          {phrase}
+        </span>
+        <span aria-hidden="true">{phrase}</span>
+        <span aria-hidden="true" className="text-info">
+          {phrase}
+        </span>
+      </div>
+    </div>
+  );
+}
+
+function UnreadBadge() {
+  const unread = useAppStore(
+    (state) => state.notifications?.items?.filter((item) => !item.read).length ?? 0,
+  );
+  if (!unread) return null;
+  return (
+    <span className="font-numerical absolute right-0 top-0 flex h-4 min-w-4 items-center justify-center rounded-full bg-primary px-1 text-[8px] font-bold text-primary-foreground">
       {unread > 9 ? "9+" : unread}
     </span>
   );

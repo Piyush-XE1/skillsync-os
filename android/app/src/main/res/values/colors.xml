@@ -1,8 +1,8 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <!-- SkillSync brand surface: matches the app's deep matte background. -->
-    <color name="skillsyncBackground">#09090b</color>
-    <color name="colorPrimary">#09090b</color>
-    <color name="colorPrimaryDark">#050507</color>
-    <color name="colorAccent">#6366f1</color>
+    <color name="skillsyncBackground">#08080A</color>
+    <color name="colorPrimary">#08080A</color>
+    <color name="colorPrimaryDark">#08080A</color>
+    <color name="colorAccent">#C29F62</color>
 </resources>

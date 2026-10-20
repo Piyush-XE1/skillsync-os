@@ -18,17 +18,17 @@ describe("goals", () => {
     expect(titles).toContain("No fap");
   });
 
-  it("keeps preset titles and emoji unique", () => {
+  it("keeps preset titles and line icons unique", () => {
     const titles = GOAL_PRESETS.map((p) => p.title.toLowerCase());
     expect(new Set(titles).size).toBe(titles.length);
-    const emoji = GOAL_PRESETS.map((p) => p.emoji);
-    expect(new Set(emoji).size).toBe(emoji.length);
+    const icons = GOAL_PRESETS.map((p) => p.icon);
+    expect(new Set(icons).size).toBe(icons.length);
   });
 
   it("creates a trimmed goal with a default glyph", () => {
     const goal = createGoal({ title: "  No   junk food  " });
     expect(goal.title).toBe("No junk food");
-    expect(goal.emoji).toBe("🎯");
+    expect(goal.emoji).toBe("target");
     expect(goal.note).toBe("");
     expect(goal.id.length).toBeGreaterThan(0);
     expect(goal.createdAt).toBeGreaterThan(0);
@@ -48,7 +48,7 @@ describe("goals", () => {
     const gym = GOAL_PRESETS.find((p) => p.title === "Gym")!;
     const goal = goalFromPreset(gym);
     expect(goal.title).toBe("Gym");
-    expect(goal.emoji).toBe("🏋️");
+    expect(goal.emoji).toBe("dumbbell");
     expect(goal.note).toBe(gym.note);
   });
 

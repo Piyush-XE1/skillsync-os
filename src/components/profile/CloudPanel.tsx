@@ -1,352 +1,341 @@
-/**
- * Cloud panel: connect a provider, push the newest backup, pull one back.
- *
- * There are no fake states here — a provider is either verified (a real API
- * call succeeded) or it shows exactly what is still missing, with the steps to
- * get it.
- */
+/** Google Drive is the single cloud destination shown by Backup & Restore. */
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import {
+  CheckCircle2,
   Cloud,
   CloudOff,
-  CloudUpload,
   Download,
   ExternalLink,
+  FolderSync,
   Loader2,
   RefreshCw,
-  Trash2,
+  Settings2,
 } from "lucide-react";
-import { Button, Card, Chip, SectionHeader } from "@/components/ui/primitives";
+import { Button, Card } from "@/components/ui/primitives";
 import { BottomSheet } from "@/components/edit/Sheet";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Toggle } from "@/components/common/Toggle";
 import { toast } from "sonner";
+import { formatBytes, formatRelative, getCloudBackupConfig } from "@/lib/backup/advanced-backup";
+import { currentToken, requestGoogleToken } from "@/lib/backup/cloud";
 import { haptics } from "@/lib/haptics";
-import { cn, errorMessage } from "@/lib/utils";
-import {
-  formatBytes,
-  formatRelative,
-  getCloudBackupConfig,
-  type CloudProvider,
-} from "@/lib/backup/advanced-backup";
-import {
-  CLOUD_PROVIDERS,
-  currentToken,
-  describeCloudProvider,
-  getCloudExtras,
-  requestGoogleToken,
-  startDropboxSignIn,
-  type CloudField,
-} from "@/lib/backup/cloud";
+import { errorMessage } from "@/lib/utils";
 import { useBackupStore } from "@/store/useBackupStore";
 
-const PROVIDER_LABEL: Record<CloudProvider, string> = {
-  "github-gist": "GitHub Gist",
-  webdav: "WebDAV",
-  "google-drive": "Google Drive",
-  dropbox: "Dropbox",
-  none: "Cloud",
-};
+const PROVIDER = "google-drive" as const;
 
 export function CloudPanel({ disabled = false }: { disabled?: boolean }) {
-  const cloud = useBackupStore((s) => s.cloud);
-  const records = useBackupStore((s) => s.records);
-  const setupCloud = useBackupStore((s) => s.setupCloud);
-  const testCloud = useBackupStore((s) => s.testCloud);
-  const forgetCloud = useBackupStore((s) => s.forgetCloud);
-  const refreshCloud = useBackupStore((s) => s.refreshCloud);
-  const uploadToCloud = useBackupStore((s) => s.uploadToCloud);
-  const deleteCloudItem = useBackupStore((s) => s.deleteCloudItem);
-  const setCloudAutoUpload = useBackupStore((s) => s.setCloudAutoUpload);
-  const restoreFromCloud = useBackupStore((s) => s.restoreFromCloud);
+  const cloud = useBackupStore((state) => state.cloud);
+  const create = useBackupStore((state) => state.create);
+  const setupCloud = useBackupStore((state) => state.setupCloud);
+  const forgetCloud = useBackupStore((state) => state.forgetCloud);
+  const refreshCloud = useBackupStore((state) => state.refreshCloud);
+  const uploadToCloud = useBackupStore((state) => state.uploadToCloud);
+  const setCloudAutoUpload = useBackupStore((state) => state.setCloudAutoUpload);
+  const restoreFromCloud = useBackupStore((state) => state.restoreFromCloud);
 
-  const [setupFor, setSetupFor] = useState<CloudProvider | null>(null);
-  const [browsing, setBrowsing] = useState<CloudProvider | null>(null);
+  const [setupOpen, setSetupOpen] = useState(false);
+  const [browserOpen, setBrowserOpen] = useState(false);
+  const [hasToken, setHasToken] = useState(false);
+  const [syncing, setSyncing] = useState(false);
 
-  const activeProvider = useMemo(
-    () =>
-      CLOUD_PROVIDERS.map((p) => p.provider).find((provider) => cloud.status[provider]?.enabled) ??
-      null,
-    [cloud.status],
-  );
-
-  useEffect(() => {
-    if (!browsing) return;
-    if ((cloud.items[browsing] ?? []).length === 0 && !cloud.busy) void refreshCloud(browsing);
-  }, [browsing, cloud.items, cloud.busy, refreshCloud]);
-
-  const connected = CLOUD_PROVIDERS.filter(
-    (descriptor) => cloud.status[descriptor.provider]?.connected,
-  );
-
-  return (
-    <div className="space-y-2.5">
-      <SectionHeader
-        title="Cloud copies"
-        action={activeProvider ? `${PROVIDER_LABEL[activeProvider]} is on` : undefined}
-      />
-
-      <Card className="space-y-2 p-3">
-        {CLOUD_PROVIDERS.map((descriptor) => {
-          const status = cloud.status[descriptor.provider];
-          const items = cloud.items[descriptor.provider] ?? [];
-          const busy = cloud.busy === descriptor.provider;
-          return (
-            <div
-              key={descriptor.provider}
-              className="flex items-center gap-3 rounded-xl px-1 py-1.5"
-            >
-              <span
-                className={cn(
-                  "flex h-9 w-9 shrink-0 items-center justify-center rounded-xl",
-                  status?.connected
-                    ? "bg-emerald-400/12 text-emerald-300"
-                    : "bg-white/[0.04] text-muted-foreground",
-                )}
-              >
-                {status?.connected ? (
-                  <Cloud className="h-4 w-4" strokeWidth={1.8} />
-                ) : (
-                  <CloudOff className="h-4 w-4" strokeWidth={1.8} />
-                )}
-              </span>
-              <button
-                onClick={() => {
-                  haptics.tap();
-                  setSetupFor(descriptor.provider);
-                }}
-                className="min-w-0 flex-1 text-left"
-              >
-                <span className="block truncate text-[13px] font-medium tracking-tight">
-                  {descriptor.name}
-                </span>
-                <span className="block truncate text-[11.5px] text-muted-foreground">
-                  {busy
-                    ? "Working…"
-                    : status?.connected
-                      ? `${items.length ? `${items.length} in the cloud · ` : ""}${status.lastSyncAt ? `synced ${formatRelative(status.lastSyncAt)}` : "ready"}`
-                      : status?.configured
-                        ? "Set up — press test to connect"
-                        : descriptor.provider === "github-gist"
-                          ? "Easiest: paste a GitHub token"
-                          : "Needs a token, folder URL or app key"}
-                </span>
-              </button>
-              {status?.connected ? (
-                <Button
-                  variant="outline"
-                  size="sm"
-                  disabled={disabled || busy || records.length === 0}
-                  onClick={() => void uploadToCloud(descriptor.provider)}
-                >
-                  {busy ? (
-                    <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                  ) : (
-                    <CloudUpload className="h-3.5 w-3.5" />
-                  )}
-                  Upload
-                </Button>
-              ) : (
-                <Button variant="ghost" size="sm" onClick={() => setSetupFor(descriptor.provider)}>
-                  Set up
-                </Button>
-              )}
-            </div>
-          );
-        })}
-
-        {cloud.error && (
-          <p className="rounded-xl bg-[var(--danger)]/[0.07] px-3 py-2 text-[11.5px] leading-relaxed text-[var(--danger)]">
-            {cloud.error}
-          </p>
-        )}
-
-        {connected.length > 0 && (
-          <div className="flex items-center gap-2 border-t border-white/[0.05] pt-2">
-            <span className="min-w-0 flex-1 text-[11.5px] text-muted-foreground">
-              Show what is stored in {PROVIDER_LABEL[connected[0].provider]}
-            </span>
-            <Button variant="ghost" size="sm" onClick={() => setBrowsing(connected[0].provider)}>
-              Browse
-            </Button>
-          </div>
-        )}
-      </Card>
-
-      {setupFor && (
-        <CloudSetupSheet
-          provider={setupFor}
-          onClose={() => setSetupFor(null)}
-          onSaved={async (values) => {
-            const ok = await setupCloud({ provider: setupFor, ...values });
-            if (ok) setSetupFor(null);
-          }}
-          onForgot={async () => {
-            await forgetCloud(setupFor);
-            setSetupFor(null);
-          }}
-        />
-      )}
-
-      {browsing && (
-        <BottomSheet
-          open
-          onClose={() => setBrowsing(null)}
-          title={`${PROVIDER_LABEL[browsing]} files`}
-          description="Anything listed here can be restored straight into this workspace."
-        >
-          <div className="space-y-2">
-            {cloud.busy === browsing && (
-              <div className="flex items-center gap-2 text-[12.5px] text-muted-foreground">
-                <Loader2 className="h-3.5 w-3.5 animate-spin" /> Fetching the list…
-              </div>
-            )}
-            {(cloud.items[browsing] ?? []).length === 0 && cloud.busy !== browsing && (
-              <p className="text-[12.5px] leading-relaxed text-muted-foreground">
-                Nothing here yet{cloud.error ? ` (${cloud.error})` : ". Upload a backup first."}
-              </p>
-            )}
-            {(cloud.items[browsing] ?? []).map((item) => (
-              <div
-                key={item.id}
-                className="flex items-center gap-2.5 rounded-xl bg-white/[0.03] px-3 py-2.5"
-              >
-                <div className="min-w-0 flex-1">
-                  <div className="truncate text-[12.5px] font-medium">{item.name}</div>
-                  <div className="text-[11px] text-muted-foreground">
-                    {item.updatedAt ? formatRelative(item.updatedAt) : "unknown date"} ·{" "}
-                    {formatBytes(item.sizeBytes)}
-                  </div>
-                </div>
-                {item.url && (
-                  <a
-                    href={item.url}
-                    target="_blank"
-                    rel="noreferrer"
-                    aria-label="Open in the provider"
-                    className="text-muted-foreground"
-                  >
-                    <ExternalLink className="h-4 w-4" />
-                  </a>
-                )}
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  className="h-8 w-8"
-                  aria-label="Delete from cloud"
-                  onClick={() => void deleteCloudItem(browsing, item.id)}
-                >
-                  <Trash2 className="h-4 w-4" />
-                </Button>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => void restoreFromCloud(browsing, item.id, item.name)}
-                >
-                  <Download className="h-3.5 w-3.5" />
-                  Restore
-                </Button>
-              </div>
-            ))}
-            <Button
-              variant="ghost"
-              className="w-full"
-              onClick={() => void refreshCloud(browsing)}
-              disabled={cloud.busy === browsing}
-            >
-              <RefreshCw className="h-3.5 w-3.5" />
-              Refresh list
-            </Button>
-          </div>
-        </BottomSheet>
-      )}
-    </div>
-  );
-}
-
-// ============================================================================
-// SETUP SHEET
-// ============================================================================
-
-type FormValues = {
-  token?: string;
-  baseUrl?: string;
-  username?: string;
-  password?: string;
-  clientId?: string;
-  folderId?: string;
-  autoUpload?: boolean;
-};
-
-function CloudSetupSheet({
-  provider,
-  onClose,
-  onSaved,
-  onForgot,
-}: {
-  provider: CloudProvider;
-  onClose: () => void;
-  onSaved: (values: FormValues) => Promise<boolean | void>;
-  onForgot: () => Promise<void>;
-}) {
-  const descriptor = describeCloudProvider(provider);
-  const status = useBackupStore((s) => s.cloud.status[provider]);
-  const busy = useBackupStore((s) => s.cloud.busy === provider);
-  const setCloudAutoUpload = useBackupStore((s) => s.setCloudAutoUpload);
-
-  const [values, setValues] = useState<FormValues>({});
-  const [secretSaved, setSecretSaved] = useState(false);
-  const [signingIn, setSigningIn] = useState(false);
+  const status = cloud.status[PROVIDER];
+  const items = cloud.items[PROVIDER] ?? [];
+  const cloudBusy = cloud.busy === PROVIDER;
+  const connected = Boolean(status?.connected && hasToken);
 
   useEffect(() => {
     let alive = true;
-    const extras = getCloudExtras(provider);
-    const config = getCloudBackupConfig(provider);
-    void currentToken(provider).then((token) => {
-      if (!alive) return;
-      setSecretSaved(Boolean(token));
-      setValues({
-        baseUrl: extras.baseUrl ?? "",
-        username: extras.username ?? "",
-        clientId: config.clientId ?? "",
-        token: "",
-      });
+    void currentToken(PROVIDER).then((token) => {
+      if (alive) setHasToken(Boolean(token));
     });
     return () => {
       alive = false;
     };
-  }, [provider]);
+  }, [status?.connected, status?.configured]);
 
-  if (!descriptor) return null;
+  useEffect(() => {
+    if (!browserOpen || cloudBusy || items.length > 0) return;
+    void refreshCloud(PROVIDER);
+  }, [browserOpen, cloudBusy, items.length, refreshCloud]);
 
-  const requiredMissing = descriptor.fields.some(
-    (field) => field.required && !values[field.key] && !(field.secret && secretSaved),
-  );
-
-  const save = async () => {
-    const payload: FormValues = { autoUpload: values.autoUpload ?? false };
-    for (const field of descriptor.fields) {
-      const value = values[field.key]?.trim();
-      if (value) payload[field.key === "clientId" ? "clientId" : field.key] = value;
+  const syncNow = async () => {
+    setSyncing(true);
+    haptics.tap();
+    try {
+      const made = await create({
+        compression: true,
+        quiet: true,
+        suppressSavePrompt: true,
+        skipAutoUpload: true,
+      });
+      if (made) await uploadToCloud(PROVIDER, made.meta.backupId);
+    } finally {
+      setSyncing(false);
     }
-    const ok = await onSaved(payload);
-    if (ok === false)
-      toast.error("Saved, but the test connection failed — check the details above.");
   };
 
-  const googleSignIn = async () => {
+  return (
+    <>
+      <Card className="backup-destination-card space-y-5 p-5" elevated>
+        <div className="flex items-start gap-3">
+          <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border border-white/[0.08] bg-white/[0.025] text-foreground">
+            {connected ? (
+              <Cloud className="h-5 w-5" strokeWidth={1.65} />
+            ) : (
+              <CloudOff className="h-5 w-5" strokeWidth={1.65} />
+            )}
+          </span>
+          <div className="min-w-0 flex-1">
+            <p className="section-kicker">02 / CLOUD</p>
+            <h2 className="mt-1 font-display text-xl leading-tight">
+              Backup sync with Google Drive
+            </h2>
+          </div>
+          {connected && (
+            <Button
+              type="button"
+              variant="ghost"
+              size="icon"
+              className="h-11 w-11"
+              aria-label="Google Drive connection settings"
+              onClick={() => setSetupOpen(true)}
+            >
+              <Settings2 className="h-4 w-4" />
+            </Button>
+          )}
+        </div>
+
+        <p className="text-[12.5px] leading-relaxed text-muted-foreground">
+          Keep a private, restorable copy in a dedicated SkillSync Backups folder in your Google
+          Drive.
+        </p>
+
+        {connected ? (
+          <>
+            <div className="flex items-start gap-2.5 border-y border-white/[0.07] py-3">
+              <CheckCircle2
+                className="mt-0.5 h-4 w-4 shrink-0 text-emerald-300"
+                strokeWidth={1.8}
+              />
+              <div className="min-w-0 flex-1">
+                <p className="text-[12px] font-medium text-foreground">Google Drive connected</p>
+                <p className="mt-0.5 text-[10.5px] leading-relaxed text-muted-foreground">
+                  {status?.lastSyncAt
+                    ? `Last synced ${formatRelative(status.lastSyncAt)}`
+                    : "Ready for the first sync"}
+                </p>
+              </div>
+            </div>
+
+            <div className="space-y-2">
+              <Button
+                className="gradient-primary h-11 w-full"
+                disabled={disabled || cloudBusy || syncing}
+                onClick={() => void syncNow()}
+              >
+                {cloudBusy || syncing ? (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ) : (
+                  <FolderSync className="h-4 w-4" />
+                )}
+                Sync now
+              </Button>
+              <Button
+                variant="outline"
+                className="h-11 w-full"
+                disabled={disabled || cloudBusy}
+                onClick={() => {
+                  haptics.tap();
+                  setBrowserOpen(true);
+                }}
+              >
+                <Download className="h-4 w-4" />
+                Restore from Google Drive
+              </Button>
+            </div>
+
+            <div className="flex items-start gap-3 pt-1">
+              <div className="min-w-0 flex-1">
+                <p className="text-[12px] font-medium">Keep new backups synced</p>
+                <p className="mt-0.5 text-[10.5px] leading-relaxed text-muted-foreground">
+                  Upload a private-safe Drive copy whenever SkillSync creates a new backup.
+                </p>
+              </div>
+              <Toggle
+                on={Boolean(status?.autoUpload)}
+                onChange={(next) => void setCloudAutoUpload(PROVIDER, next)}
+                label="Keep new backups synced with Google Drive"
+              />
+            </div>
+          </>
+        ) : (
+          <>
+            <div className="border-y border-white/[0.07] py-3 text-[11.5px] leading-relaxed text-muted-foreground">
+              Sign in through Google. SkillSync requests access only to files it creates and never
+              receives your Google password.
+            </div>
+            <Button
+              className="gradient-primary h-11 w-full"
+              disabled={disabled}
+              onClick={() => {
+                haptics.tap();
+                setSetupOpen(true);
+              }}
+            >
+              <Cloud className="h-4 w-4" />
+              Connect Google Drive
+            </Button>
+          </>
+        )}
+
+        {cloud.error && (
+          <p role="alert" className="text-[11px] leading-relaxed text-[var(--danger)]">
+            {cloud.error}
+          </p>
+        )}
+      </Card>
+
+      {setupOpen && (
+        <GoogleSetupSheet
+          connected={connected}
+          autoUpload={Boolean(status?.autoUpload)}
+          busy={cloudBusy}
+          onConnected={() => {
+            setHasToken(true);
+            setSetupOpen(false);
+          }}
+          onConnect={async (clientId, token, autoUpload) =>
+            setupCloud({
+              provider: PROVIDER,
+              clientId,
+              token,
+              enabled: true,
+              autoUpload,
+            })
+          }
+          onDisconnect={async () => {
+            await forgetCloud(PROVIDER);
+            setHasToken(false);
+            setSetupOpen(false);
+          }}
+          onClose={() => setSetupOpen(false)}
+        />
+      )}
+
+      <BottomSheet
+        open={browserOpen}
+        onClose={() => setBrowserOpen(false)}
+        title="Google Drive backups"
+        description="Choose a SkillSync backup to inspect before restoring it."
+      >
+        <div className="space-y-3 pb-2">
+          {cloudBusy && (
+            <div className="flex min-h-12 items-center gap-2 text-[12.5px] text-muted-foreground">
+              <Loader2 className="h-4 w-4 animate-spin" /> Loading your Drive backups…
+            </div>
+          )}
+
+          {!cloudBusy && items.length === 0 && (
+            <div className="border border-white/[0.07] px-3 py-4 text-[12px] leading-relaxed text-muted-foreground">
+              No SkillSync backups are in Google Drive yet. Close this panel and choose Sync now.
+            </div>
+          )}
+
+          {items.map((item) => (
+            <div
+              key={item.id}
+              className="flex flex-wrap items-center gap-2.5 border-b border-white/[0.07] py-3 last:border-0"
+            >
+              <div className="min-w-0 flex-1 basis-40">
+                <p className="truncate text-[12.5px] font-medium">{item.name}</p>
+                <p className="mt-0.5 text-[10.5px] text-muted-foreground">
+                  {item.updatedAt ? formatRelative(item.updatedAt) : "Unknown date"} ·{" "}
+                  {formatBytes(item.sizeBytes)}
+                </p>
+              </div>
+              {item.url && (
+                <a
+                  href={item.url}
+                  target="_blank"
+                  rel="noreferrer"
+                  aria-label={`Open ${item.name} in Google Drive`}
+                  className="focus-ring flex h-11 w-11 items-center justify-center text-muted-foreground hover:text-foreground"
+                >
+                  <ExternalLink className="h-4 w-4" />
+                </a>
+              )}
+              <Button
+                variant="outline"
+                size="sm"
+                className="h-11"
+                disabled={cloudBusy}
+                onClick={() => {
+                  setBrowserOpen(false);
+                  void restoreFromCloud(PROVIDER, item.id, item.name);
+                }}
+              >
+                Restore
+              </Button>
+            </div>
+          ))}
+
+          <Button
+            variant="ghost"
+            className="min-h-11 w-full"
+            disabled={cloudBusy}
+            onClick={() => void refreshCloud(PROVIDER)}
+          >
+            <RefreshCw className="h-4 w-4" />
+            Refresh Drive backups
+          </Button>
+        </div>
+      </BottomSheet>
+    </>
+  );
+}
+
+function GoogleSetupSheet({
+  connected,
+  autoUpload,
+  busy,
+  onConnect,
+  onConnected,
+  onDisconnect,
+  onClose,
+}: {
+  connected: boolean;
+  autoUpload: boolean;
+  busy: boolean;
+  onConnect: (clientId: string, token: string, autoUpload: boolean) => Promise<boolean>;
+  onConnected: () => void;
+  onDisconnect: () => Promise<void>;
+  onClose: () => void;
+}) {
+  const deploymentClientId = String(import.meta.env.VITE_GOOGLE_DRIVE_CLIENT_ID ?? "").trim();
+  const [clientId, setClientId] = useState(
+    () => getCloudBackupConfig(PROVIDER).clientId ?? deploymentClientId,
+  );
+  const [keepSynced, setKeepSynced] = useState(autoUpload);
+  const [signingIn, setSigningIn] = useState(false);
+
+  const connect = async () => {
+    const id = clientId.trim();
+    if (!id) return;
     setSigningIn(true);
     try {
-      const clientId = (values.clientId ?? "").trim();
-      const result = await requestGoogleToken(clientId);
+      const result = await requestGoogleToken(id);
       if (!result.ok) {
         toast.error(result.hint ? `${result.error} ${result.hint}` : result.error);
         return;
       }
-      await onSaved({ clientId, token: result.token, autoUpload: values.autoUpload });
-      toast.success("Google Drive connected");
+      const ok = await onConnect(id, result.token, keepSynced);
+      if (ok) {
+        toast.success("Google Drive connected");
+        onConnected();
+      }
     } catch (error) {
       toast.error(errorMessage(error, "Google sign-in failed."));
     } finally {
@@ -358,148 +347,77 @@ function CloudSetupSheet({
     <BottomSheet
       open
       onClose={onClose}
-      title={descriptor.name}
-      description={descriptor.blurb}
+      title={connected ? "Google Drive settings" : "Connect Google Drive"}
+      description={
+        connected
+          ? "This device is authorized to sync SkillSync backups."
+          : "A one-time OAuth client ID lets Google securely identify this SkillSync installation."
+      }
       footer={
-        <div className="flex gap-2 pb-[max(env(safe-area-inset-bottom),12px)]">
-          {status?.connected && (
-            <Button variant="outline" onClick={() => void onForgot()}>
-              Disconnect
+        <div className="space-y-2 pb-[max(env(safe-area-inset-bottom),12px)]">
+          <Button
+            className="gradient-primary h-11 w-full"
+            disabled={busy || signingIn || !clientId.trim()}
+            onClick={() => void connect()}
+          >
+            {busy || signingIn ? (
+              <Loader2 className="h-4 w-4 animate-spin" />
+            ) : (
+              <Cloud className="h-4 w-4" />
+            )}
+            {connected ? "Reconnect Google account" : "Continue with Google"}
+          </Button>
+          {connected && (
+            <Button
+              variant="ghost"
+              className="h-11 w-full text-[var(--danger)]"
+              disabled={busy || signingIn}
+              onClick={() => void onDisconnect()}
+            >
+              Disconnect Google Drive
             </Button>
           )}
-          <Button
-            className="flex-1 gradient-primary"
-            disabled={requiredMissing || busy}
-            onClick={() => void save()}
-          >
-            {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : <Cloud className="h-4 w-4" />}
-            {status?.connected ? "Save & test" : "Save & connect"}
-          </Button>
         </div>
       }
     >
-      <div className="space-y-4 pb-2">
-        <div className="space-y-3">
-          {descriptor.fields.map((field) => (
-            <FieldRow
-              key={field.key}
-              field={field}
-              secretSaved={Boolean(field.secret && secretSaved)}
-              value={values[field.key] ?? ""}
-              onChange={(next) => setValues((prev) => ({ ...prev, [field.key]: next }))}
-            />
-          ))}
+      <div className="space-y-5 pb-2">
+        <div className="space-y-1.5">
+          <Label htmlFor="google-drive-client-id">Google OAuth client ID</Label>
+          <Input
+            id="google-drive-client-id"
+            value={clientId}
+            onChange={(event) => setClientId(event.target.value)}
+            placeholder="1234-abc.apps.googleusercontent.com"
+            autoComplete="off"
+            spellCheck={false}
+          />
+          <p className="text-[10.5px] leading-relaxed text-muted-foreground">
+            Stored only on this device. No client secret is required.
+          </p>
         </div>
 
-        {provider === "google-drive" && (
-          <Button
-            variant="outline"
-            className="w-full"
-            disabled={signingIn || !(values.clientId ?? "").trim()}
-            onClick={() => void googleSignIn()}
-          >
-            {signingIn ? (
-              <Loader2 className="h-4 w-4 animate-spin" />
-            ) : (
-              <Cloud className="h-4 w-4" />
-            )}
-            Connect with Google
-          </Button>
-        )}
-        {provider === "dropbox" && (
-          <Button
-            variant="outline"
-            className="w-full"
-            disabled={signingIn || !(values.clientId ?? "").trim()}
-            onClick={() => {
-              setSigningIn(true);
-              void startDropboxSignIn((values.clientId ?? "").trim());
-            }}
-          >
-            {signingIn ? (
-              <Loader2 className="h-4 w-4 animate-spin" />
-            ) : (
-              <Cloud className="h-4 w-4" />
-            )}
-            Sign in to Dropbox
-          </Button>
-        )}
-
-        <div className="flex items-start gap-3 rounded-xl bg-white/[0.03] px-3 py-2.5">
+        <div className="flex items-start gap-3 border-y border-white/[0.07] py-3">
           <div className="min-w-0 flex-1">
-            <div className="text-[12.5px] font-medium">Send every new backup up too</div>
-            <p className="mt-0.5 text-[11.5px] leading-relaxed text-muted-foreground">
-              Runs after an automatic copy is made, and after a manual one.
+            <p className="text-[12px] font-medium">Keep new backups synced</p>
+            <p className="mt-0.5 text-[10.5px] leading-relaxed text-muted-foreground">
+              Send new private-safe copies to Drive after they are created.
             </p>
           </div>
-          <Toggle
-            on={values.autoUpload ?? Boolean(status?.autoUpload)}
-            onChange={(next) => {
-              setValues((prev) => ({ ...prev, autoUpload: next }));
-              if (status?.connected) void setCloudAutoUpload(provider, next);
-            }}
-            label="Auto-upload"
-          />
+          <Toggle on={keepSynced} onChange={setKeepSynced} label="Keep new backups synced" />
         </div>
 
-        <div className="rounded-2xl border border-white/[0.06] p-3.5">
-          <div className="text-[12px] font-semibold uppercase tracking-[0.08em] text-muted-foreground">
-            Setup steps
-          </div>
-          <ol className="mt-2 space-y-1.5">
-            {descriptor.steps.map((step, index) => (
-              <li
-                key={step}
-                className="flex gap-2 text-[12px] leading-relaxed text-muted-foreground"
-              >
-                <span className="mt-0.5 flex h-4 w-4 shrink-0 items-center justify-center rounded-full bg-white/[0.06] text-[10px] font-semibold text-foreground">
-                  {index + 1}
-                </span>
-                <span>{step}</span>
-              </li>
-            ))}
+        <details className="group border border-white/[0.07] px-3 py-2.5">
+          <summary className="focus-ring flex min-h-11 cursor-pointer items-center text-[12px] font-medium">
+            Where do I get a client ID?
+          </summary>
+          <ol className="mt-3 space-y-2 pl-4 text-[11px] leading-relaxed text-muted-foreground">
+            <li>1. In Google Cloud Console, enable the Google Drive API.</li>
+            <li>2. Create a Web application OAuth client with the drive.file scope.</li>
+            <li>3. Add this app's exact origin under Authorized JavaScript origins.</li>
+            <li>4. Paste the generated client ID above, then continue with Google.</li>
           </ol>
-          {descriptor.notes && (
-            <div className="mt-2.5 flex flex-wrap gap-1.5">
-              {descriptor.notes.map((note) => (
-                <Chip key={note}>{note}</Chip>
-              ))}
-            </div>
-          )}
-        </div>
+        </details>
       </div>
     </BottomSheet>
-  );
-}
-
-function FieldRow({
-  field,
-  value,
-  secretSaved,
-  onChange,
-}: {
-  field: CloudField;
-  value: string;
-  secretSaved: boolean;
-  onChange: (value: string) => void;
-}) {
-  return (
-    <div className="space-y-1">
-      <Label className="flex items-center gap-2 text-[12px] font-medium">
-        {field.label}
-        {field.required && <span className="text-[10px] text-muted-foreground">required</span>}
-      </Label>
-      <Input
-        type={field.secret ? "password" : "text"}
-        value={value}
-        onChange={(event) => onChange(event.target.value)}
-        placeholder={secretSaved ? "Saved on this device — type to replace" : field.placeholder}
-        autoComplete={field.secret ? "off" : "on"}
-        spellCheck={false}
-      />
-      {field.help && (
-        <p className="text-[11px] leading-relaxed text-muted-foreground">{field.help}</p>
-      )}
-    </div>
   );
 }

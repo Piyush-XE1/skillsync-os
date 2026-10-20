@@ -2,8 +2,10 @@ import { useEffect, useMemo, useState, type CSSProperties } from "react";
 import { Link } from "@tanstack/react-router";
 import { ArrowUpRight, BrainCircuit, Flame, Target, Timer, Trophy } from "lucide-react";
 import { CircularProgress, CountUp } from "@/components/ui/primitives";
+import { SemanticIcon } from "@/components/common/SemanticIcon";
 import { useAppStore, useHydrated } from "@/store/useAppStore";
 import { activityStrip, todaySummary } from "@/lib/today";
+import { DEFAULT_GOAL_ICON } from "@/lib/semantic-icons";
 import { cn } from "@/lib/utils";
 
 /**
@@ -187,7 +189,11 @@ export function TodayHero({ className }: { className?: string }) {
             className="animate-rise pressable inline-flex items-center gap-1.5 rounded-full border border-white/[0.09] bg-white/[0.045] px-2.5 py-1 text-[11.5px] font-medium text-foreground/90"
             style={riseStyle(i)}
           >
-            <span aria-hidden>{goal.emoji}</span>
+            <SemanticIcon
+              value={goal.emoji}
+              fallback={DEFAULT_GOAL_ICON}
+              className="h-3.5 w-3.5 text-primary"
+            />
             <span className="max-w-[9rem] truncate">{goal.title}</span>
           </Link>
         ))}

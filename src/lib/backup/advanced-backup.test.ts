@@ -14,9 +14,11 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import {
   createAdvancedBackup,
+  createCloudSafeBackup,
   validateAdvancedBackup,
   validateEncryptedBackup,
   restoreAdvancedBackup,
+  redactCloudPrivateData,
   detectChanges,
   countRecords,
   getBackupSummary,
@@ -100,6 +102,25 @@ describe("Advanced Backup System", () => {
   // ============================================================================
 
   describe("Backup Creation", () => {
+    it("redacts the device-local birth date from cloud-bound data without mutating the workspace", () => {
+      initialData.birthDate = "2000-01-01";
+      const cloudData = redactCloudPrivateData(initialData);
+      expect(cloudData.birthDate).toBeNull();
+      expect(initialData.birthDate).toBe("2000-01-01");
+      expect(cloudData.notes).toBe(initialData.notes);
+      expect(cloudData.archetypeTraits).toBe(initialData.archetypeTraits);
+    });
+
+    it("omits the birth-date key from a valid cloud-safe envelope", async () => {
+      initialData.birthDate = "2000-01-01";
+      const created = await createCloudSafeBackup(initialData);
+      expect(created.text).not.toContain('"birthDate"');
+
+      const validated = await validateAdvancedBackup(created.text);
+      expect(validated.ok).toBe(true);
+      expect(validated.ok && validated.backup.data.birthDate).toBeNull();
+    });
+
     it("should create a basic backup without options", async () => {
       const result = await createAdvancedBackup(initialData);
 
@@ -447,6 +468,8 @@ describe("Advanced Backup System", () => {
         body: "Test",
         tags: [],
         pinned: false,
+        notebook: "General",
+        archived: false,
         linkedTo: null,
         createdAt: Date.now(),
         updatedAt: Date.now(),
@@ -474,6 +497,8 @@ describe("Advanced Backup System", () => {
           body: "Test",
           tags: [],
           pinned: false,
+          notebook: "General",
+          archived: false,
           linkedTo: null,
           createdAt: Date.now(),
           updatedAt: Date.now(),
@@ -527,6 +552,15 @@ describe("Advanced Backup System", () => {
         },
         widgets: [],
         goals: [],
+        archetypeTraits: [],
+        customQuotes: [],
+        quoteFilterPreference: "stoic",
+        selectedCustomQuoteId: null,
+        antiSelfEntries: [],
+        birthDate: null,
+        ageDisplayUnit: "weeks",
+        stopwatches: [],
+        stopwatchEnabled: false,
         expenses: { transactions: [], monthlyBudget: 0 },
         focus: {
           sessions: [],

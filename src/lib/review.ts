@@ -22,7 +22,7 @@ export type ReviewMetric = {
   value: number;
   /** Week-over-week change (this week − last week). */
   delta: number;
-  emoji: string;
+  icon: string;
 };
 
 export type WeekReview = {
@@ -32,7 +32,7 @@ export type WeekReview = {
   days: ReviewDay[];
   score: number;
   grade: string;
-  gradeEmoji: string;
+  gradeIcon: string;
   headline: string;
   metrics: ReviewMetric[];
   highlights: string[];
@@ -131,12 +131,12 @@ function dayLabel(iso: string): string {
   return d.toLocaleDateString("en-US", { weekday: "short" });
 }
 
-function gradeFor(score: number): { grade: string; emoji: string } {
-  if (score >= 220) return { grade: "Outstanding", emoji: "🏆" };
-  if (score >= 150) return { grade: "Great week", emoji: "🔥" };
-  if (score >= 90) return { grade: "Solid week", emoji: "⚡" };
-  if (score >= 45) return { grade: "Building momentum", emoji: "🌱" };
-  return { grade: "Warming up", emoji: "🌤️" };
+function gradeFor(score: number): { grade: string; icon: string } {
+  if (score >= 220) return { grade: "Outstanding", icon: "trophy" };
+  if (score >= 150) return { grade: "Great week", icon: "flame" };
+  if (score >= 90) return { grade: "Solid week", icon: "zap" };
+  if (score >= 45) return { grade: "Building momentum", icon: "sprout" };
+  return { grade: "Warming up", icon: "cloud-sun" };
 }
 
 function weekTotals(data: AppData, start: string, end: string) {
@@ -196,35 +196,35 @@ export function composeReview(data: AppData, now: Date = new Date()): WeekReview
       label: "Topics learned",
       value: thisW.topics,
       delta: thisW.topics - lastW.topics,
-      emoji: "🎓",
+      icon: "graduation-cap",
     },
     {
       key: "solves",
       label: "Problems solved",
       value: thisW.solves,
       delta: thisW.solves - lastW.solves,
-      emoji: "💻",
+      icon: "laptop",
     },
     {
       key: "focus",
       label: "Deep-work minutes",
       value: Math.round(thisW.focus),
       delta: Math.round(thisW.focus) - Math.round(lastW.focus),
-      emoji: "🧠",
+      icon: "brain",
     },
     {
       key: "habits",
       label: "Habit check-ins",
       value: thisW.habits,
       delta: thisW.habits - lastW.habits,
-      emoji: "✅",
+      icon: "circle-check",
     },
     {
       key: "tasks",
       label: "Tasks done",
       value: thisW.tasks,
       delta: thisW.tasks - lastW.tasks,
-      emoji: "📋",
+      icon: "clipboard-check",
     },
   ];
 
@@ -269,7 +269,7 @@ export function composeReview(data: AppData, now: Date = new Date()): WeekReview
     days,
     score,
     grade: grade.grade,
-    gradeEmoji: grade.emoji,
+    gradeIcon: grade.icon,
     headline: buildHeadline(metrics, score),
     metrics,
     highlights: highlights.slice(0, 5),

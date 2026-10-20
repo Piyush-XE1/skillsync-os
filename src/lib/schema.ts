@@ -1,10 +1,9 @@
 import { z } from "zod";
 import { NotificationsStateSchema, createDefaultNotifications } from "./notifications/types";
-import { defaultAccentFor, DEFAULT_ACCENT } from "./accent";
 import { DEFAULT_SOUND_VOLUME } from "./sound";
 import { defaultWidgetLayout } from "./widgets";
 
-export const CURRENT_SCHEMA_VERSION = 15;
+export const CURRENT_SCHEMA_VERSION = 17;
 
 export const ChecklistItemSchema = z.object({
   id: z.string(),
@@ -64,6 +63,10 @@ export const NoteSchema = z.object({
   body: z.string().default(""),
   tags: z.array(z.string()).default([]),
   pinned: z.boolean().default(false),
+  /** Lightweight collection name; existing notes migrate into General. */
+  notebook: z.string().default("General"),
+  /** Archived notes remain fully local and searchable without crowding the desk. */
+  archived: z.boolean().default(false),
   linkedTo: z
     .object({ type: z.enum(["topic", "subtopic", "project"]), id: z.string() })
     .nullable()
@@ -110,7 +113,8 @@ export const PlannerTaskSchema = z.object({
 export const HabitSchema = z.object({
   id: z.string(),
   title: z.string(),
-  emoji: z.string().default("✨"),
+  /** Historical storage key; values are now semantic line-icon identifiers. */
+  emoji: z.string().default("sparkles"),
   createdAt: z.number(),
   startDate: z.string().nullable().default(null),
 });
@@ -134,11 +138,72 @@ export const HabitLogSchema = z.object({
 export const GoalSchema = z.object({
   id: z.string(),
   title: z.string(),
-  /** Emoji rendered as the aim's glyph. */
-  emoji: z.string().default("🎯"),
+  /** Historical storage key; values are now semantic line-icon identifiers. */
+  emoji: z.string().default("target"),
   /** Optional line: why it matters, or the rule you keep for it. */
   note: z.string().default(""),
   createdAt: z.number(),
+});
+
+/* ------------------------------------------------------------------ *
+ * Personal monograph — identity, quotations, perspective and time
+ * ------------------------------------------------------------------ */
+
+export const QuoteFilterPreferenceSchema = z.enum(["stoic", "custom", "mixed"]);
+
+export const CustomQuoteSchema = z.object({
+  id: z.string(),
+  quote: z.string(),
+  author: z.string().default("Me"),
+  createdAt: z.number(),
+  updatedAt: z.number(),
+});
+
+export const ArchetypeSubTenetSchema = z.object({
+  id: z.string(),
+  text: z.string(),
+});
+
+export const ArchetypeTraitSchema = z.object({
+  id: z.string(),
+  text: z.string(),
+  category: z.string().default(""),
+  notes: z.string().default(""),
+  subTenets: z.array(ArchetypeSubTenetSchema).default([]),
+  createdAt: z.number(),
+  updatedAt: z.number(),
+  sortOrder: z.number().int().default(0),
+  lastReflectedAt: z.number().nullable().default(null),
+  reflectionCount: z.number().int().nonnegative().default(0),
+});
+
+export const AntiSelfEntrySchema = z.object({
+  id: z.string(),
+  text: z.string(),
+  notes: z.string().default(""),
+  createdAt: z.number(),
+  updatedAt: z.number(),
+  sortOrder: z.number().int().default(0),
+});
+
+export const StopwatchRunSchema = z.object({
+  id: z.string(),
+  durationMs: z.number().nonnegative(),
+  endedAt: z.number(),
+  note: z.string().default(""),
+});
+
+export const StopwatchSchema = z.object({
+  id: z.string(),
+  title: z.string(),
+  icon: z.string().default("Timer"),
+  createdAt: z.number(),
+  status: z.enum(["idle", "running", "paused"]).default("idle"),
+  /** Epoch ms at the beginning of the active segment; null unless running. */
+  startedAt: z.number().nullable().default(null),
+  /** Completed active segments in the current, unfinished run. */
+  accumulatedMs: z.number().nonnegative().default(0),
+  history: z.array(StopwatchRunSchema).default([]),
 });
 
 export const ProfileSchema = z.object({
@@ -194,16 +259,15 @@ export const PreferencesSchema = z.object({
   /** First-run launch experience and focus selection are completed independently. */
   hasCompletedFirstLaunch: z.boolean().default(false),
   onboardingCompleted: z.boolean().default(false),
-  /** Controls visual effects without changing the selected Atelier/background palette. */
+  /** Controls restrained motion and rendering cost. */
   graphicsQuality: GraphicsQualitySchema.default("automatic"),
   /**
-   * The single source of truth for the app's appearance. "light" activates the
-   * Minimalist Light visual system; every other value is a dark variant.
-   * (Removed v5 values "gradient"/"atmospheric" are migrated to "aurora".)
+   * Deprecated appearance fields retained only so historical backups remain
+   * readable. Monograph Noir is always rendered; these values no longer alter
+   * the interface and are not exposed as settings.
    */
-  background: z.enum(["aurora", "light", "atelier"]).default("aurora"),
-  /** Custom accent colour. Overrides `--primary`/`--secondary` for any background. */
-  accent: z.string().default(DEFAULT_ACCENT),
+  background: z.enum(["aurora", "light", "atelier"]).default("atelier"),
+  accent: z.string().default("#C29F62"),
   /** Tactile feedback on supported devices. */
   haptics: z.boolean().default(true),
   hapticIntensity: z.enum(["light", "standard", "strong"]).default("standard"),
@@ -422,8 +486,22 @@ export const AppDataSchema = z.object({
   planner: z.array(PlannerTaskSchema).default([]),
   habits: z.array(HabitSchema).default([]),
   habitLogs: z.array(HabitLogSchema).default([]),
-  /** The highlighted aims shown at the top of the dashboard. */
+  /** The highlighted aims shown in the wider workspace. */
   goals: z.array(GoalSchema).default([]),
+  /** Private, local-only editorial Home data. */
+  archetypeTraits: z.array(ArchetypeTraitSchema).default([]),
+  customQuotes: z.array(CustomQuoteSchema).default([]),
+  quoteFilterPreference: QuoteFilterPreferenceSchema.default("stoic"),
+  selectedCustomQuoteId: z.string().nullable().default(null),
+  antiSelfEntries: z.array(AntiSelfEntrySchema).default([]),
+  birthDate: z
+    .string()
+    .regex(/^\d{4}-\d{2}-\d{2}$/)
+    .nullable()
+    .default(null),
+  ageDisplayUnit: z.enum(["weeks", "days"]).default("weeks"),
+  stopwatches: z.array(StopwatchSchema).default([]),
+  stopwatchEnabled: z.boolean().default(false),
   profile: ProfileSchema.default({ name: "Learner", avatar: "" }),
   preferences: PreferencesSchema.default({
     notifications: true,
@@ -443,8 +521,8 @@ export const AppDataSchema = z.object({
     hasCompletedFirstLaunch: false,
     onboardingCompleted: false,
     graphicsQuality: "automatic",
-    background: "aurora",
-    accent: defaultAccentFor("aurora"),
+    background: "atelier",
+    accent: "#C29F62",
     haptics: true,
     hapticIntensity: "standard",
     sound: true,
@@ -473,6 +551,13 @@ export type PlannerPriority = z.infer<typeof PlannerPriority>;
 export type Habit = z.infer<typeof HabitSchema>;
 export type HabitLog = z.infer<typeof HabitLogSchema>;
 export type Goal = z.infer<typeof GoalSchema>;
+export type QuoteFilterPreference = z.infer<typeof QuoteFilterPreferenceSchema>;
+export type CustomQuote = z.infer<typeof CustomQuoteSchema>;
+export type ArchetypeSubTenet = z.infer<typeof ArchetypeSubTenetSchema>;
+export type ArchetypeTrait = z.infer<typeof ArchetypeTraitSchema>;
+export type AntiSelfEntry = z.infer<typeof AntiSelfEntrySchema>;
+export type StopwatchRun = z.infer<typeof StopwatchRunSchema>;
+export type Stopwatch = z.infer<typeof StopwatchSchema>;
 export type Profile = z.infer<typeof ProfileSchema>;
 export type ModuleFlags = z.infer<typeof ModuleFlagsSchema>;
 export type GraphicsQuality = z.infer<typeof GraphicsQualitySchema>;

@@ -8,7 +8,7 @@ const TODAY = "2026-09-25";
 const habit = (id: string, title = id): Habit => ({
   id,
   title,
-  emoji: "🔥",
+  emoji: "flame",
   createdAt: 0,
   startDate: null,
 });
@@ -18,7 +18,7 @@ const log = (habitId: string, date: string) => ({ habitId, date });
 const goal = (id: string): Goal => ({
   id,
   title: id,
-  emoji: "🎯",
+  emoji: "target",
   note: "",
   createdAt: 0,
 });

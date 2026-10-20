@@ -2,7 +2,6 @@ import type { AppData, Roadmap, Habit, Phase, Topic } from "./schema";
 import { CURRENT_SCHEMA_VERSION } from "./schema";
 import { createDefaultNotifications } from "./notifications/types";
 import { createDefaultFocusSettings } from "./schema";
-import { defaultAccentFor } from "./accent";
 import { DEFAULT_SOUND_VOLUME } from "./sound";
 import { defaultWidgetLayout } from "./widgets";
 const SEED_CREATED_AT = 1_704_067_200_000;
@@ -57,12 +56,12 @@ function makeRoadmap(
   };
 }
 
-function makeHabit(id: string, title: string, emoji: string): Habit {
-  return { id, title, emoji, createdAt: SEED_CREATED_AT, startDate: SEED_START_DATE };
+function makeHabit(id: string, title: string, icon: string): Habit {
+  return { id, title, emoji: icon, createdAt: SEED_CREATED_AT, startDate: SEED_START_DATE };
 }
 
-function makeGoal(id: string, title: string, emoji: string, note = "") {
-  return { id, title, emoji, note, createdAt: SEED_CREATED_AT };
+function makeGoal(id: string, title: string, icon: string, note = "") {
+  return { id, title, emoji: icon, note, createdAt: SEED_CREATED_AT };
 }
 
 export function createInitialData(): AppData {
@@ -193,22 +192,33 @@ export function createInitialData(): AppData {
     projects: [],
     planner: [],
     habits: [
-      makeHabit("habit-sleep", "Sleep", "😴"),
-      makeHabit("habit-workout", "Workout", "🏋️"),
-      makeHabit("habit-reading", "Reading", "📖"),
-      makeHabit("habit-coding", "Coding", "💻"),
-      makeHabit("habit-walking", "Walking", "🚶"),
-      makeHabit("habit-meditation", "Meditation", "🧘"),
+      makeHabit("habit-sleep", "Sleep", "moon"),
+      makeHabit("habit-workout", "Workout", "dumbbell"),
+      makeHabit("habit-reading", "Reading", "book-open"),
+      makeHabit("habit-coding", "Coding", "laptop"),
+      makeHabit("habit-walking", "Walking", "footprints"),
+      makeHabit("habit-meditation", "Meditation", "brain"),
     ],
     habitLogs: [],
     // Starter aims — the highlighted panel is useful the moment the app opens,
     // and every one of them can be edited or deleted.
     goals: [
-      makeGoal("goal-gym", "Gym", "🏋️", "Show up even on the days you don't feel like it."),
-      makeGoal("goal-no-junk", "No junk food", "🥗", "Eat for energy, not for boredom."),
-      makeGoal("goal-academics", "Good at academics", "📚"),
-      makeGoal("goal-no-fap", "No fap", "🔒", "Keep the energy. Keep the focus."),
+      makeGoal("goal-gym", "Gym", "dumbbell", "Show up even on the days you don't feel like it."),
+      makeGoal("goal-no-junk", "No junk food", "salad", "Eat for energy, not for boredom."),
+      makeGoal("goal-academics", "Good at academics", "graduation-cap"),
+      makeGoal("goal-no-fap", "No fap", "lock-keyhole", "Keep the energy. Keep the focus."),
     ],
+    // The monograph remains personal: new workspaces begin with no invented
+    // beliefs, private quotations, Anti-Self entries, birth date, or timers.
+    archetypeTraits: [],
+    customQuotes: [],
+    quoteFilterPreference: "stoic",
+    selectedCustomQuoteId: null,
+    antiSelfEntries: [],
+    birthDate: null,
+    ageDisplayUnit: "weeks",
+    stopwatches: [],
+    stopwatchEnabled: false,
     profile: { name: "Learner", avatar: "" },
     preferences: {
       notifications: true,
@@ -228,8 +238,8 @@ export function createInitialData(): AppData {
       hasCompletedFirstLaunch: false,
       onboardingCompleted: false,
       graphicsQuality: "automatic",
-      background: "aurora",
-      accent: defaultAccentFor("aurora"),
+      background: "atelier",
+      accent: "#C29F62",
       haptics: true,
       hapticIntensity: "standard",
       sound: true,

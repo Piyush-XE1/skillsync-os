@@ -18,11 +18,9 @@ export function Card({
     <div
       className={cn(
         elevated ? "card-elevated" : "card-surface",
-        "p-5 transition-all duration-200 ease-[var(--ease-out-soft)]",
+        "p-5 transition-[background-color,border-color] duration-200 ease-[var(--ease-out-soft)]",
         interactive &&
-          "pressable cursor-pointer active:shadow-[0_10px_24px_-20px_oklch(0_0_0_/_0.9)]",
-        // Desktop-only hover affordance (hover-capable pointers only)
-        "[@media(hover:hover)_and_(pointer:fine)]:hover:border-border-strong [@media(hover:hover)_and_(pointer:fine)]:hover:-translate-y-0.5",
+          "pressable cursor-pointer active:bg-surface-2 [@media(hover:hover)_and_(pointer:fine)]:hover:border-[color-mix(in_oklab,var(--primary)_38%,var(--border))] [@media(hover:hover)_and_(pointer:fine)]:hover:bg-surface",
         className,
       )}
       {...props}
@@ -42,13 +40,15 @@ export function SectionHeader({
   className?: string;
 }) {
   return (
-    <div className={cn("flex items-end justify-between px-1", className)}>
-      <h2 className="flex items-center gap-2 text-[13px] font-semibold uppercase tracking-[0.1em] text-muted-foreground">
-        <span aria-hidden className="gradient-primary h-3 w-[2px] rounded-full" />
-        {title}
-      </h2>
+    <div className={cn("flex min-h-8 items-end justify-between gap-4 px-1", className)}>
+      <div className="flex min-w-0 items-center gap-3">
+        <span aria-hidden className="h-px w-5 shrink-0 bg-primary" />
+        <h2 className="editorial-section-title truncate text-foreground">{title}</h2>
+      </div>
       {action ? (
-        <span className="text-[12px] font-medium text-muted-foreground">{action}</span>
+        <span className="font-numerical shrink-0 text-[10px] uppercase tracking-[0.1em] text-muted-foreground">
+          {action}
+        </span>
       ) : null}
     </div>
   );
@@ -65,21 +65,21 @@ export function Button({
   size?: "default" | "sm" | "icon";
 }) {
   const variants: Record<string, string> = {
-    default: "gradient-primary text-white border border-transparent",
-    outline: "border border-white/[0.08] bg-white/[0.02] text-foreground hover:bg-white/[0.05]",
-    ghost: "text-foreground hover:bg-white/[0.05]",
-    danger: "bg-[var(--danger)] text-white border border-transparent",
+    default: "gradient-primary border border-primary text-primary-foreground hover:bg-primary-glow",
+    outline: "border border-border-strong bg-transparent text-foreground hover:bg-surface-2",
+    ghost: "border border-transparent text-foreground hover:border-border hover:bg-surface",
+    danger: "border border-danger/50 bg-danger/10 text-danger hover:bg-danger/15",
   };
   const sizes: Record<string, string> = {
-    default: "h-10 px-4 text-[13.5px]",
-    sm: "h-8 px-3 text-[12.5px] rounded-lg",
-    icon: "h-10 w-10",
+    default: "h-11 px-4 text-[13px]",
+    sm: "h-9 px-3 text-[11.5px]",
+    icon: "h-11 w-11",
   };
   return (
     <button
       type={type}
       className={cn(
-        "inline-flex shrink-0 items-center justify-center gap-1.5 rounded-xl font-medium tracking-tight transition-all duration-200 ease-[var(--ease-out-soft)] active:scale-[0.97] disabled:pointer-events-none disabled:opacity-50",
+        "pressable inline-flex shrink-0 items-center justify-center gap-1.5 rounded-[6px] font-semibold tracking-[-0.01em] transition-colors duration-200 ease-[var(--ease-out-soft)] disabled:pointer-events-none disabled:opacity-50",
         variants[variant],
         sizes[size],
         className,
@@ -99,18 +99,18 @@ export function Chip({
   className?: string;
 }) {
   const tones: Record<string, string> = {
-    default: "bg-white/[0.045] text-muted-foreground border-white/[0.07]",
+    default: "border-border bg-surface-2 text-muted-foreground",
     primary:
-      "bg-[color-mix(in_oklab,var(--primary)_16%,transparent)] text-[color-mix(in_oklab,var(--primary-glow)_88%,white)] border-[color-mix(in_oklab,var(--primary)_30%,transparent)]",
-    success: "bg-success/10 text-success border-success/25",
-    warning: "bg-warning/10 text-warning border-warning/25",
-    danger: "bg-danger/10 text-danger border-danger/25",
-    info: "bg-info/10 text-info border-info/25",
+      "border-[color-mix(in_oklab,var(--primary)_34%,var(--border))] bg-[color-mix(in_oklab,var(--primary)_10%,var(--surface))] text-primary-glow",
+    success: "border-success/30 bg-success/10 text-success",
+    warning: "border-warning/30 bg-warning/10 text-warning",
+    danger: "border-danger/30 bg-danger/10 text-danger",
+    info: "border-info/30 bg-info/10 text-info",
   };
   return (
     <span
       className={cn(
-        "inline-flex items-center gap-1.5 rounded-full border px-2.5 py-0.5 text-[11px] font-medium tracking-tight",
+        "font-numerical inline-flex items-center gap-1.5 rounded-[4px] border px-2 py-1 text-[9.5px] font-medium uppercase tracking-[0.08em]",
         tones[tone],
         className,
       )}
@@ -218,7 +218,7 @@ export function CircularProgress({
       </svg>
       <div className="absolute inset-0 flex flex-col items-center justify-center">
         {label ? (
-          <span className="text-[18px] font-semibold leading-none tracking-tight text-foreground">
+          <span className="font-numerical text-[18px] font-semibold leading-none tracking-[-0.04em] text-foreground">
             {label}
           </span>
         ) : null}
@@ -275,7 +275,7 @@ export function CountUp({
   }, [value, duration]);
 
   return (
-    <span className={cn("tabular-nums", className)}>
+    <span className={cn("font-numerical tabular-nums", className)}>
       {prefix}
       {display.toFixed(decimals)}
       {suffix}

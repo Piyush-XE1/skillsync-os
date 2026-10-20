@@ -4,11 +4,13 @@ import { ArrowLeft, Pencil, Trash2, Flame, Trophy, Percent, Check } from "lucide
 import { AppShell } from "@/components/layout/AppShell";
 import { Card, Chip, ProgressBar, SectionHeader } from "@/components/ui/primitives";
 import { EmptyState } from "@/components/common/EmptyState";
+import { SemanticIcon, SemanticIconPicker } from "@/components/common/SemanticIcon";
 import { BottomSheet, ConfirmDialog } from "@/components/edit/Sheet";
 import { TextField } from "@/components/edit/Fields";
 import { ActionButton, IconButton } from "@/components/edit/Buttons";
 import { useAppStore, useHydrated } from "@/store/useAppStore";
 import { todayISO, addDaysISO, fromISO } from "@/lib/date";
+import { DEFAULT_HABIT_ICON } from "@/lib/semantic-icons";
 import { cn } from "@/lib/utils";
 
 export const Route = createFileRoute("/habits/$habitId")({
@@ -45,7 +47,7 @@ function HabitDetail() {
   const [editOpen, setEditOpen] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [title, setTitle] = useState("");
-  const [emoji, setEmoji] = useState("✨");
+  const [icon, setIcon] = useState<string>(DEFAULT_HABIT_ICON);
   const [startInput, setStartInput] = useState("");
   const [monthOffset, setMonthOffset] = useState(0);
 
@@ -147,7 +149,7 @@ function HabitDetail() {
       <header className="mb-5 flex items-center justify-between px-5 lg:px-2">
         <Link
           to="/habits"
-          className="glass flex h-10 w-10 items-center justify-center rounded-full active:scale-95"
+          className="glass flex h-11 w-11 items-center justify-center rounded-[5px] active:scale-95"
           aria-label="Back"
         >
           <ArrowLeft className="h-[17px] w-[17px] text-muted-foreground" strokeWidth={1.75} />
@@ -157,7 +159,7 @@ function HabitDetail() {
             aria-label="Edit"
             onClick={() => {
               setTitle(habit.title);
-              setEmoji(habit.emoji);
+              setIcon(habit.emoji);
               setStartInput(startISO);
               setEditOpen(true);
             }}
@@ -172,11 +174,11 @@ function HabitDetail() {
 
       <div className="mb-6 px-5 lg:px-2">
         <div className="flex items-center gap-3">
-          <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-white/[0.04] text-[26px]">
-            {habit.emoji}
+          <div className="icon-tile-accent h-14 w-14 rounded-[6px]">
+            <SemanticIcon value={habit.emoji} fallback={DEFAULT_HABIT_ICON} className="h-6 w-6" />
           </div>
           <div className="min-w-0 flex-1">
-            <h1 className="truncate text-[24px] font-semibold leading-tight tracking-[-0.02em]">
+            <h1 className="font-editorial truncate text-[28px] font-normal leading-tight tracking-[-0.03em]">
               {habit.title}
             </h1>
             <div className="mt-1 flex items-center gap-1.5 text-[12px] text-muted-foreground">
@@ -188,10 +190,10 @@ function HabitDetail() {
         <button
           onClick={() => toggleHabitToday(habit.id)}
           className={cn(
-            "mt-5 flex w-full items-center justify-center gap-2 rounded-2xl py-3.5 text-[14px] font-medium transition-all active:scale-[0.98]",
+            "font-numerical pressable mt-5 flex w-full items-center justify-center gap-2 rounded-[6px] border py-3.5 text-[10px] font-semibold uppercase tracking-[0.08em] transition-colors",
             doneToday
-              ? "gradient-primary text-white shadow-[var(--shadow-glow)]"
-              : "border border-white/[0.08] bg-white/[0.02] text-foreground",
+              ? "border-primary gradient-primary text-primary-foreground"
+              : "border-border-strong bg-background text-foreground hover:bg-surface",
           )}
         >
           <Check className="h-4 w-4" />
@@ -304,20 +306,8 @@ function HabitDetail() {
 
       <BottomSheet open={editOpen} onClose={() => setEditOpen(false)} title="Edit habit">
         <div className="space-y-3">
-          <div className="flex gap-2">
-            <TextField
-              value={emoji}
-              onChange={(e) => setEmoji(e.target.value)}
-              className="w-16 text-center text-[20px]"
-              maxLength={2}
-            />
-            <TextField
-              autoFocus
-              value={title}
-              onChange={(e) => setTitle(e.target.value)}
-              className="flex-1"
-            />
-          </div>
+          <SemanticIconPicker value={icon} onChange={setIcon} label="Habit icon" />
+          <TextField autoFocus value={title} onChange={(e) => setTitle(e.target.value)} />
           <div className="space-y-1.5">
             <label className="block text-[12px] text-muted-foreground">Start date</label>
             <TextField
@@ -338,7 +328,7 @@ function HabitDetail() {
               renameHabit(habit.id, title.trim());
               const nextStart = startInput && startInput <= today ? startInput : startISO;
               updateHabit(habit.id, {
-                emoji: emoji || "✨",
+                emoji: icon || DEFAULT_HABIT_ICON,
                 startDate: nextStart,
               });
               setEditOpen(false);

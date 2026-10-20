@@ -12,6 +12,8 @@ function data(): AppData {
       body: "Fiber and reconciliation",
       tags: [],
       pinned: false,
+      notebook: "General",
+      archived: false,
       linkedTo: null,
       createdAt: 1,
       updatedAt: 1,
@@ -52,6 +54,15 @@ describe("searchAll", () => {
     expect(results.some((r) => r.kind === "note" && r.title.includes("React"))).toBe(true);
   });
 
+  it("finds notes by notebook and tag metadata", () => {
+    const workspace = data();
+    workspace.notes[0].notebook = "Research";
+    workspace.notes[0].tags = ["local-first"];
+
+    expect(searchAll(workspace, "research").some((result) => result.kind === "note")).toBe(true);
+    expect(searchAll(workspace, "local-first").some((result) => result.kind === "note")).toBe(true);
+  });
+
   it("ranks prefix matches above contained matches", () => {
     const d = data();
     d.notes.push(
@@ -61,6 +72,8 @@ describe("searchAll", () => {
         body: "",
         tags: [],
         pinned: false,
+        notebook: "General",
+        archived: false,
         linkedTo: null,
         createdAt: 1,
         updatedAt: 1,
@@ -71,6 +84,8 @@ describe("searchAll", () => {
         body: "",
         tags: [],
         pinned: false,
+        notebook: "General",
+        archived: false,
         linkedTo: null,
         createdAt: 1,
         updatedAt: 1,

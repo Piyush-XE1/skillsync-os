@@ -350,6 +350,7 @@ function FocusPage() {
               <div className="flex items-center justify-between">
                 <span className="text-[13px] font-medium">Auto-start breaks</span>
                 <Toggle
+                  label="Auto-start breaks"
                   on={settings.autoStartBreaks}
                   onChange={(v) => updateFocusSettings({ autoStartBreaks: v })}
                 />
@@ -357,6 +358,7 @@ function FocusPage() {
               <div className="flex items-center justify-between">
                 <span className="text-[13px] font-medium">Auto-start focus</span>
                 <Toggle
+                  label="Auto-start focus"
                   on={settings.autoStartFocus}
                   onChange={(v) => updateFocusSettings({ autoStartFocus: v })}
                 />
@@ -366,7 +368,11 @@ function FocusPage() {
                   <Music className="h-4 w-4 text-muted-foreground" strokeWidth={1.75} />
                   Completion chime
                 </span>
-                <Toggle on={settings.sound} onChange={(v) => updateFocusSettings({ sound: v })} />
+                <Toggle
+                  label="Completion chime"
+                  on={settings.sound}
+                  onChange={(v) => updateFocusSettings({ sound: v })}
+                />
               </div>
             </Card>
           ) : null}

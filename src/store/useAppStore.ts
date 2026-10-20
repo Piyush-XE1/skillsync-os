@@ -16,6 +16,12 @@ import type {
   Profile,
   Transaction,
   Goal,
+  ArchetypeTrait,
+  ArchetypeSubTenet,
+  AntiSelfEntry,
+  CustomQuote,
+  QuoteFilterPreference,
+  Stopwatch,
   FocusSession,
   FocusSettings,
   CgpaSemester,
@@ -39,6 +45,7 @@ import { errorMessage } from "@/lib/utils";
 import { topicPct } from "@/lib/progress";
 import { applyOrder } from "@/lib/drag-sort";
 import { cleanGoalText, createGoal, GOAL_NOTE_MAX, GOAL_TITLE_MAX } from "@/lib/goals";
+import { DEFAULT_GOAL_ICON, DEFAULT_HABIT_ICON, resolveSemanticIcon } from "@/lib/semantic-icons";
 import {
   applyWidgetOrder,
   moveWidget,
@@ -137,6 +144,7 @@ type State = AppData & {
   // notes
   addNote: (partial?: Partial<Note>) => Note;
   updateNote: (id: string, patch: Partial<Note>) => void;
+  duplicateNote: (id: string) => Note | null;
   deleteNote: (id: string) => void;
 
   // projects
@@ -153,7 +161,7 @@ type State = AppData & {
   deletePlannerTask: (id: string) => void;
 
   // habits
-  addHabit: (title: string, emoji?: string) => void;
+  addHabit: (title: string, icon?: string) => void;
   renameHabit: (id: string, title: string) => void;
   updateHabit: (id: string, patch: Partial<Habit>) => void;
   deleteHabit: (id: string) => void;
@@ -162,11 +170,50 @@ type State = AppData & {
   applyEmergencyFreeze: (habitId: string, missedDateISO?: string) => boolean;
 
   // goals (aims)
-  addGoal: (input: { title: string; emoji?: string; note?: string }) => Goal;
+  addGoal: (input: { title: string; icon?: string; emoji?: string; note?: string }) => Goal;
   updateGoal: (id: string, patch: Partial<Pick<Goal, "title" | "emoji" | "note">>) => void;
   deleteGoal: (id: string) => void;
   /** Persists a drag-sort result; ids not on the list are ignored. */
   reorderGoals: (ids: string[]) => void;
+
+  // personal monograph
+  addCustomQuote: (input: { quote: string; author?: string }) => CustomQuote;
+  updateCustomQuote: (id: string, patch: Partial<Pick<CustomQuote, "quote" | "author">>) => void;
+  deleteCustomQuote: (id: string) => void;
+  setQuoteFilterPreference: (preference: QuoteFilterPreference) => void;
+  selectCustomQuote: (id: string | null) => void;
+
+  addArchetypeTrait: (input: {
+    text: string;
+    category?: string;
+    notes?: string;
+    subTenets?: ArchetypeSubTenet[];
+  }) => ArchetypeTrait;
+  updateArchetypeTrait: (
+    id: string,
+    patch: Partial<Pick<ArchetypeTrait, "text" | "category" | "notes" | "subTenets">>,
+  ) => void;
+  deleteArchetypeTrait: (id: string) => void;
+  reorderArchetypeTraits: (ids: string[]) => void;
+  reflectOnArchetypeTrait: (id: string, at?: number) => void;
+
+  addAntiSelfEntry: (input: { text: string; notes?: string }) => AntiSelfEntry;
+  updateAntiSelfEntry: (id: string, patch: Partial<Pick<AntiSelfEntry, "text" | "notes">>) => void;
+  deleteAntiSelfEntry: (id: string) => void;
+  reorderAntiSelfEntries: (ids: string[]) => void;
+
+  setBirthDate: (birthDate: string | null) => void;
+  setAgeDisplayUnit: (unit: "weeks" | "days") => void;
+  setStopwatchEnabled: (enabled: boolean) => void;
+
+  // universal stopwatches
+  addStopwatch: (input: { title: string; icon?: string }) => Stopwatch;
+  updateStopwatch: (id: string, patch: Partial<Pick<Stopwatch, "title" | "icon">>) => void;
+  deleteStopwatch: (id: string) => void;
+  startStopwatch: (id: string, at?: number) => void;
+  pauseStopwatch: (id: string, at?: number) => void;
+  finishStopwatch: (id: string, note?: string, at?: number) => void;
+  updateStopwatchRunNote: (stopwatchId: string, runId: string, note: string) => void;
 
   // profile / prefs
   updateProfile: (patch: Partial<Profile>) => void;
@@ -343,6 +390,20 @@ function move<T>(arr: T[], idx: number, dir: -1 | 1): T[] {
   return copy;
 }
 
+/** Reorders known ids without dropping records added by another interaction. */
+function applyStableOrder<T extends { id: string }>(items: T[], ids: string[]): T[] {
+  const byId = new Map(items.map((item) => [item.id, item]));
+  const known = ids.filter((id, index) => byId.has(id) && ids.indexOf(id) === index);
+  if (known.length < 2) return items;
+  const ordered = known.map((id) => byId.get(id)).filter((item): item is T => Boolean(item));
+  for (const item of items) if (!known.includes(item.id)) ordered.push(item);
+  return ordered;
+}
+
+function cleanPersonalText(input: string, max: number): string {
+  return input.trim().replace(/\s+/g, " ").slice(0, max);
+}
+
 // Cascade: set every checklist item + subtopic.done inside a subtopic.
 function propagateSubtopic(sub: Subtopic, done: boolean): Subtopic {
   return {
@@ -392,6 +453,15 @@ export function toAppData(state: AppData): AppData {
     habits: state.habits,
     habitLogs: state.habitLogs,
     goals: state.goals,
+    archetypeTraits: state.archetypeTraits,
+    customQuotes: state.customQuotes,
+    quoteFilterPreference: state.quoteFilterPreference,
+    selectedCustomQuoteId: state.selectedCustomQuoteId,
+    antiSelfEntries: state.antiSelfEntries,
+    birthDate: state.birthDate,
+    ageDisplayUnit: state.ageDisplayUnit,
+    stopwatches: state.stopwatches,
+    stopwatchEnabled: state.stopwatchEnabled,
     profile: state.profile,
     preferences: state.preferences,
     expenses: state.expenses,
@@ -665,6 +735,8 @@ export const useAppStore = create<State>()(
           body: partial?.body ?? "",
           tags: partial?.tags ?? [],
           pinned: partial?.pinned ?? false,
+          notebook: partial?.notebook?.trim() || "General",
+          archived: partial?.archived ?? false,
           linkedTo: partial?.linkedTo ?? null,
           createdAt: now,
           updatedAt: now,
@@ -676,6 +748,22 @@ export const useAppStore = create<State>()(
         set((s) => ({
           notes: s.notes.map((n) => (n.id === id ? { ...n, ...patch, updatedAt: Date.now() } : n)),
         })),
+      duplicateNote: (id) => {
+        const source = get().notes.find((note) => note.id === id);
+        if (!source) return null;
+        const now = Date.now();
+        const copy: Note = {
+          ...source,
+          id: newId(),
+          title: `${source.title || "Untitled note"} copy`,
+          pinned: false,
+          archived: false,
+          createdAt: now,
+          updatedAt: now,
+        };
+        set((state) => ({ notes: [copy, ...state.notes] }));
+        return copy;
+      },
       deleteNote: (id) => set((s) => ({ notes: s.notes.filter((n) => n.id !== id) })),
 
       addProject: (partial) => {
@@ -757,14 +845,15 @@ export const useAppStore = create<State>()(
         }),
       deletePlannerTask: (id) => set((s) => ({ planner: s.planner.filter((t) => t.id !== id) })),
 
-      addHabit: (title, emoji = "✨") =>
+      addHabit: (title, icon = DEFAULT_HABIT_ICON) =>
         set((s) => ({
           habits: [
             ...s.habits,
             {
               id: newId(),
               title,
-              emoji,
+              // `emoji` is retained as the persisted key for backup compatibility.
+              emoji: resolveSemanticIcon(icon, DEFAULT_HABIT_ICON),
               createdAt: Date.now(),
               startDate: todayISO(),
             },
@@ -776,7 +865,17 @@ export const useAppStore = create<State>()(
         })),
       updateHabit: (id, patch) =>
         set((s) => ({
-          habits: s.habits.map((h) => (h.id === id ? { ...h, ...patch } : h)),
+          habits: s.habits.map((h) =>
+            h.id === id
+              ? {
+                  ...h,
+                  ...patch,
+                  ...(patch.emoji !== undefined
+                    ? { emoji: resolveSemanticIcon(patch.emoji, DEFAULT_HABIT_ICON) }
+                    : {}),
+                }
+              : h,
+          ),
         })),
       deleteHabit: (id) =>
         set((s) => ({
@@ -844,6 +943,9 @@ export const useAppStore = create<State>()(
                   ...(patch.note !== undefined
                     ? { note: cleanGoalText(patch.note, GOAL_NOTE_MAX) }
                     : {}),
+                  ...(patch.emoji !== undefined
+                    ? { emoji: resolveSemanticIcon(patch.emoji, DEFAULT_GOAL_ICON) }
+                    : {}),
                 }
               : g,
           ),
@@ -870,6 +972,263 @@ export const useAppStore = create<State>()(
           });
           return { goals: next };
         }),
+
+      addCustomQuote: (input) => {
+        const now = Date.now();
+        const quote: CustomQuote = {
+          id: newId(),
+          quote: input.quote.trim().slice(0, 1200),
+          author: cleanPersonalText(input.author || "Me", 120) || "Me",
+          createdAt: now,
+          updatedAt: now,
+        };
+        set((s) => ({
+          customQuotes: [...s.customQuotes, quote],
+          selectedCustomQuoteId: quote.id,
+        }));
+        return quote;
+      },
+      updateCustomQuote: (id, patch) =>
+        set((s) => ({
+          customQuotes: s.customQuotes.map((item) =>
+            item.id === id
+              ? {
+                  ...item,
+                  ...(patch.quote !== undefined
+                    ? { quote: patch.quote.trim().slice(0, 1200) }
+                    : {}),
+                  ...(patch.author !== undefined
+                    ? { author: cleanPersonalText(patch.author, 120) || "Me" }
+                    : {}),
+                  updatedAt: Date.now(),
+                }
+              : item,
+          ),
+        })),
+      deleteCustomQuote: (id) =>
+        set((s) => {
+          const remaining = s.customQuotes.filter((item) => item.id !== id);
+          return {
+            customQuotes: remaining,
+            selectedCustomQuoteId:
+              s.selectedCustomQuoteId === id ? (remaining[0]?.id ?? null) : s.selectedCustomQuoteId,
+          };
+        }),
+      setQuoteFilterPreference: (quoteFilterPreference) => set({ quoteFilterPreference }),
+      selectCustomQuote: (selectedCustomQuoteId) => set({ selectedCustomQuoteId }),
+
+      addArchetypeTrait: (input) => {
+        const now = Date.now();
+        const trait: ArchetypeTrait = {
+          id: newId(),
+          text: cleanPersonalText(input.text, 280),
+          category: cleanPersonalText(input.category ?? "", 80),
+          notes: (input.notes ?? "").trim().slice(0, 2400),
+          subTenets: (input.subTenets ?? [])
+            .map((sub) => ({ id: sub.id || newId(), text: cleanPersonalText(sub.text, 240) }))
+            .filter((sub) => sub.text.length > 0),
+          createdAt: now,
+          updatedAt: now,
+          sortOrder: get().archetypeTraits.length,
+          lastReflectedAt: null,
+          reflectionCount: 0,
+        };
+        set((s) => ({ archetypeTraits: [...s.archetypeTraits, trait] }));
+        return trait;
+      },
+      updateArchetypeTrait: (id, patch) =>
+        set((s) => ({
+          archetypeTraits: s.archetypeTraits.map((trait) =>
+            trait.id === id
+              ? {
+                  ...trait,
+                  ...(patch.text !== undefined ? { text: cleanPersonalText(patch.text, 280) } : {}),
+                  ...(patch.category !== undefined
+                    ? { category: cleanPersonalText(patch.category, 80) }
+                    : {}),
+                  ...(patch.notes !== undefined
+                    ? { notes: patch.notes.trim().slice(0, 2400) }
+                    : {}),
+                  ...(patch.subTenets !== undefined
+                    ? {
+                        subTenets: patch.subTenets
+                          .map((sub) => ({
+                            id: sub.id || newId(),
+                            text: cleanPersonalText(sub.text, 240),
+                          }))
+                          .filter((sub) => sub.text.length > 0),
+                      }
+                    : {}),
+                  updatedAt: Date.now(),
+                }
+              : trait,
+          ),
+        })),
+      deleteArchetypeTrait: (id) =>
+        set((s) => ({
+          archetypeTraits: s.archetypeTraits
+            .filter((trait) => trait.id !== id)
+            .map((trait, sortOrder) => ({ ...trait, sortOrder })),
+        })),
+      reorderArchetypeTraits: (ids) =>
+        set((s) => ({
+          archetypeTraits: applyStableOrder(s.archetypeTraits, ids).map((trait, sortOrder) => ({
+            ...trait,
+            sortOrder,
+          })),
+        })),
+      reflectOnArchetypeTrait: (id, at = Date.now()) =>
+        set((s) => ({
+          archetypeTraits: s.archetypeTraits.map((trait) =>
+            trait.id === id
+              ? {
+                  ...trait,
+                  lastReflectedAt: at,
+                  reflectionCount: trait.reflectionCount + 1,
+                  updatedAt: at,
+                }
+              : trait,
+          ),
+        })),
+
+      addAntiSelfEntry: (input) => {
+        const now = Date.now();
+        const entry: AntiSelfEntry = {
+          id: newId(),
+          text: cleanPersonalText(input.text, 280),
+          notes: (input.notes ?? "").trim().slice(0, 2400),
+          createdAt: now,
+          updatedAt: now,
+          sortOrder: get().antiSelfEntries.length,
+        };
+        set((s) => ({ antiSelfEntries: [...s.antiSelfEntries, entry] }));
+        return entry;
+      },
+      updateAntiSelfEntry: (id, patch) =>
+        set((s) => ({
+          antiSelfEntries: s.antiSelfEntries.map((entry) =>
+            entry.id === id
+              ? {
+                  ...entry,
+                  ...(patch.text !== undefined ? { text: cleanPersonalText(patch.text, 280) } : {}),
+                  ...(patch.notes !== undefined
+                    ? { notes: patch.notes.trim().slice(0, 2400) }
+                    : {}),
+                  updatedAt: Date.now(),
+                }
+              : entry,
+          ),
+        })),
+      deleteAntiSelfEntry: (id) =>
+        set((s) => ({
+          antiSelfEntries: s.antiSelfEntries
+            .filter((entry) => entry.id !== id)
+            .map((entry, sortOrder) => ({ ...entry, sortOrder })),
+        })),
+      reorderAntiSelfEntries: (ids) =>
+        set((s) => ({
+          antiSelfEntries: applyStableOrder(s.antiSelfEntries, ids).map((entry, sortOrder) => ({
+            ...entry,
+            sortOrder,
+          })),
+        })),
+
+      setBirthDate: (birthDate) =>
+        set({ birthDate: birthDate && /^\d{4}-\d{2}-\d{2}$/.test(birthDate) ? birthDate : null }),
+      setAgeDisplayUnit: (ageDisplayUnit) => set({ ageDisplayUnit }),
+      setStopwatchEnabled: (stopwatchEnabled) => set({ stopwatchEnabled }),
+
+      addStopwatch: (input) => {
+        const stopwatch: Stopwatch = {
+          id: newId(),
+          title: cleanPersonalText(input.title, 100) || "Untitled timer",
+          icon: cleanPersonalText(input.icon ?? "Timer", 32) || "Timer",
+          createdAt: Date.now(),
+          status: "idle",
+          startedAt: null,
+          accumulatedMs: 0,
+          history: [],
+        };
+        set((s) => ({ stopwatches: [...s.stopwatches, stopwatch], stopwatchEnabled: true }));
+        return stopwatch;
+      },
+      updateStopwatch: (id, patch) =>
+        set((s) => ({
+          stopwatches: s.stopwatches.map((timer) =>
+            timer.id === id
+              ? {
+                  ...timer,
+                  ...(patch.title !== undefined
+                    ? { title: cleanPersonalText(patch.title, 100) || timer.title }
+                    : {}),
+                  ...(patch.icon !== undefined
+                    ? { icon: cleanPersonalText(patch.icon, 32) || "Timer" }
+                    : {}),
+                }
+              : timer,
+          ),
+        })),
+      deleteStopwatch: (id) =>
+        set((s) => ({ stopwatches: s.stopwatches.filter((timer) => timer.id !== id) })),
+      startStopwatch: (id, at = Date.now()) =>
+        set((s) => ({
+          stopwatches: s.stopwatches.map((timer) =>
+            timer.id === id && timer.status !== "running"
+              ? { ...timer, status: "running" as const, startedAt: at }
+              : timer,
+          ),
+        })),
+      pauseStopwatch: (id, at = Date.now()) =>
+        set((s) => ({
+          stopwatches: s.stopwatches.map((timer) => {
+            if (timer.id !== id || timer.status !== "running") return timer;
+            const activeMs = timer.startedAt === null ? 0 : Math.max(0, at - timer.startedAt);
+            return {
+              ...timer,
+              status: "paused" as const,
+              startedAt: null,
+              accumulatedMs: timer.accumulatedMs + activeMs,
+            };
+          }),
+        })),
+      finishStopwatch: (id, note = "", at = Date.now()) =>
+        set((s) => ({
+          stopwatches: s.stopwatches.map((timer) => {
+            if (timer.id !== id || timer.status === "idle") return timer;
+            const activeMs =
+              timer.status === "running" && timer.startedAt !== null
+                ? Math.max(0, at - timer.startedAt)
+                : 0;
+            return {
+              ...timer,
+              status: "idle" as const,
+              startedAt: null,
+              accumulatedMs: 0,
+              history: [
+                {
+                  id: newId(),
+                  durationMs: timer.accumulatedMs + activeMs,
+                  endedAt: at,
+                  note: note.trim().slice(0, 1200),
+                },
+                ...timer.history,
+              ],
+            };
+          }),
+        })),
+      updateStopwatchRunNote: (stopwatchId, runId, note) =>
+        set((s) => ({
+          stopwatches: s.stopwatches.map((timer) =>
+            timer.id === stopwatchId
+              ? {
+                  ...timer,
+                  history: timer.history.map((run) =>
+                    run.id === runId ? { ...run, note: note.trim().slice(0, 1200) } : run,
+                  ),
+                }
+              : timer,
+          ),
+        })),
 
       addFocusSession: (input) => {
         const session: FocusSession = {
