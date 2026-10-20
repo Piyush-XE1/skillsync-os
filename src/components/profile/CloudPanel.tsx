@@ -468,7 +468,12 @@ function CloudSetupSheet({
             </p>
           </div>
           <Toggle
-            on={values.autoUpload ?? Boolean(status?.autoUpload)}
+            on={
+              values.autoUpload ??
+              (status?.connected
+                ? Boolean(status?.autoUpload)
+                : provider === "google-drive")
+            }
             onChange={(next) => {
               setValues((prev) => ({ ...prev, autoUpload: next }));
               if (status?.connected) void setCloudAutoUpload(provider, next);
