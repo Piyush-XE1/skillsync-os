@@ -893,18 +893,14 @@ const driveProvider = {
   async ensureFolder(call: Call): Promise<CloudResult<{ folderId?: string }>> {
     const existing = await driveProvider.folderId(call);
     if (existing) return { ok: true, folderId: existing };
-    const boundary = "skillsync-boundary";
     const metadata = { name: FOLDER_NAME, mimeType: "application/vnd.google-apps.folder" };
-    const body =
-      `--${boundary}\r\nContent-Type: application/json; charset=UTF-8\r\n\r\n` +
-      `${JSON.stringify(metadata)}\r\n` +
-      `--${boundary}--\r\n`;
+    const body = JSON.stringify(metadata);
     const created = await http({
       method: "POST",
       url: `${DRIVE_ROOT}/files?fields=id`,
       headers: {
         Authorization: `Bearer ${call.token}`,
-        "Content-Type": `multipart/related; boundary=${boundary}`,
+        "Content-Type": "application/json; charset=UTF-8",
       },
       body,
     });
