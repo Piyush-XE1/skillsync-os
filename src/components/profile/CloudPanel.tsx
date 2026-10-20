@@ -365,8 +365,15 @@ function CloudSetupSheet({
         toast.error(result.hint ? `${result.error} ${result.hint}` : result.error);
         return;
       }
-      await onSaved({ clientId, token: result.token, autoUpload: values.autoUpload });
-      toast.success("Google Drive connected");
+      const autoUpload = values.autoUpload ?? true;
+      await onSaved({ clientId, token: result.token, autoUpload });
+      if (autoUpload) {
+        const store = useBackupStore.getState();
+        if (!store.auto.enabled) store.toggleAuto(true);
+        toast.success("Google Drive connected — automatic backups will upload there");
+      } else {
+        toast.success("Google Drive connected");
+      }
     } catch (error) {
       toast.error(errorMessage(error, "Google sign-in failed."));
     } finally {
@@ -461,7 +468,12 @@ function CloudSetupSheet({
             </p>
           </div>
           <Toggle
-            on={values.autoUpload ?? Boolean(status?.autoUpload)}
+            on={
+              values.autoUpload ??
+              (status?.connected
+                ? Boolean(status?.autoUpload)
+                : provider === "google-drive")
+            }
             onChange={(next) => {
               setValues((prev) => ({ ...prev, autoUpload: next }));
               if (status?.connected) void setCloudAutoUpload(provider, next);
