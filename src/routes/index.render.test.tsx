@@ -6,31 +6,11 @@ import { RouterProvider } from "@tanstack/react-router";
 import { getRouter } from "@/router";
 import { useAppStore } from "@/store/useAppStore";
 import { createInitialData } from "@/lib/seed";
-import { defaultWidgetLayout, setWidgetVisible } from "@/lib/widgets";
 
 function seed() {
   const data = createInitialData();
-  const today = new Date();
-  data.preferences.modules = { ...data.preferences.modules, expenses: true, coding: true };
-  data.focus.sessions.push({
-    id: "s1",
-    minutes: 25,
-    mode: "focus",
-    startedAt: today.getTime(),
-    task: "Deep work",
-  });
-  data.expenses.transactions.push({
-    id: "tx1",
-    title: "Bus ticket",
-    description: "",
-    amount: 120,
-    type: "debit",
-    tags: ["Travel"],
-    at: today.getTime(),
-    position: 0,
-    updatedAt: today.getTime(),
-  });
-  data.widgets = defaultWidgetLayout();
+  data.preferences.hasCompletedFirstLaunch = true;
+  data.preferences.onboardingCompleted = true;
   useAppStore.setState({ ...data, _hydrated: true });
 }
 
@@ -41,7 +21,7 @@ function click(el: Element | null | undefined) {
   });
 }
 
-describe("dashboard widgets", () => {
+describe("typographic dashboard and personal monograph", () => {
   let root: Root;
   let container: HTMLDivElement;
   const router = getRouter();
@@ -63,106 +43,96 @@ describe("dashboard widgets", () => {
   async function render() {
     await act(async () => {
       root.render(<RouterProvider router={router} />);
-      await new Promise((r) => setTimeout(r, 80));
+      await new Promise((resolve) => setTimeout(resolve, 80));
     });
   }
 
-  it("renders the default widget grid", async () => {
+  it("leads with the quotation and Archetype, then restores the dashboard without its oversized hero", async () => {
     await render();
     const html = container.innerHTML;
-    expect(html).toContain("Your dashboard");
-    // The highlighted Aims panel sits at the top of the grid.
-    expect(html).toContain("Aims");
-    expect(html).toContain("Gym");
-    expect(html).toContain("Continue learning");
-    expect(html).toContain("Money this month");
-    // No reward-system surfaces anywhere on the dashboard.
-    expect(html).not.toContain("Level &amp; XP");
-    expect(html).not.toContain("Trophy shelf");
-    expect(html).not.toContain("badge");
+    const header = container.querySelector("header");
+    const quotePosition = html.indexOf('id="quote-obelisk-heading"');
+    const archetypePosition = html.indexOf('id="archetype-heading"');
+    const dashboardPosition = html.indexOf('id="dashboard-heading"');
+
+    expect(header?.textContent).not.toContain("Small steps, compounded daily");
+    expect(header?.textContent).not.toContain("live widgets");
+    expect(header?.textContent).not.toContain("Local-first · Ready");
+    expect(quotePosition).toBeGreaterThan(-1);
+    expect(archetypePosition).toBeGreaterThan(quotePosition);
+    expect(dashboardPosition).toBeGreaterThan(archetypePosition);
+    expect(container.textContent).toContain("dashboard.");
+    expect(container.textContent).toContain("Customize");
+    expect(container.querySelectorAll("[data-sort-row]").length).toBeGreaterThan(0);
+    expect(container.querySelector('[aria-label="Today at a glance"]')).toBeNull();
+    expect(html).toContain("Daily inscription");
+    expect(html).toContain("The Archetype");
+    expect(html).toContain("The Anti-Self");
+    expect(html).toContain("Memento Mori");
+    expect(html).toContain("Chronometers");
   });
 
-  it("arms drag grips in customize mode and disarms them afterwards", async () => {
+  it("keeps dashboard customization and keyboard reorder controls available", async () => {
     await render();
-    expect(container.querySelectorAll('[aria-roledescription="Draggable item"]').length).toBe(0);
-
     click(
-      Array.from(container.querySelectorAll("button")).find((b) =>
-        b.textContent?.includes("Customize"),
+      Array.from(container.querySelectorAll("button")).find(
+        (button) => button.textContent?.trim() === "Customize",
       ),
     );
     await act(async () => {
-      await new Promise((r) => setTimeout(r, 30));
+      await new Promise((resolve) => setTimeout(resolve, 20));
     });
-
-    expect(container.innerHTML).toContain("Customizing");
-    const grips = container.querySelectorAll('[aria-roledescription="Draggable item"]');
-    expect(grips.length).toBeGreaterThan(5);
-    expect(grips[0].getAttribute("aria-label")).toContain("Reorder");
-
-    click(Array.from(container.querySelectorAll("button")).find((b) => b.textContent === "Done"));
-    await act(async () => {
-      await new Promise((r) => setTimeout(r, 30));
-    });
-    expect(container.querySelectorAll('[aria-roledescription="Draggable item"]').length).toBe(0);
+    expect(container.textContent).toContain("Drag the grip to rearrange");
+    expect(container.textContent).toContain("Widgets");
+    expect(container.querySelector('button[aria-label^="Reorder "]')).not.toBeNull();
   });
 
-  it("removes a widget from the grid and persists the layout", async () => {
+  it("handles an empty Personal Monologue with a working add action", async () => {
     await render();
-    // "Gym" is one of the seeded aims — rendered by the Aims widget…
-    expect(container.innerHTML).toContain("Gym");
-    // …and echoed by the "today" hero, which always surfaces the aims.
-    expect(container.innerHTML).toContain("Today");
-
     click(
-      Array.from(container.querySelectorAll("button")).find((b) =>
-        b.textContent?.includes("Customize"),
+      Array.from(container.querySelectorAll("button")).find((button) =>
+        button.textContent?.includes("My quotes"),
       ),
     );
     await act(async () => {
-      await new Promise((r) => setTimeout(r, 20));
+      await new Promise((resolve) => setTimeout(resolve, 20));
     });
-    click(container.querySelector('[aria-label="Remove Aims from the dashboard"]'));
-    await act(async () => {
-      await new Promise((r) => setTimeout(r, 30));
-    });
-
-    // The widget is gone from the grid. The hero keeps the aims visible on
-    // purpose — hiding a widget must never hide the thing you are working on.
-    expect(container.querySelector('[aria-label="Reorder Aims"]')).toBeNull();
-    expect(container.innerHTML).not.toContain("Manage");
-    const layout = useAppStore.getState().widgets;
-    expect(layout.find((w) => w.id === "goals")?.visible).toBe(false);
-    // …and it can be brought back from the persisted layout.
-    expect(setWidgetVisible(layout, "goals", true).find((w) => w.id === "goals")?.visible).toBe(
-      true,
-    );
-  });
-
-  it("resizes a widget through the frame control", async () => {
-    await render();
-    click(
-      Array.from(container.querySelectorAll("button")).find((b) =>
-        b.textContent?.includes("Customize"),
+    expect(container.textContent).toContain("Your own words belong here");
+    expect(
+      Array.from(container.querySelectorAll("button")).some((button) =>
+        button.textContent?.includes("Add the first quotation"),
       ),
-    );
-    await act(async () => {
-      await new Promise((r) => setTimeout(r, 20));
-    });
-    // "Aims" defaults to full width, so the frame offers "smaller".
-    click(container.querySelector('[aria-label="Make Aims smaller"]'));
-    await act(async () => {
-      await new Promise((r) => setTimeout(r, 30));
-    });
-    expect(useAppStore.getState().widgets.find((w) => w.id === "goals")?.size).toBe("wide");
+    ).toBe(true);
   });
 
-  it("hides widgets whose module is switched off", async () => {
-    useAppStore.setState((s) => ({
-      preferences: { ...s.preferences, modules: { ...s.preferences.modules, expenses: false } },
-    }));
+  it("renders persisted identity, age perspective, and independent timer data", async () => {
+    useAppStore.getState().addArchetypeTrait({
+      text: "I speak with precision and act with intention.",
+      category: "Conduct",
+      notes: "Pause before answering.",
+      subTenets: [{ id: "sub-1", text: "Say only what is necessary." }],
+    });
+    useAppStore.getState().setBirthDate("2000-01-01");
+    const timer = useAppStore.getState().addStopwatch({ title: "Deep Work", icon: "Brain" });
+    useAppStore.getState().startStopwatch(timer.id, Date.now() - 65_000);
+
     await render();
-    expect(container.innerHTML).not.toContain("Money this month");
-    expect(container.innerHTML).toContain("Gym");
+    expect(container.textContent).toContain("I speak with precision and act with intention.");
+    expect(container.textContent).toContain("Age in completed weeks");
+    expect(container.textContent).toContain("Deep Work");
+    expect(container.querySelector('[role="timer"]')).not.toBeNull();
+  });
+
+  it("keeps Anti-Self visually subordinate until opened", async () => {
+    useAppStore.getState().addAntiSelfEntry({ text: "Choosing noise over intention." });
+    await render();
+    const content = container.querySelector("#anti-self-content");
+    expect(content?.hasAttribute("hidden")).toBe(true);
+    click(container.querySelector('[aria-controls="anti-self-content"]'));
+    await act(async () => {
+      await new Promise((resolve) => setTimeout(resolve, 20));
+    });
+    expect(content?.hasAttribute("hidden")).toBe(false);
+    expect(content?.textContent).toContain("Choosing noise over intention.");
   });
 });

@@ -7,11 +7,10 @@ type Variant = "primary" | "ghost" | "outline" | "danger";
 type Size = "sm" | "md" | "lg";
 
 const VARIANTS: Record<Variant, string> = {
-  primary:
-    "gradient-primary text-primary-foreground shadow-[var(--shadow-glow)] hover:brightness-110",
-  ghost: "bg-white/[0.045] text-foreground hover:bg-white/[0.07]",
-  outline: "border border-border-strong text-foreground hover:bg-white/[0.04]",
-  danger: "bg-danger/12 text-danger hover:bg-danger/20",
+  primary: "gradient-primary border border-primary text-primary-foreground hover:bg-primary/90",
+  ghost: "border border-transparent bg-surface-2 text-foreground hover:border-border",
+  outline: "border border-border-strong text-foreground hover:bg-surface-2",
+  danger: "border border-danger/25 bg-danger/10 text-danger hover:bg-danger/15",
 };
 
 export function IconButton({
@@ -26,9 +25,9 @@ export function IconButton({
   size?: Size;
 }) {
   const sizes: Record<Size, string> = {
-    sm: "h-8 w-8 rounded-[10px]",
-    md: "h-10 w-10 rounded-[14px]",
-    lg: "h-11 w-11 rounded-[14px]",
+    sm: "h-10 w-10 rounded-[4px]",
+    md: "h-11 w-11 rounded-[6px]",
+    lg: "h-12 w-12 rounded-[6px]",
   };
   return (
     <button
@@ -66,9 +65,9 @@ export function ActionButton({
   size?: Size;
 }) {
   const sizes: Record<Size, string> = {
-    sm: "h-9 px-3.5 text-[13px] rounded-[12px]",
-    md: "h-11 px-4 text-[14px] rounded-[14px]",
-    lg: "h-12 px-5 text-[15px] rounded-[16px]",
+    sm: "h-9 px-3.5 text-[10px] rounded-[4px]",
+    md: "h-11 px-4 text-[11px] rounded-[6px]",
+    lg: "h-12 px-5 text-[12px] rounded-[6px]",
   };
   return (
     <button
@@ -81,7 +80,7 @@ export function ActionButton({
         props.onClick?.(e);
       }}
       className={cn(
-        "pressable inline-flex items-center justify-center gap-2 font-medium tracking-tight",
+        "font-numerical pressable inline-flex items-center justify-center gap-2 font-semibold uppercase tracking-[0.08em]",
         sizes[size],
         VARIANTS[variant],
         className,
@@ -93,7 +92,7 @@ export function ActionButton({
   );
 }
 
-/** Floating action button — glass shell, spring press, ambient glow. */
+/** Floating action button — flat brass control in the shared visual system. */
 export function Fab({
   className,
   children,
@@ -109,7 +108,7 @@ export function Fab({
         props.onClick?.(e);
       }}
       className={cn(
-        "pressable inline-flex h-12 w-12 items-center justify-center rounded-full gradient-primary text-primary-foreground shadow-[var(--shadow-glow)] ring-1 ring-white/15 active:scale-95",
+        "pressable inline-flex h-12 w-12 items-center justify-center rounded-[6px] border border-primary gradient-primary text-primary-foreground active:scale-95",
         className,
       )}
       {...props}

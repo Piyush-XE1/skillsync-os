@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { formatRupees, monthlySpendingPace } from "@/lib/expenses";
+import { expenseDateTimestamp, formatRupees, monthlySpendingPace } from "@/lib/expenses";
 import type { Transaction } from "@/lib/schema";
 
 function transaction(at: number, amount: number, type: "credit" | "debit"): Transaction {
@@ -50,5 +50,24 @@ describe("monthly spending pace", () => {
 
   it("formats rupees with Indian digit grouping", () => {
     expect(formatRupees(12345)).toBe("₹12,345");
+  });
+});
+
+describe("expense dates", () => {
+  it("stores a chosen date in local time while retaining the entry clock time", () => {
+    const clock = new Date(2026, 9, 20, 14, 35, 18, 250).getTime();
+    const timestamp = expenseDateTimestamp("2026-09-14", clock);
+    const date = new Date(timestamp!);
+
+    expect(date.getFullYear()).toBe(2026);
+    expect(date.getMonth()).toBe(8);
+    expect(date.getDate()).toBe(14);
+    expect(date.getHours()).toBe(14);
+    expect(date.getMinutes()).toBe(35);
+  });
+
+  it("rejects incomplete and impossible expense dates", () => {
+    expect(expenseDateTimestamp("")).toBeNull();
+    expect(expenseDateTimestamp("2026-02-31")).toBeNull();
   });
 });

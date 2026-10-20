@@ -27,7 +27,7 @@ describe("migrate", () => {
   it("migrates v1 data to add habit.startDate, modules and preferences", () => {
     const v1 = {
       schemaVersion: 1,
-      habits: [{ id: "h1", title: "Sleep", emoji: "😴", createdAt: 1_700_000_000_000 }],
+      habits: [{ id: "h1", title: "Sleep", emoji: "\u{1f634}", createdAt: 1_700_000_000_000 }],
     };
     const result = migrate(v1);
     expect(result.habits[0].startDate).toBeTruthy();
@@ -120,7 +120,7 @@ describe("migrate", () => {
   it("keeps the aims a workspace already has", () => {
     const result = migrate({
       schemaVersion: 11,
-      goals: [{ id: "g1", title: "No fap", emoji: "🔒", note: "", createdAt: 1 }],
+      goals: [{ id: "g1", title: "No fap", emoji: "\u{1f512}", note: "", createdAt: 1 }],
     });
     expect(result.goals.map((g) => g.title)).toEqual(["No fap"]);
   });
@@ -212,7 +212,9 @@ describe("migrate", () => {
   it("migrates v14 habit logs to typed check-ins for emergency freeze support", () => {
     const result = migrate({
       schemaVersion: 14,
-      habits: [{ id: "h1", title: "Walk", emoji: "🚶", createdAt: 1, startDate: "2025-01-01" }],
+      habits: [
+        { id: "h1", title: "Walk", emoji: "\u{1f6b6}", createdAt: 1, startDate: "2025-01-01" },
+      ],
       habitLogs: [
         { habitId: "h1", date: "2025-01-01" },
         { habitId: "h1", date: "2025-01-02", kind: "freeze" },
@@ -241,7 +243,7 @@ describe("migrate", () => {
         projects: [],
         certifications: [],
       },
-      habits: [{ id: "h1", title: "Gym", emoji: "🏋️", createdAt: 1 }],
+      habits: [{ id: "h1", title: "Gym", emoji: "\u{1f3cb}\ufe0f", createdAt: 1 }],
     };
     const result = migrate(v11);
     expect(result.schemaVersion).toBe(CURRENT_SCHEMA_VERSION);
@@ -253,25 +255,22 @@ describe("migrate", () => {
     expect(result.preferences.modules.focus).toBe(true);
   });
 
-  it("migrates legacy theme light → background light", () => {
+  it("keeps deprecated appearance metadata without letting it control the renderer", () => {
     const result = migrate({
       schemaVersion: 4,
       preferences: { theme: "light" },
     });
     expect(result.preferences.background).toBe("light");
+    expect(result.preferences.accent).toBe("#20573f");
     expect((result.preferences as Record<string, unknown>).theme).toBeUndefined();
   });
 
-  it("falls back retired backgrounds to aurora", () => {
-    for (const bg of ["gradient", "atmospheric"]) {
+  it("ignores retired and unknown background choices safely", () => {
+    for (const bg of ["gradient", "atmospheric", "neon"]) {
       const result = migrate({ schemaVersion: 6, preferences: { background: bg } });
-      expect(result.preferences.background).toBe("aurora");
+      expect(result.preferences.background).toBe("atelier");
+      expect(result.preferences.accent).toBe("#C29F62");
     }
-  });
-
-  it("keeps an unknown-but-dark future background as fallback aurora", () => {
-    const result = migrate({ schemaVersion: 6, preferences: { background: "neon" } });
-    expect(result.preferences.background).toBe("aurora");
   });
 
   it("salvages valid top-level fields when one module is corrupted", () => {
@@ -301,7 +300,7 @@ describe("migrate", () => {
     expect(app).toBeTruthy();
   });
 
-  it("migrates v8 to v9: adds a per-background accent default", () => {
+  it("preserves background-specific accent metadata when upgrading", () => {
     const v8 = (bg: string) => ({
       schemaVersion: 8,
       preferences: { background: bg },
@@ -311,19 +310,55 @@ describe("migrate", () => {
     expect(migrate(v8("light")).preferences.accent).toBe("#20573f");
   });
 
-  it("keeps a user-chosen accent when migrating", () => {
+  it("preserves a former custom accent without touching other preferences", () => {
     const result = migrate({
       schemaVersion: 9,
-      preferences: { background: "aurora", accent: "#e11d48" },
+      preferences: { background: "aurora", accent: "#e11d48", sound: false },
     });
+    expect(result.preferences.accent).toBe("#e11d48");
+    expect(result.preferences.sound).toBe(false);
+  });
+
+  it("migrates v15 to the empty, private monograph defaults", () => {
+    const result = migrate({
+      schemaVersion: 15,
+      notes: [{ id: "keep", title: "Keep me", body: "", createdAt: 1, updatedAt: 1 }],
+      preferences: { background: "light", accent: "#e11d48" },
+    });
+    expect(result.schemaVersion).toBe(CURRENT_SCHEMA_VERSION);
+    expect(result.notes[0].id).toBe("keep");
+    expect(result.archetypeTraits).toEqual([]);
+    expect(result.customQuotes).toEqual([]);
+    expect(result.quoteFilterPreference).toBe("stoic");
+    expect(result.antiSelfEntries).toEqual([]);
+    expect(result.birthDate).toBeNull();
+    expect(result.stopwatches).toEqual([]);
+    expect(result.stopwatchEnabled).toBe(false);
+    expect(result.preferences.background).toBe("light");
     expect(result.preferences.accent).toBe("#e11d48");
   });
 
-  it("falls back a blank accent to the theme default", () => {
-    const result = migrate({
-      schemaVersion: 9,
-      preferences: { background: "aurora", accent: "" },
+  it("adds notebook fields to v16 notes without changing their writing or metadata", () => {
+    const legacyNote = {
+      id: "legacy-note",
+      title: "Preserved title",
+      body: "# Original writing\n\n- [ ] Keep every line",
+      tags: ["Study", "local"],
+      pinned: true,
+      linkedTo: { type: "project", id: "project-1" },
+      createdAt: 123,
+      updatedAt: 456,
+    };
+
+    const result = migrate({ schemaVersion: 16, notes: [legacyNote] });
+
+    expect(result.notes).toHaveLength(1);
+    expect(result.notes[0]).toMatchObject({
+      ...legacyNote,
+      notebook: "General",
+      archived: false,
     });
-    expect(result.preferences.accent).toBe("#7c3aed");
+    expect(result.notes[0].body).toBe(legacyNote.body);
+    expect(result.notes[0].tags).toEqual(legacyNote.tags);
   });
 });

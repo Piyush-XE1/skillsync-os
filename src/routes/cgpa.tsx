@@ -11,7 +11,8 @@ import {
   Trash2,
   TrendingUp,
 } from "lucide-react";
-import { AppShell } from "@/components/layout/AppShell";
+import { AppShell, PageHeader } from "@/components/layout/AppShell";
+import { PrimaryAction } from "@/components/layout/PrimaryAction";
 import { Card, Chip, SectionHeader } from "@/components/ui/primitives";
 import { BottomSheet, ConfirmDialog } from "@/components/edit/Sheet";
 import { TextField } from "@/components/edit/Fields";
@@ -91,33 +92,17 @@ function CgpaPage() {
 
   return (
     <AppShell>
-      <header className="mb-5 flex items-center justify-between px-5 lg:px-2">
-        <Link
-          to="/profile"
-          className="glass flex h-10 w-10 items-center justify-center rounded-full active:scale-95"
-          aria-label="Back"
-        >
-          <ArrowLeft className="h-[17px] w-[17px] text-muted-foreground" strokeWidth={1.75} />
-        </Link>
-        <button
-          onClick={addSemester}
-          className="pressable flex items-center gap-1.5 rounded-full border border-white/[0.08] bg-white/[0.03] px-3.5 py-2 text-[12.5px] font-medium transition-colors"
-        >
-          <Plus className="h-3.5 w-3.5" strokeWidth={2} /> Add semester
-        </button>
-      </header>
-
-      <div className="mb-6 px-5 lg:px-2">
-        <div className="text-[11px] font-medium uppercase tracking-[0.14em] text-muted-foreground">
-          Academic
-        </div>
-        <h1 className="mt-1.5 text-[28px] font-semibold leading-tight tracking-[-0.02em]">
-          CGPA Tracker.
-        </h1>
-        <p className="mt-1 text-[13.5px] text-muted-foreground">
-          Semester-wise SGPA on the standard 10-point scale.
-        </p>
-      </div>
+      <PageHeader
+        eyebrow={
+          <Link to="/profile" className="page-back-link" aria-label="Back to profile">
+            <ArrowLeft className="h-3.5 w-3.5" strokeWidth={1.75} />
+            <span className="truncate">Academic / record</span>
+          </Link>
+        }
+        title="CGPA Tracker."
+        subtitle="Semester-wise SGPA on the standard 10-point scale."
+        right={<PrimaryAction label="Add Semester" onClick={addSemester} />}
+      />
 
       <div className="space-y-6 px-5 lg:px-2 lg:auto-grid-wide lg:items-start lg:space-y-0">
         <section className="space-y-3">

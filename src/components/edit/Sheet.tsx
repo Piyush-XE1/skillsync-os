@@ -24,9 +24,9 @@ function OverlayPortal({ children }: { children: ReactNode }) {
 const OVERLAY_EXIT_MS = 200;
 
 const BACKDROP_ENTER =
-  "absolute inset-0 bg-black/45 backdrop-blur-[2px] animate-in fade-in duration-200 motion-reduce:animate-none";
+  "absolute inset-0 bg-black/60 animate-in fade-in duration-200 motion-reduce:animate-none";
 const BACKDROP_EXIT =
-  "absolute inset-0 bg-black/45 backdrop-blur-[2px] opacity-0 transition-opacity duration-200 motion-reduce:transition-none";
+  "absolute inset-0 bg-black/60 opacity-0 transition-opacity duration-200 motion-reduce:transition-none";
 
 /**
  * Responsive edit surface:
@@ -90,9 +90,9 @@ export function BottomSheet({
           aria-label={title ? undefined : "Dialog"}
           tabIndex={-1}
           className={cn(
-            "glass relative mx-auto flex w-full max-w-md flex-col overflow-hidden rounded-t-[28px] bg-surface/90 shadow-[var(--shadow-float)] outline-none transition-[max-height,margin] duration-200 ease-[var(--ease-out-soft)] motion-reduce:animate-none motion-reduce:transition-none",
+            "glass relative mx-auto flex w-full max-w-md flex-col overflow-hidden rounded-t-[12px] bg-surface shadow-[var(--shadow-float)] outline-none transition-[max-height,margin] duration-200 ease-[var(--ease-out-soft)] motion-reduce:animate-none motion-reduce:transition-none",
             // Tablet & desktop: centered dialog / modal instead of a bottom sheet.
-            "md:max-w-lg md:rounded-[24px] lg:max-w-xl",
+            "md:max-w-lg md:rounded-[10px] lg:max-w-xl",
             closing
               ? "translate-y-[14px] opacity-0 transition-[opacity,transform] duration-200 ease-in md:translate-y-0 md:scale-[0.96]"
               : "animate-sheet-up md:animate-dialog-pop",
@@ -103,17 +103,18 @@ export function BottomSheet({
             maxHeight: kb > 0 ? `calc(100dvh - ${kb}px - 16px)` : "min(92dvh, 100svh - 16px)",
           }}
         >
-          <div className="mx-auto mt-3 h-1 w-10 shrink-0 rounded-full bg-white/15 md:hidden" />
-          <div className="flex shrink-0 items-start gap-3 px-6 pt-3 md:pt-5">
+          <div className="mx-auto mt-3 h-px w-10 shrink-0 bg-primary/60 md:hidden" />
+          <div className="flex shrink-0 items-start gap-4 border-b border-border px-6 pb-4 pt-4 md:pt-6">
             <div className="min-w-0 flex-1">
+              <div aria-hidden className="mb-2 h-px w-6 bg-primary" />
               <h3
                 id={titleId}
-                className="min-w-0 truncate text-[17px] font-semibold tracking-tight md:text-[19px]"
+                className="font-editorial min-w-0 text-[23px] font-normal leading-tight tracking-[-0.025em] text-foreground md:text-[27px]"
               >
                 {title}
               </h3>
               {description ? (
-                <p className="mt-1 text-[12.5px] leading-relaxed text-muted-foreground">
+                <p className="mt-1.5 max-w-[52ch] text-[12.5px] leading-relaxed text-muted-foreground">
                   {description}
                 </p>
               ) : null}
@@ -123,7 +124,7 @@ export function BottomSheet({
                 type="button"
                 onClick={onClose}
                 aria-label="Close"
-                className="pressable flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-white/[0.05] text-muted-foreground transition-colors hover:bg-white/[0.09] hover:text-foreground"
+                className="pressable flex h-9 w-9 shrink-0 items-center justify-center rounded-[6px] border border-border bg-surface-2 text-muted-foreground transition-colors hover:text-foreground"
               >
                 <X className="h-4 w-4" strokeWidth={1.75} />
               </button>
@@ -141,7 +142,7 @@ export function BottomSheet({
           </div>
           {footer ? (
             <div
-              className="shrink-0 border-t border-white/[0.06] bg-surface/80 px-6 pt-3 backdrop-blur-xl md:pb-5"
+              className="shrink-0 border-t border-border bg-surface px-6 pt-3 md:pb-5"
               style={{
                 paddingBottom: kb > 0 ? 12 : "max(env(safe-area-inset-bottom),20px)",
               }}
@@ -213,7 +214,7 @@ export function ConfirmDialog({
           aria-describedby={description ? descId : undefined}
           tabIndex={-1}
           className={cn(
-            "glass relative w-full max-w-sm rounded-[24px] bg-surface/95 p-6 shadow-[var(--shadow-float)] outline-none motion-reduce:animate-none motion-reduce:transition-none",
+            "glass relative w-full max-w-sm rounded-[10px] bg-surface p-6 shadow-[var(--shadow-float)] outline-none motion-reduce:animate-none motion-reduce:transition-none",
             closing
               ? "scale-[0.96] opacity-0 transition-[opacity,transform] duration-200 ease-in"
               : "animate-dialog-pop",
@@ -231,7 +232,7 @@ export function ConfirmDialog({
             <button
               type="button"
               onClick={onClose}
-              className="pressable flex-1 rounded-[14px] border border-border-strong py-3 text-[14px] font-medium text-foreground"
+              className="pressable flex-1 rounded-[6px] border border-border-strong py-3 text-[14px] font-medium text-foreground"
             >
               Cancel
             </button>
@@ -245,10 +246,8 @@ export function ConfirmDialog({
                 onClose();
               }}
               className={cn(
-                "pressable flex-1 rounded-[14px] py-3 text-[14px] font-medium text-primary-foreground",
-                destructive
-                  ? "bg-danger shadow-[0_12px_30px_-14px_var(--danger)]"
-                  : "gradient-primary shadow-[var(--shadow-glow)]",
+                "pressable flex-1 rounded-[6px] border py-3 text-[14px] font-medium text-primary-foreground",
+                destructive ? "border-danger bg-danger" : "gradient-primary border-primary",
               )}
             >
               {confirmLabel}

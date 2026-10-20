@@ -1,76 +1,58 @@
 // @vitest-environment jsdom
-/**
- * The backup screen, driven the way a person drives it.
- *
- * `BackupSection` is mounted on its own rather than through the router: the app
- * shell keeps overlay/animation timers alive in jsdom and React's act() then
- * waits for work that never ends. Route mounting itself is covered by
- * src/routes/profile.backup.render.test.tsx.
- */
 
-import { describe, it, expect, beforeAll, beforeEach, afterEach, vi } from "vitest";
+import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 import { act } from "react";
 import { createRoot, type Root } from "react-dom/client";
 import { webcrypto } from "node:crypto";
 import { BackupSection } from "@/components/profile/BackupSection";
-import { useAppStore } from "@/store/useAppStore";
-import { useBackupStore } from "@/store/useBackupStore";
+import { configureCloud } from "@/lib/backup/cloud";
 import { clearVault, getVaultRecord, listVaultRecords } from "@/lib/backup/vault";
 import { createInitialData } from "@/lib/seed";
+import { useAppStore } from "@/store/useAppStore";
+import { useBackupStore } from "@/store/useBackupStore";
 
 vi.mock("sonner", () => ({
   toast: Object.assign(vi.fn(), { success: vi.fn(), error: vi.fn(), info: vi.fn() }),
   Toaster: () => null,
 }));
 
-let root: Root;
-let container: HTMLDivElement;
+let root: Root | null = null;
+let container: HTMLDivElement | null = null;
 
-function text() {
-  // Sheets render through a portal on body, so look at the whole document.
+function pageText() {
   return document.body.textContent ?? "";
 }
 
-/** Run an action and let React catch up, so assertions see the result. */
-async function run<T>(fn: () => Promise<T> | T): Promise<T> {
-  let value!: T;
+async function run<T>(action: () => Promise<T> | T): Promise<T> {
+  let result!: T;
   await act(async () => {
-    value = await fn();
-    await new Promise((r) => setTimeout(r, 30));
+    result = await action();
+    await new Promise((resolve) => setTimeout(resolve, 35));
   });
-  return value;
+  return result;
 }
 
-async function click(name: string, nth = 0) {
-  const needle = name.trim().toLowerCase();
-  const nodes = [...document.body.querySelectorAll("button")].filter((node) =>
-    (node.textContent ?? "").trim().toLowerCase().includes(needle),
-  ) as HTMLButtonElement[];
-  const node = nodes[nth];
-  if (!node) throw new Error(`No button containing "${name}" (${nodes.length} found)`);
-  await run(() => node.click());
-  return node;
+async function click(label: string) {
+  const needle = label.toLocaleLowerCase();
+  const button = [...document.body.querySelectorAll("button")].find((item) =>
+    (item.textContent ?? "").toLocaleLowerCase().includes(needle),
+  ) as HTMLButtonElement | undefined;
+  if (!button) throw new Error(`No button containing “${label}”`);
+  await run(() => button.click());
 }
 
-async function clickSelector(selector: string) {
-  const node = document.querySelector(selector) as HTMLElement | null;
-  if (!node) throw new Error(`No element matching "${selector}"`);
-  await run(() => node.click());
-  return node;
-}
-
-async function createBackup(input?: {
-  encryption?: boolean;
-  password?: string;
-  compression?: boolean;
-}) {
-  const made = await run(() => useBackupStore.getState().create(input));
-  if (!made) throw new Error(`create() failed: ${useBackupStore.getState().error ?? "unknown"}`);
-  return made;
+async function mount() {
+  await useBackupStore.getState().init();
+  container = document.createElement("div");
+  document.body.appendChild(container);
+  root = createRoot(container);
+  await act(async () => {
+    root?.render(<BackupSection />);
+    await new Promise((resolve) => setTimeout(resolve, 50));
+  });
 }
 
 beforeAll(() => {
-  // jsdom ships no WebCrypto; the password path has to stay testable.
   vi.stubGlobal("crypto", webcrypto);
 });
 
@@ -79,198 +61,141 @@ beforeEach(async () => {
   useAppStore.setState({ ...createInitialData(), _hydrated: true });
   await clearVault();
   useBackupStore.setState({
+    ready: false,
+    busy: null,
+    error: null,
+    records: [],
+    lastMeta: null,
     created: null,
     pendingRestore: null,
     restoreStep: 0,
     lastSafetyId: null,
-    error: null,
-    records: [],
-    lastMeta: null,
-  });
-  await useBackupStore.getState().init();
-
-  container = document.createElement("div");
-  document.body.appendChild(container);
-  root = createRoot(container);
-  await act(async () => {
-    root.render(<BackupSection />);
-    await new Promise((r) => setTimeout(r, 40));
+    cloud: { items: {}, status: {}, busy: null, error: null },
   });
 });
 
 afterEach(() => {
   useBackupStore.setState({ created: null, pendingRestore: null, restoreStep: 0 });
-  act(() => root.unmount());
-  container.remove();
+  if (root) act(() => root?.unmount());
+  container?.remove();
+  root = null;
+  container = null;
 });
 
-describe("the backup screen", () => {
-  it("puts every control on one screen", async () => {
-    expect(text()).toContain("Create backup");
-    expect(text()).toContain("Restore");
-    expect(text()).toContain("On this device");
-    expect(text()).toContain("Cloud copies");
-    expect(text()).toContain("Automatic copies");
-    expect(text()).toContain("Options for the next backup");
-    expect(text()).toContain("No copies yet");
+describe("the simplified backup screen", () => {
+  it("shows only the device and Google Drive destinations", async () => {
+    await mount();
+
+    expect(pageText()).toContain("Save to device");
+    expect(pageText()).toContain("Backup sync with Google Drive");
+    expect(pageText()).toContain("Restore from a file");
+    expect(pageText()).toContain("Connect Google Drive");
+
+    for (const removed of [
+      "GitHub Gist",
+      "WebDAV",
+      "Dropbox",
+      "Automatic copies",
+      "Options for the next backup",
+      "On this device",
+      "Recent backup activity",
+      "Reset SkillSync",
+    ]) {
+      expect(pageText()).not.toContain(removed);
+    }
   });
 
-  it("opens the options without leaving the page", async () => {
-    expect(text()).not.toContain("Encrypt with a password");
+  it("creates a portable compatible backup without exposing advanced controls", async () => {
+    await mount();
+    await click("Save to device");
 
-    await click("Options for the next backup");
-
-    expect(text()).toContain("Encrypt with a password");
-    expect(text()).toContain("Compress");
-    expect(text()).toContain("Only what changed");
-    // Password fields only appear once encryption is on.
-    expect(text()).not.toContain("Repeat password");
-    await clickSelector('button[aria-label="Encrypt with a password"]');
-    expect(container.querySelectorAll('input[type="password"]').length).toBe(2);
+    expect(pageText()).toContain("Your backup is ready");
+    expect(pageText()).toContain("complete workspace");
+    const records = await listVaultRecords();
+    expect(records).toHaveLength(1);
+    expect(records[0].kind).toBe("manual");
+    expect(records[0].records).toBeGreaterThan(0);
+    expect(pageText()).not.toContain("Encrypt with a password");
+    expect(pageText()).not.toContain("Only what changed");
   });
 
-  it("refuses to encrypt with a weak password instead of writing a broken file", async () => {
-    await click("Options for the next backup");
-    await clickSelector('button[aria-label="Encrypt with a password"]');
+  it("keeps the one-time Google OAuth setup focused on Drive", async () => {
+    await mount();
+    await click("Connect Google Drive");
 
-    const fields = [...container.querySelectorAll<HTMLInputElement>('input[type="password"]')];
-    await run(() => {
-      const setter = Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, "value")!.set!;
-      setter.call(fields[0], "abc");
-      fields[0].dispatchEvent(new Event("input", { bubbles: true }));
+    expect(pageText()).toContain("Google OAuth client ID");
+    expect(pageText()).toContain("Continue with Google");
+    expect(pageText()).toContain("Where do I get a client ID?");
+    expect(pageText()).not.toContain("Personal access token");
+    expect(pageText()).not.toContain("Dropbox");
+  });
+
+  it("offers sync and cloud restore after a Google token is configured", async () => {
+    await configureCloud({
+      provider: "google-drive",
+      clientId: "test.apps.googleusercontent.com",
+      token: "test-token",
+      enabled: true,
+      autoUpload: false,
     });
+    await mount();
 
-    await click("Create backup");
-
-    expect(text()).not.toContain("Backup created");
-    expect(useBackupStore.getState().records).toHaveLength(0);
-  });
-
-  it("creates a backup from the button and files it in the vault", async () => {
-    await click("Create backup");
-
-    expect(text()).toContain("Backup created");
-    expect(text()).toContain("Save file");
-    expect(text()).toContain("Keep vault copy only");
-
-    await click("Keep vault copy only");
-
-    expect(text()).toMatch(/1 copy · /);
-    expect(text()).toContain("Back up now");
-    expect(text()).toContain("Last backup");
-
-    const [record] = await listVaultRecords();
-    expect(record.kind).toBe("manual");
-    expect(record.records).toBeGreaterThan(0);
-  });
-
-  it("lists the four providers and opens a setup guide for each", async () => {
-    expect(text()).toContain("GitHub Gist");
-    expect(text()).toContain("WebDAV");
-    expect(text()).toContain("Google Drive");
-    expect(text()).toContain("Dropbox");
-    expect((text().match(/Set up/g) ?? []).length).toBeGreaterThanOrEqual(4);
-
-    await click("Set up");
-
-    expect(text()).toContain("Personal access token");
-    expect(text()).toContain("gist");
-    expect(text()).toContain("Save & connect");
-
-    // Escape closes the guide again — no dead-end dialog.
-    await run(() =>
-      document.dispatchEvent(new KeyboardEvent("keydown", { key: "Escape", bubbles: true })),
-    );
-    expect(text()).not.toContain("Personal access token");
-  });
-
-  it("reveals the schedule only when automatic copies are on", async () => {
-    expect(text()).not.toContain("Keep the newest");
-
-    await clickSelector('button[aria-label="Automatic copies"]');
-
-    expect(useBackupStore.getState().auto.enabled).toBe(true);
-    expect(text()).toContain("Keep the newest");
-    expect(text()).toContain("Daily");
-    expect(text()).toContain("Run now");
-
-    // Turning the switch on runs one copy straight away (nothing was ever
-    // saved), so "Run now" is measured as a delta rather than an absolute.
-    const before = (await listVaultRecords()).filter((r) => r.kind === "auto").length;
-    await click("Run now");
-    const after = (await listVaultRecords()).filter((r) => r.kind === "auto").length;
-    expect(before).toBeGreaterThanOrEqual(1);
-    expect(after).toBe(before + 1);
-  });
-
-  it("verifies the newest copy on request", async () => {
-    await createBackup();
-    expect(text()).toContain("Verify newest");
-
-    await click("Verify newest");
-
-    expect(useBackupStore.getState().error).toBeNull();
+    expect(pageText()).toContain("Google Drive connected");
+    expect(pageText()).toContain("Sync now");
+    expect(pageText()).toContain("Restore from Google Drive");
+    expect(pageText()).toContain("Keep new backups synced");
   });
 });
 
-describe("restore from the panel", () => {
-  it("keeps the password gate in front of an encrypted copy", async () => {
-    await createBackup({ encryption: true, password: "screen-test" });
-
-    const record = useBackupStore.getState().records[0];
-    expect(record).toBeTruthy();
-    expect(record.encrypted).toBe(true);
-
-    // The first "Restore" is the file picker; the per-copy action is next.
-    await click("Restore", 1);
-
-    expect(text()).toContain("Unlock backup");
-    expect(text()).toContain("password-protected");
-    expect(text()).not.toContain("Confirm restore");
-  });
-
-  it("shows what is about to be restored before doing it", async () => {
-    const made = await createBackup();
-    const record = await getVaultRecord(made.meta.backupId);
+describe("safe restore confirmation", () => {
+  it("retains the password gate for existing encrypted backup files", async () => {
+    await mount();
+    const made = await run(() =>
+      useBackupStore.getState().create({ encryption: true, password: "screen-test" }),
+    );
+    expect(made).toBeTruthy();
+    const record = await getVaultRecord(made!.meta.backupId);
     expect(record).toBeTruthy();
 
     await run(() =>
       useBackupStore.getState().stageRestore(record!.text, {
-        source: "cloud",
-        name: "SkillSync-Backup-x.json",
-        provider: "github-gist",
+        source: "file",
+        name: "encrypted-backup.json",
       }),
     );
 
-    expect(text()).toContain("Restore this backup?");
-    expect(text()).toMatch(/roadmaps/i);
-    expect(text()).toContain("Review");
+    expect(pageText()).toContain("Unlock backup");
+    expect(pageText()).toContain("password-protected");
+    expect(pageText()).not.toContain("Confirm restore");
   });
 
-  it("warns before replacing the workspace, and offers undo after", async () => {
-    const made = await createBackup();
-    await run(() => useAppStore.getState().addNote({ title: "Note added after the backup" }));
+  it("previews, confirms, and can undo a file restore", async () => {
+    await mount();
+    const made = await run(() => useBackupStore.getState().create());
+    const record = await getVaultRecord(made!.meta.backupId);
+    useBackupStore.getState().dismissCreated();
+    useAppStore.getState().addNote({ title: "Added after backup" });
 
-    await click("Restore", 1);
-    expect(text()).toContain("Restore this backup?");
+    await run(() =>
+      useBackupStore.getState().stageRestore(record!.text, {
+        source: "file",
+        name: "SkillSync-backup.json",
+      }),
+    );
+    expect(pageText()).toContain("Restore this backup?");
+    expect(pageText()).toContain("Review restore");
 
-    await click("Review");
-    expect(text()).toContain("Confirm restore");
+    await click("Review restore");
+    expect(pageText()).toContain("Confirm restore");
+    await click("Restore workspace");
 
-    await click("Restore it");
-    await new Promise((r) => setTimeout(r, 80));
-
-    expect(useBackupStore.getState().restoreStep).toBe(0);
-    expect(useAppStore.getState().notes.map((n) => n.title)).not.toContain(
-      "Note added after the backup",
+    expect(useAppStore.getState().notes.map((note) => note.title)).not.toContain(
+      "Added after backup",
     );
     expect(useBackupStore.getState().lastSafetyId).toBeTruthy();
-    expect(made.meta.backupId).toBeTruthy();
+    expect(pageText()).toContain("Undo the last restore");
 
-    // Undo is offered right there, and takes the workspace back to the snapshot.
-    await click("Undo that restore");
-    expect(useAppStore.getState().notes.map((n) => n.title)).toContain(
-      "Note added after the backup",
-    );
+    await click("Undo the last restore");
+    expect(useAppStore.getState().notes.map((note) => note.title)).toContain("Added after backup");
   });
 });

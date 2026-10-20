@@ -113,13 +113,13 @@ export function SideNav() {
       aria-label="Primary"
       data-collapsed={collapsed ? "true" : "false"}
       className={cn(
-        "sticky top-0 hidden h-[100dvh] shrink-0 flex-col gap-2 border-r border-border px-3 py-5 transition-[width] duration-300 ease-[var(--ease-out-soft)] lg:flex",
+        "sticky top-0 hidden h-[100dvh] shrink-0 flex-col gap-2 border-r border-border bg-background px-3 py-5 transition-[width] duration-300 ease-[var(--ease-out-soft)] lg:flex",
         collapsed ? "w-[76px]" : "w-[248px]",
       )}
     >
       <div
         className={cn(
-          "mb-4 flex items-center gap-2",
+          "mb-3 flex items-center gap-2 border-b border-border pb-4",
           collapsed ? "justify-center" : "justify-between",
         )}
       >
@@ -128,9 +128,17 @@ export function SideNav() {
         ) : (
           <div className="flex min-w-0 items-center gap-2.5 pl-1">
             <SkillSyncLogo size={26} />
-            <div className="min-w-0">
-              <div className="truncate text-[15px] font-semibold tracking-tight">SkillSync</div>
-              <div className="truncate text-[11px] text-muted-foreground">Personal Growth OS</div>
+            <div className="min-w-0 leading-none">
+              <div className="truncate tracking-[-0.035em] text-foreground">
+                <span className="text-[14px] font-semibold">Skill</span>
+                <span className="font-editorial text-[19px] italic text-primary-glow">Sync</span>
+                <span className="font-numerical ml-1 text-[8px] tracking-[0.16em] text-muted-foreground">
+                  OS
+                </span>
+              </div>
+              <div className="font-numerical mt-1.5 truncate text-[8px] uppercase tracking-[0.14em] text-muted-foreground">
+                Personal practice system
+              </div>
             </div>
           </div>
         )}
@@ -142,7 +150,7 @@ export function SideNav() {
             toggle();
           }}
           aria-label={collapsed ? "Expand sidebar" : "Collapse sidebar"}
-          className="pressable flex h-9 w-9 shrink-0 items-center justify-center rounded-[12px] text-muted-foreground transition-colors hover:bg-white/[0.06] hover:text-foreground"
+          className="pressable flex h-9 w-9 shrink-0 items-center justify-center rounded-[5px] border border-transparent text-muted-foreground transition-colors hover:border-border hover:bg-surface hover:text-foreground"
         >
           {collapsed ? (
             <PanelLeftOpen className="h-[18px] w-[18px]" strokeWidth={1.75} />
@@ -170,32 +178,33 @@ export function SideNav() {
                 }
               }}
               className={cn(
-                "group relative flex items-center gap-3 rounded-[14px] px-3 py-2.5 transition-all duration-200 ease-[var(--ease-out-soft)]",
+                "group relative flex items-center gap-3 rounded-[5px] border px-3 py-2.5 transition-colors duration-200 ease-[var(--ease-out-soft)]",
                 collapsed && "justify-center px-0",
                 active
-                  ? "bg-[color-mix(in_oklab,var(--primary)_10%,transparent)] text-foreground shadow-[inset_0_0_0_1px_color-mix(in_oklab,var(--primary)_22%,transparent)]"
-                  : "text-muted-foreground hover:translate-x-0.5 hover:bg-white/[0.04] hover:text-foreground",
+                  ? "border-border-strong bg-surface text-foreground"
+                  : "border-transparent text-muted-foreground hover:border-border hover:bg-surface/70 hover:text-foreground",
               )}
             >
               <Icon
-                className="h-[18px] w-[18px] shrink-0 transition-transform duration-200 group-hover:scale-110"
-                strokeWidth={active ? 2.25 : 1.75}
+                className={cn(
+                  "h-[17px] w-[17px] shrink-0 transition-colors",
+                  active && "text-primary-glow",
+                )}
+                strokeWidth={active ? 2 : 1.65}
               />
               {collapsed ? null : (
                 <>
-                  <span className="truncate text-[13.5px] font-medium tracking-tight">
+                  <span className="truncate text-[12.5px] font-medium tracking-[-0.01em]">
                     {item.label}
                   </span>
                   {item.kbd ? (
-                    <kbd className="ml-auto rounded border border-white/[0.08] bg-white/[0.03] px-1.5 py-0.5 text-[9.5px] font-medium text-muted-foreground/70">
+                    <kbd className="font-numerical ml-auto border border-border bg-background px-1.5 py-0.5 text-[8.5px] text-muted-foreground/80">
                       {item.kbd}
                     </kbd>
                   ) : null}
                 </>
               )}
-              {active ? (
-                <span className="absolute inset-y-2 left-0 w-[2px] rounded-full bg-[var(--primary)] shadow-[0_0_12px_var(--primary-glow)]" />
-              ) : null}
+              {active ? <span className="absolute inset-y-2 left-0 w-px bg-primary" /> : null}
             </Link>
           );
         })}
@@ -211,12 +220,16 @@ export function SideNav() {
           openQuickCapture();
         }}
         className={cn(
-          "pressable mt-2 flex items-center gap-3 rounded-[14px] border border-[color-mix(in_oklab,var(--primary)_28%,transparent)] bg-[color-mix(in_oklab,var(--primary)_8%,var(--surface))] px-3 py-3 text-[var(--primary-glow)] transition-colors hover:bg-[color-mix(in_oklab,var(--primary)_14%,var(--surface))]",
+          "pressable mt-2 flex items-center gap-3 rounded-[5px] border border-primary bg-primary px-3 py-3 text-primary-foreground transition-colors hover:bg-primary-glow",
           collapsed && "justify-center px-0",
         )}
       >
-        <Plus className="h-[18px] w-[18px] shrink-0" strokeWidth={2} />
-        {collapsed ? null : <span className="text-[13px] font-semibold">Quick capture</span>}
+        <Plus className="h-[17px] w-[17px] shrink-0" strokeWidth={2} />
+        {collapsed ? null : (
+          <span className="font-numerical text-[9.5px] font-semibold uppercase tracking-[0.1em]">
+            Quick capture
+          </span>
+        )}
       </button>
     </aside>
   );

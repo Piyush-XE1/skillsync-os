@@ -47,7 +47,7 @@ function SystemPage() {
       <header className="mb-5 flex items-center gap-3 px-5 pt-1 lg:px-2">
         <Link
           to="/profile"
-          className="glass flex h-10 w-10 items-center justify-center rounded-full active:scale-95"
+          className="glass flex h-11 w-11 items-center justify-center rounded-[5px] active:scale-95"
           aria-label="Back"
         >
           <ArrowLeft className="h-[17px] w-[17px] text-muted-foreground" strokeWidth={1.75} />
@@ -56,7 +56,9 @@ function SystemPage() {
           <div className="text-[11px] font-medium uppercase tracking-[0.14em] text-muted-foreground">
             Developer mode
           </div>
-          <h1 className="text-[22px] font-semibold leading-tight tracking-tight">System.</h1>
+          <h1 className="font-editorial text-[26px] font-normal leading-tight tracking-[-0.03em]">
+            System.
+          </h1>
         </div>
       </header>
 
@@ -67,7 +69,7 @@ function SystemPage() {
             <Row label="App version" value={`v${snapshot.appVersion}`} />
             <Row label="Schema version" value={`v${snapshot.schemaVersion}`} />
             <Row label="Local storage used" value={formatBytes(snapshot.storageBytes)} />
-            <Row label="Network" value={online ? "online" : "offline-first ✓"} />
+            <Row label="Network" value={online ? "online" : "offline-first"} />
             <div className="flex items-center justify-between py-2">
               <span className="text-[12.5px] text-muted-foreground">Data residency</span>
               <Chip tone="success">

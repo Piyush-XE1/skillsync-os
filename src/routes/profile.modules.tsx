@@ -33,7 +33,7 @@ function ModulesPage() {
       <header className="mb-4 flex items-center gap-3 px-5 pt-1 lg:px-2">
         <Link
           to="/profile"
-          className="glass flex h-10 w-10 items-center justify-center rounded-full active:scale-95"
+          className="glass flex h-11 w-11 items-center justify-center rounded-[5px] active:scale-95"
           aria-label="Back"
         >
           <ArrowLeft className="h-[17px] w-[17px] text-muted-foreground" strokeWidth={1.75} />
@@ -42,7 +42,7 @@ function ModulesPage() {
           <div className="text-[11px] uppercase tracking-[0.14em] text-muted-foreground">
             Preferences · {activeCount} active
           </div>
-          <h1 className="truncate text-[22px] font-semibold leading-tight tracking-[-0.02em]">
+          <h1 className="font-editorial truncate text-[26px] font-normal leading-tight tracking-[-0.03em]">
             Modules
           </h1>
         </div>

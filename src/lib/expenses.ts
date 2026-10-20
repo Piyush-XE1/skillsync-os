@@ -8,6 +8,40 @@ export type MonthlySpendingPace = {
   perDay: number;
 };
 
+/**
+ * Convert an expense date chosen in a native date field into a local timestamp.
+ * The current clock time is retained so backdated entries remain naturally
+ * ordered, while impossible or incomplete dates are rejected.
+ */
+export function expenseDateTimestamp(value: string, clock = Date.now()): number | null {
+  const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(value);
+  if (!match) return null;
+
+  const year = Number(match[1]);
+  const month = Number(match[2]);
+  const day = Number(match[3]);
+  const time = new Date(clock);
+  const result = new Date(
+    year,
+    month - 1,
+    day,
+    time.getHours(),
+    time.getMinutes(),
+    time.getSeconds(),
+    time.getMilliseconds(),
+  );
+
+  if (
+    !Number.isFinite(result.getTime()) ||
+    result.getFullYear() !== year ||
+    result.getMonth() !== month - 1 ||
+    result.getDate() !== day
+  ) {
+    return null;
+  }
+  return result.getTime();
+}
+
 /** Budget pacing uses local calendar dates and counts today as a remaining day. */
 export function monthlySpendingPace(
   transactions: Transaction[],

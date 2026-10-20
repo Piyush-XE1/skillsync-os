@@ -10,15 +10,17 @@ import {
   Activity,
   Target,
 } from "lucide-react";
-import { AppShell } from "@/components/layout/AppShell";
+import { AppShell, PageHeader } from "@/components/layout/AppShell";
 import { Card, ProgressBar, SectionHeader } from "@/components/ui/primitives";
 import { Heatmap, type HeatCell } from "@/components/common/Heatmap";
+import { SemanticIcon } from "@/components/common/SemanticIcon";
 import { AreaChart, BarChart, DonutChart, Legend, getAxisLabel } from "@/components/common/Charts";
 import { useAppStore, useHydrated } from "@/store/useAppStore";
 import { roadmapPct, roadmapCounts } from "@/lib/progress";
 import { todayISO, addDaysISO } from "@/lib/date";
 import { formatMinutes, minutesByDay, focusTotals, focusStreak } from "@/lib/focus";
 import { habitStreak } from "@/lib/habit-streaks";
+import { DEFAULT_HABIT_ICON } from "@/lib/semantic-icons";
 import {
   effortByDay,
   focusDaily,
@@ -168,25 +170,16 @@ function AnalyticsPage() {
 
   return (
     <AppShell>
-      <header className="mb-5 flex items-center justify-between px-5 lg:px-2">
-        <Link
-          to="/profile"
-          className="glass flex h-10 w-10 items-center justify-center rounded-full active:scale-95"
-          aria-label="Back"
-        >
-          <ArrowLeft className="h-[17px] w-[17px] text-muted-foreground" strokeWidth={1.75} />
-        </Link>
-      </header>
-
-      <div className="mb-6 px-5 lg:px-2">
-        <div className="text-[11px] font-medium uppercase tracking-[0.14em] text-muted-foreground">
-          Insights
-        </div>
-        <h1 className="mt-1.5 text-[28px] font-semibold leading-tight tracking-[-0.02em]">
-          Analytics.
-        </h1>
-        <p className="mt-1 text-[13.5px] text-muted-foreground">Progress, quietly measured.</p>
-      </div>
+      <PageHeader
+        eyebrow={
+          <Link to="/profile" className="page-back-link" aria-label="Back to profile">
+            <ArrowLeft className="h-3.5 w-3.5" strokeWidth={1.75} />
+            <span className="truncate">Insights / overview</span>
+          </Link>
+        }
+        title="Analytics."
+        subtitle="Progress, quietly measured across the practices that matter."
+      />
 
       <div className="space-y-6 px-5 lg:px-2 lg:auto-grid-wide lg:space-y-0 lg:items-start">
         <div className="grid grid-cols-2 gap-3 lg:col-span-full lg:grid-cols-4">
@@ -376,8 +369,9 @@ function AnalyticsPage() {
                 <Braces className="h-3.5 w-3.5" strokeWidth={2} />
                 {data.coding.problems.length} problems total
               </span>
-              <span>
-                🔥 {streak.current} current · {streak.best} best streak
+              <span className="flex items-center gap-1.5">
+                <Flame className="h-3.5 w-3.5 text-warning" strokeWidth={1.8} />
+                {streak.current} current · {streak.best} best streak
               </span>
             </div>
             <BarChart data={weeklySolve} height={150} color="var(--primary)" className="mt-2" />
@@ -422,7 +416,11 @@ function AnalyticsPage() {
               {habitCells.map(({ habit, streak, cells }) => (
                 <div key={habit.id} className="flex items-center gap-3 py-2.5 first:pt-1 last:pb-1">
                   <div className="flex w-28 shrink-0 items-center gap-2">
-                    <span>{habit.emoji}</span>
+                    <SemanticIcon
+                      value={habit.emoji}
+                      fallback={DEFAULT_HABIT_ICON}
+                      className="h-4 w-4 shrink-0 text-primary"
+                    />
                     <div className="min-w-0">
                       <div className="truncate text-[12.5px] font-medium">{habit.title}</div>
                       <div className="text-[10.5px] text-muted-foreground">

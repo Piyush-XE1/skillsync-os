@@ -37,7 +37,7 @@ export type WidgetFrameProps = {
   };
   onHide?: () => void;
   onResize?: () => void;
-  /** Ambient accent glow behind the content. */
+  /** Optional brass registration line at the card edge. */
   glow?: boolean;
 };
 
@@ -57,7 +57,7 @@ export function WidgetFrame({
   rowProps,
   onHide,
   onResize,
-  glow = true,
+  glow = false,
 }: WidgetFrameProps) {
   const wide = size !== "tile";
   return (
@@ -77,10 +77,9 @@ export function WidgetFrame({
       <Card
         className={cn(
           "group/widget relative flex h-full flex-col overflow-hidden p-4",
-          "transition-[border-color,box-shadow,transform] duration-300 ease-[var(--ease-out-soft)]",
-          "motion-safe:[@media(hover:hover)_and_(pointer:fine)]:hover:-translate-y-[3px]",
+          "transition-[border-color,transform] duration-300 ease-[var(--ease-out-soft)]",
+          "motion-safe:[@media(hover:hover)_and_(pointer:fine)]:hover:-translate-y-px",
           "[@media(hover:hover)_and_(pointer:fine)]:hover:border-[color-mix(in_oklab,var(--primary)_34%,var(--border))]",
-          "[@media(hover:hover)_and_(pointer:fine)]:hover:shadow-[0_26px_60px_-30px_var(--glow)]",
           dragging &&
             "border-[color-mix(in_oklab,var(--primary)_45%,transparent)] shadow-[0_30px_60px_-26px_oklch(0_0_0/0.95)] ring-1 ring-[color-mix(in_oklab,var(--primary)_35%,transparent)]",
           customizing &&
@@ -93,9 +92,8 @@ export function WidgetFrame({
           <div
             aria-hidden
             className={cn(
-              "pointer-events-none absolute -right-14 -top-14 h-36 w-36 rounded-full blur-3xl transition-opacity duration-300",
-              "bg-[color-mix(in_oklab,var(--primary)_16%,transparent)]",
-              dragging ? "opacity-100" : "opacity-60",
+              "pointer-events-none absolute right-0 top-0 h-px w-16 bg-primary transition-opacity duration-300",
+              dragging ? "opacity-100" : "opacity-55",
             )}
           />
         ) : null}
@@ -104,7 +102,10 @@ export function WidgetFrame({
           <div className="relative mb-3 flex items-center gap-2">
             {icon ? <span className="shrink-0 text-muted-foreground">{icon}</span> : null}
             {title ? (
-              <h3 className="min-w-0 flex-1 truncate text-[11px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">
+              <h3 className="font-numerical min-w-0 flex-1 truncate text-[10px] font-semibold uppercase tracking-[0.16em] text-muted-foreground">
+                <span className="mr-2 text-primary" aria-hidden="true">
+                  •
+                </span>
                 {title}
               </h3>
             ) : (
@@ -126,7 +127,7 @@ export function WidgetFrame({
                       wide ? `Make ${title ?? "widget"} smaller` : `Make ${title ?? "widget"} wider`
                     }
                     title={wide ? "Smaller" : "Wider"}
-                    className="pressable flex h-7 w-7 items-center justify-center rounded-lg bg-white/[0.05] text-muted-foreground transition-colors hover:bg-white/[0.09] hover:text-foreground"
+                    className="pressable flex h-7 w-7 items-center justify-center border border-border bg-surface-2 text-muted-foreground transition-colors hover:text-foreground"
                   >
                     {wide ? (
                       <Minimize2 className="h-3.5 w-3.5" strokeWidth={1.75} />
@@ -145,7 +146,7 @@ export function WidgetFrame({
                     }}
                     aria-label={`Remove ${title ?? "widget"} from the dashboard`}
                     title="Remove"
-                    className="pressable flex h-7 w-7 items-center justify-center rounded-lg bg-white/[0.05] text-muted-foreground transition-colors hover:bg-[var(--danger)]/15 hover:text-[var(--danger)]"
+                    className="pressable flex h-7 w-7 items-center justify-center border border-border bg-surface-2 text-muted-foreground transition-colors hover:border-danger/40 hover:text-danger"
                   >
                     <X className="h-3.5 w-3.5" strokeWidth={1.75} />
                   </button>
@@ -177,10 +178,10 @@ export function StatValue({
   return (
     <div className={cn("min-w-0", className)}>
       <div className="flex items-baseline gap-1.5">
-        <span className="truncate text-[30px] font-semibold leading-none tracking-tight tabular-nums">
+        <span className="font-numerical truncate text-[30px] font-medium leading-none tracking-[-0.055em] text-foreground">
           {value}
         </span>
-        {unit ? <span className="text-[13px] text-muted-foreground">{unit}</span> : null}
+        {unit ? <span className="font-editorial text-[14px] text-primary">{unit}</span> : null}
       </div>
       {footnote ? <div className="mt-2.5 text-[11px] text-muted-foreground">{footnote}</div> : null}
     </div>

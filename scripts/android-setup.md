@@ -45,12 +45,12 @@ base64 -w0 skillsync-release.jks
 
 Repo → **Settings → Secrets and variables → Actions → New repository secret**:
 
-| Secret | Value |
-| --- | --- |
-| `ANDROID_KEYSTORE_BASE64` | the base64 string from step 2 |
-| `ANDROID_KEYSTORE_PASSWORD` | keystore password |
-| `ANDROID_KEY_ALIAS` | `skillsync` |
-| `ANDROID_KEY_PASSWORD` | key password |
+| Secret                      | Value                         |
+| --------------------------- | ----------------------------- |
+| `ANDROID_KEYSTORE_BASE64`   | the base64 string from step 2 |
+| `ANDROID_KEYSTORE_PASSWORD` | keystore password             |
+| `ANDROID_KEY_ALIAS`         | `skillsync`                   |
+| `ANDROID_KEY_PASSWORD`      | key password                  |
 
 If you skip this, builds still work — you just get an **unsigned** release APK
 (fine for testing, not for sharing).
@@ -72,7 +72,7 @@ When it finishes, download `skillsync-apk-<version>` from the run's
 
 ### 5. Install on your phone
 
-Copy the APK to the device, tap it, and allow *"Install unknown apps"* for
+Copy the APK to the device, tap it, and allow _"Install unknown apps"_ for
 your file manager / browser when prompted.
 
 ---
@@ -110,7 +110,7 @@ Prefer Android Studio? `bun run android:sync && bun run android:open`.
    - cloud: pass `versionName` / `versionCode` when running the workflow, or push
      a new `vX.Y.Z` tag (the run number becomes the version code);
    - local: `ORG_GRADLE_PROJECT_skillsyncVersionName=1.1.0
-     ORG_GRADLE_PROJECT_skillsyncVersionCode=2 bun run android:release`.
+ORG_GRADLE_PROJECT_skillsyncVersionCode=2 bun run android:release`.
 3. Install the new APK over the old one.
 
 **Your data survives updates.** SkillSync stores everything locally under the
@@ -122,16 +122,16 @@ Uninstalling deletes it — so before anything risky, use
 
 ## Native shell details
 
-| Setting | Value |
-| --- | --- |
-| App id | `com.skillsync.os` |
-| App name | SkillSync |
-| Min / target SDK | 24 / 36 (Android 7 → 16) |
-| Orientation | Portrait |
-| Keyboard | `adjustResize` (pairs with the in-app keyboard-inset handling) |
-| System bars | Transparent, dark content, edge-to-edge |
-| Launch screen | Deep matte `#09090b` + SkillSync mark |
-| Permissions | `INTERNET` (local WebView bridge), `VIBRATE` (haptics), `POST_NOTIFICATIONS` (reminders) |
+| Setting          | Value                                                                                    |
+| ---------------- | ---------------------------------------------------------------------------------------- |
+| App id           | `com.skillsync.os`                                                                       |
+| App name         | SkillSync                                                                                |
+| Min / target SDK | 24 / 36 (Android 7 → 16)                                                                 |
+| Orientation      | Portrait                                                                                 |
+| Keyboard         | `adjustResize` (pairs with the in-app keyboard-inset handling)                           |
+| System bars      | Transparent, dark content, edge-to-edge                                                  |
+| Launch screen    | Monograph Noir canvas `#08080A` + brass-and-ivory SkillSync mark                         |
+| Permissions      | `INTERNET` (local WebView bridge), `VIBRATE` (haptics), `POST_NOTIFICATIONS` (reminders) |
 
 Icons and the splash mark are generated from `public/icon-512.png` into
 `android/app/src/main/res/mipmap-*` and `drawable-*`. Replace that file and
@@ -139,25 +139,25 @@ re-generate if the brand mark changes.
 
 ## Troubleshooting
 
-| Symptom | Fix |
-| --- | --- |
-| White screen after launch | Re-run `bun run android:sync`; `dist/client/index.html` must exist |
-| "App not installed" | A different signing key than the installed build — uninstall first, or reuse the original keystore |
-| Gradle: SDK not found | Open the `android/` folder once in Android Studio and let it install the SDK |
-| Workflow warns "unsigned" | The four GitHub secrets aren't set (see step 3) |
+| Symptom                   | Fix                                                                                                |
+| ------------------------- | -------------------------------------------------------------------------------------------------- |
+| White screen after launch | Re-run `bun run android:sync`; `dist/client/index.html` must exist                                 |
+| "App not installed"       | A different signing key than the installed build — uninstall first, or reuse the original keystore |
+| Gradle: SDK not found     | Open the `android/` folder once in Android Studio and let it install the SDK                       |
+| Workflow warns "unsigned" | The four GitHub secrets aren't set (see step 3)                                                    |
 
 ## Native Android integrations (back button, haptics, notifications)
 
 The APK ships a small first-party Capacitor plugin — no extra npm packages:
 
-| File | Role |
-| --- | --- |
-| `MainActivity.java` | Registers the plugin, re-arms reminders on launch, and handles the Android back gesture via `OnBackPressedDispatcher` (WebView history first, `finish()` only at the root). Notification taps are forwarded to the web app as a `skillsync:open` event. |
-| `SkillSyncNativePlugin.java` | JS bridge: `vibrate`, `vibratePattern`, `haptic`, `notify`, `schedule`, `cancel`, `cancelAll`, `listScheduled`, `checkNotificationPermission`, `requestNotificationPermission`, `capabilities`. |
-| `ReminderScheduler.java` | Notification channel + `AlarmManager` scheduling (exact when allowed), recurrence maths, `NotificationManagerCompat` display. |
-| `ReminderReceiver.java` | Fires reminders with the app closed and re-arms recurring ones. |
-| `BootReceiver.java` | Re-arms stored reminders after reboot / app update. |
-| `ReminderStore.java` | Offline `SharedPreferences` store for scheduled reminders. |
+| File                         | Role                                                                                                                                                                                                                                                    |
+| ---------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `MainActivity.java`          | Registers the plugin, re-arms reminders on launch, and handles the Android back gesture via `OnBackPressedDispatcher` (WebView history first, `finish()` only at the root). Notification taps are forwarded to the web app as a `skillsync:open` event. |
+| `SkillSyncNativePlugin.java` | JS bridge: `vibrate`, `vibratePattern`, `haptic`, `notify`, `schedule`, `cancel`, `cancelAll`, `listScheduled`, `checkNotificationPermission`, `requestNotificationPermission`, `capabilities`.                                                         |
+| `ReminderScheduler.java`     | Notification channel + `AlarmManager` scheduling (exact when allowed), recurrence maths, `NotificationManagerCompat` display.                                                                                                                           |
+| `ReminderReceiver.java`      | Fires reminders with the app closed and re-arms recurring ones.                                                                                                                                                                                         |
+| `BootReceiver.java`          | Re-arms stored reminders after reboot / app update.                                                                                                                                                                                                     |
+| `ReminderStore.java`         | Offline `SharedPreferences` store for scheduled reminders.                                                                                                                                                                                              |
 
 Web side: `src/lib/native/bridge.ts` detects the plugin at runtime. `haptics.ts`,
 `notifications/adapter.ts`, `notifications/permission.ts` and

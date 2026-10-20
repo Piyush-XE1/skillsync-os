@@ -74,14 +74,14 @@ function NotificationsPage() {
             <Link
               to="/"
               aria-label="Back"
-              className="glass flex h-10 w-10 items-center justify-center rounded-full transition-transform active:scale-95"
+              className="glass flex h-11 w-11 items-center justify-center rounded-[5px] transition-transform active:scale-95"
             >
               <ArrowLeft className="h-[17px] w-[17px] text-muted-foreground" strokeWidth={1.75} />
             </Link>
             <Link
               to="/profile/notifications"
               aria-label="Notification settings"
-              className="glass flex h-10 w-10 items-center justify-center rounded-full transition-transform active:scale-95"
+              className="glass flex h-11 w-11 items-center justify-center rounded-[5px] transition-transform active:scale-95"
             >
               <Settings2 className="h-[17px] w-[17px] text-muted-foreground" strokeWidth={1.75} />
             </Link>

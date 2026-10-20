@@ -308,6 +308,45 @@ const migrators: Record<number, (data: LegacyData) => LegacyData> = {
         }))
       : [],
   }),
+  /**
+   * v15 -> v16: introduces the local-only personal monograph and universal
+   * stopwatches. Every collection starts empty and every optional datum starts
+   * unset; no identity, quotation, birth date, or timer is invented. Legacy
+   * appearance values remain as inert backup metadata so the migration does
+   * not overwrite settings; rendering itself is unconditionally Monograph Noir.
+   */
+  15: (data) => ({
+    ...data,
+    archetypeTraits: Array.isArray(data.archetypeTraits) ? data.archetypeTraits : [],
+    customQuotes: Array.isArray(data.customQuotes) ? data.customQuotes : [],
+    quoteFilterPreference: ["stoic", "custom", "mixed"].includes(data.quoteFilterPreference)
+      ? data.quoteFilterPreference
+      : "stoic",
+    selectedCustomQuoteId:
+      typeof data.selectedCustomQuoteId === "string" ? data.selectedCustomQuoteId : null,
+    antiSelfEntries: Array.isArray(data.antiSelfEntries) ? data.antiSelfEntries : [],
+    birthDate: /^\d{4}-\d{2}-\d{2}$/.test(data.birthDate ?? "") ? data.birthDate : null,
+    ageDisplayUnit: data.ageDisplayUnit === "days" ? "days" : "weeks",
+    stopwatches: Array.isArray(data.stopwatches) ? data.stopwatches : [],
+    stopwatchEnabled: data.stopwatchEnabled === true,
+  }),
+  /**
+   * v16 -> v17: Notes become notebooks with an archive. This is additive:
+   * every existing id, title, body, tag, link and timestamp is retained.
+   */
+  16: (data) => ({
+    ...data,
+    notes: Array.isArray(data.notes)
+      ? data.notes.map((note: LegacyData) => ({
+          ...note,
+          notebook:
+            typeof note?.notebook === "string" && note.notebook.trim()
+              ? note.notebook.trim()
+              : "General",
+          archived: note?.archived === true,
+        }))
+      : [],
+  }),
 };
 
 export function migrate(input: unknown): AppData {
@@ -327,8 +366,8 @@ export function migrate(input: unknown): AppData {
   data.preferences = {
     notifications: true,
     developerMode: false,
-    background: "aurora",
-    accent: defaultAccentFor((data.preferences ?? {}).background as string | undefined),
+    background: "atelier",
+    accent: "#C29F62",
     ...(data.preferences ?? {}),
     modules: {
       expenses: false,
@@ -344,21 +383,12 @@ export function migrate(input: unknown): AppData {
       ...((data.preferences ?? {}).modules ?? {}),
     },
   };
-  // Appearance has exactly one source of truth: preferences.background.
-  // A legacy light theme becomes the Minimalist Light background; any
-  // retired or unknown background value (e.g. "gradient", "atmospheric")
-  // safely falls back to "aurora", the app's default dark appearance.
+  // Appearance is fixed in the renderer, not by rewriting a person's stored
+  // preference history. The deprecated fields remain inert for lossless backup
+  // compatibility; only the long-retired `theme` key is removed as before.
   {
     const prefs = data.preferences as LegacyData;
-    if (prefs.theme === "light") prefs.background = "light";
     delete prefs.theme;
-    if (!["aurora", "light", "atelier"].includes(prefs.background)) {
-      prefs.background = "aurora";
-    }
-    // Accent: fall back to the background's default if it was never set.
-    if (typeof prefs.accent !== "string" || prefs.accent.trim().length === 0) {
-      prefs.accent = defaultAccentFor(prefs.background);
-    }
     // Sound design: always a boolean + a clamped 0..1 volume.
     if (typeof prefs.sound !== "boolean") prefs.sound = true;
     prefs.soundVolume =
@@ -378,6 +408,16 @@ export function migrate(input: unknown): AppData {
   // workspace would otherwise silently inherit the starter aims: only a
   // workspace that really carries a goals array of its own keeps it.
   if (!Array.isArray((input as LegacyData).goals)) data.goals = [];
+
+  // Notebook organization is additive and idempotent. Current-version imports
+  // can still be hand-edited or partially written, so repair only missing or
+  // empty organization fields while leaving all note content and ids intact.
+  data.notes = (Array.isArray(data.notes) ? data.notes : []).map((note: LegacyData) => ({
+    ...note,
+    notebook:
+      typeof note?.notebook === "string" && note.notebook.trim() ? note.notebook.trim() : "General",
+    archived: note?.archived === true,
+  }));
 
   data.expenses = data.expenses ?? { transactions: [], monthlyBudget: 0 };
   data.expenses.monthlyBudget =

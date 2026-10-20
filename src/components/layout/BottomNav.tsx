@@ -28,7 +28,7 @@ export function BottomNav() {
     >
       <div
         className={cn(
-          "glass mx-3 flex w-full max-w-lg items-center gap-1 rounded-[25px] px-2 py-1.5 shadow-[var(--shadow-float)]",
+          "card-elevated mx-3 flex w-full max-w-lg items-center gap-1 rounded-[9px] px-2 py-2",
           hidden ? "pointer-events-none" : "pointer-events-auto",
         )}
       >
@@ -38,14 +38,14 @@ export function BottomNav() {
           aria-current={pathname === "/" ? "page" : undefined}
           onClick={() => pathname !== "/" && sound.select()}
           className={cn(
-            "flex w-[54px] shrink-0 flex-col items-center gap-0.5 rounded-[18px] px-1 py-1.5 transition-colors",
+            "flex w-[54px] shrink-0 flex-col items-center gap-0.5 rounded-[5px] px-1 py-1 transition-colors",
             pathname === "/" ? "text-foreground" : "text-muted-foreground",
           )}
         >
           <span
             className={cn(
-              "flex h-8 w-8 items-center justify-center rounded-full",
-              pathname === "/" && "bg-[color-mix(in_oklab,var(--primary)_14%,transparent)]",
+              "flex h-8 w-8 items-center justify-center rounded-[4px] border border-transparent",
+              pathname === "/" && "border-primary bg-primary text-primary-foreground",
             )}
           >
             <LayoutDashboard
@@ -53,7 +53,9 @@ export function BottomNav() {
               strokeWidth={pathname === "/" ? 2.2 : 1.75}
             />
           </span>
-          <span className="max-w-full truncate text-[9px] font-medium">Home</span>
+          <span className="font-numerical max-w-full truncate text-[9px] font-medium uppercase tracking-[0.06em]">
+            Home
+          </span>
         </Link>
 
         <div className="no-scrollbar flex min-w-0 flex-1 items-center gap-0.5 overflow-x-auto overscroll-x-contain">
@@ -73,19 +75,19 @@ export function BottomNav() {
                   }
                 }}
                 className={cn(
-                  "flex w-[54px] shrink-0 flex-col items-center gap-0.5 rounded-[18px] px-1 py-1.5 transition-colors",
+                  "flex w-[54px] shrink-0 flex-col items-center gap-0.5 rounded-[5px] px-1 py-1 transition-colors",
                   active ? "text-foreground" : "text-muted-foreground hover:text-foreground/80",
                 )}
               >
                 <span
                   className={cn(
-                    "flex h-8 w-8 items-center justify-center rounded-full",
-                    active && "bg-[color-mix(in_oklab,var(--primary)_14%,transparent)]",
+                    "flex h-8 w-8 items-center justify-center rounded-[4px] border border-transparent",
+                    active && "border-primary bg-primary text-primary-foreground",
                   )}
                 >
                   <Icon className="h-[17px] w-[17px]" strokeWidth={active ? 2.2 : 1.75} />
                 </span>
-                <span className="max-w-full truncate text-[9px] font-medium">
+                <span className="font-numerical max-w-full truncate text-[9px] font-medium uppercase tracking-[0.06em]">
                   {module.navLabel}
                 </span>
               </Link>
@@ -102,10 +104,12 @@ export function BottomNav() {
             sound.open();
             openQuickCapture();
           }}
-          className="pressable gradient-primary flex h-11 w-11 shrink-0 flex-col items-center justify-center rounded-full text-primary-foreground shadow-[var(--shadow-glow)] transition-transform active:scale-95"
+          className="pressable gradient-primary flex h-11 w-11 shrink-0 flex-col items-center justify-center rounded-[5px] border border-primary text-primary-foreground transition-colors hover:bg-primary-glow"
         >
-          <Plus className="h-[18px] w-[18px]" strokeWidth={2.25} />
-          <span className="-mt-0.5 text-[8px] font-semibold">Capture</span>
+          <Plus className="h-[17px] w-[17px]" strokeWidth={2.25} />
+          <span className="font-numerical -mt-0.5 text-[7.5px] font-semibold uppercase tracking-[0.04em]">
+            Capture
+          </span>
         </button>
 
         <Link
@@ -116,7 +120,7 @@ export function BottomNav() {
           }
           onClick={() => !pathname.startsWith("/profile") && sound.select()}
           className={cn(
-            "flex w-[50px] shrink-0 flex-col items-center gap-0.5 rounded-[18px] px-1 py-1.5 transition-colors",
+            "flex w-[50px] shrink-0 flex-col items-center gap-0.5 rounded-[5px] px-1 py-1 transition-colors",
             pathname === "/profile" || pathname.startsWith("/profile/")
               ? "text-foreground"
               : "text-muted-foreground",
@@ -124,14 +128,16 @@ export function BottomNav() {
         >
           <span
             className={cn(
-              "flex h-8 w-8 items-center justify-center rounded-full",
+              "flex h-8 w-8 items-center justify-center rounded-[4px] border border-transparent",
               pathname.startsWith("/profile") &&
-                "bg-[color-mix(in_oklab,var(--primary)_14%,transparent)]",
+                "border-primary bg-primary text-primary-foreground",
             )}
           >
             <User className="h-[17px] w-[17px]" strokeWidth={1.75} />
           </span>
-          <span className="text-[9px] font-medium">Profile</span>
+          <span className="font-numerical text-[9px] font-medium uppercase tracking-[0.06em]">
+            Profile
+          </span>
         </Link>
       </div>
     </nav>

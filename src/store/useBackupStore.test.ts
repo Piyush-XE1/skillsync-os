@@ -18,6 +18,7 @@ const { toasts, toast } = vi.hoisted(() => {
 vi.mock("sonner", () => ({ toast }));
 
 import { useAppStore } from "@/store/useAppStore";
+import type { AppData } from "@/lib/schema";
 import { useBackupStore } from "@/store/useBackupStore";
 import { listVaultRecords } from "@/lib/backup/vault";
 
@@ -49,6 +50,7 @@ beforeEach(async () => {
     cloud: { items: {}, status: {}, busy: null, error: null },
   });
   await (await import("@/lib/backup/vault")).clearVault();
+  useAppStore.getState().setBirthDate(null);
 });
 
 describe("useBackupStore — create", () => {
@@ -135,6 +137,24 @@ describe("useBackupStore — restore", () => {
     expect(useBackupStore.getState().records.length).toBeGreaterThan(0);
   });
 
+  it("keeps the device-local birth date when restoring a cloud-safe copy", async () => {
+    useAppStore.getState().setBirthDate("1995-06-15");
+    const source = JSON.parse(useAppStore.getState().exportJSON()) as AppData;
+    source.profile = { ...source.profile, name: "Restored from cloud" };
+    const { createCloudSafeBackup } = await import("@/lib/backup/advanced-backup");
+    const cloudCopy = await createCloudSafeBackup(source);
+
+    await useBackupStore.getState().stageRestore(cloudCopy.text, {
+      source: "cloud",
+      provider: "github-gist",
+      name: "cloud-safe.json",
+    });
+    await useBackupStore.getState().confirmRestore();
+
+    expect(useAppStore.getState().profile.name).toBe("Restored from cloud");
+    expect(useAppStore.getState().birthDate).toBe("1995-06-15");
+  });
+
   it("tells the user when a file is not a backup at all", async () => {
     await useBackupStore
       .getState()
@@ -216,7 +236,7 @@ describe("useBackupStore — automatic copies", () => {
 
 describe("useBackupStore — cloud glue", () => {
   const okFetch = (body: unknown) =>
-    vi.fn(() =>
+    vi.fn((_input?: RequestInfo | URL, _init?: RequestInit) =>
       Promise.resolve({
         ok: true,
         status: 201,
@@ -246,6 +266,40 @@ describe("useBackupStore — cloud glue", () => {
     expect(record.cloud?.provider).toBe("github-gist");
     expect(record.cloud?.fileId).toBe("gist-9");
     expect(useBackupStore.getState().cloud.status["github-gist"]?.lastSyncAt).toBeGreaterThan(0);
+  });
+
+  it("removes the device-local birth date from cloud uploads while retaining it in the local vault", async () => {
+    useAppStore.getState().setBirthDate("2000-01-01");
+    const { configureCloud } = await import("@/lib/backup/cloud");
+    await configureCloud({
+      provider: "github-gist",
+      token: "ghp_test",
+      enabled: true,
+      autoUpload: true,
+    });
+    const fetchMock = okFetch({ id: "gist-private", html_url: "https://gist.example/private" });
+    globalThis.fetch = fetchMock as never;
+
+    const made = await useBackupStore.getState().create();
+    expect(made).not.toBeNull();
+    await new Promise((resolve) => setTimeout(resolve, 60));
+
+    const request = fetchMock.mock.calls[0]?.[1] as RequestInit | undefined;
+    const gistBody = JSON.parse(String(request?.body)) as {
+      files: Record<string, { content: string }>;
+    };
+    const cloudText = Object.values(gistBody.files)[0]?.content;
+    expect(cloudText).toBeTruthy();
+    expect(cloudText).not.toContain('"birthDate"');
+
+    const { validateAdvancedBackup } = await import("@/lib/backup/advanced-backup");
+    const cloudCopy = await validateAdvancedBackup(cloudText!);
+    expect(cloudCopy.ok && cloudCopy.backup.data.birthDate).toBeNull();
+
+    const { getVaultRecord } = await import("@/lib/backup/vault");
+    const localRecord = await getVaultRecord(made!.meta.backupId);
+    const localCopy = await validateAdvancedBackup(localRecord!.text);
+    expect(localCopy.ok && localCopy.backup.data.birthDate).toBe("2000-01-01");
   });
 
   it("leaves the network alone when auto-upload is off", async () => {

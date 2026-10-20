@@ -115,7 +115,7 @@ function TopicDetail() {
         <Link
           to="/learn/$roadmapId"
           params={{ roadmapId }}
-          className="glass flex h-10 w-10 items-center justify-center rounded-full active:scale-95"
+          className="glass flex h-11 w-11 items-center justify-center rounded-[5px] active:scale-95"
           aria-label="Back"
         >
           <ArrowLeft className="h-[17px] w-[17px] text-muted-foreground" strokeWidth={1.75} />

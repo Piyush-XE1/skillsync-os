@@ -18,6 +18,7 @@ import { saveBackupFile, shareBackupFile } from "@/lib/platform-files";
 import {
   analyzeBackupHealthSync,
   createAdvancedBackup,
+  createCloudSafeBackup,
   createIncrementalBackup,
   clearAdvancedBackupArtifacts,
   describeBackupData,
@@ -89,6 +90,9 @@ export type CreateBackupInput = {
   incremental?: boolean;
   kind?: VaultKind;
   quiet?: boolean;
+  /** Internal delivery controls used by the focused cloud-sync flow. */
+  suppressSavePrompt?: boolean;
+  skipAutoUpload?: boolean;
 };
 
 export type PendingRestore = {
@@ -423,15 +427,16 @@ export const useBackupStore = create<BackupState & BackupActions>((set, get) => 
           await syncDerivedState();
           patch({
             created:
-              kind === "manual"
+              kind === "manual" && !input.suppressSavePrompt
                 ? { text: result.text, meta: result.meta, filename: result.filename }
                 : null,
           });
 
           // The optional off-device hop. Fired now — for auto copies *and*
           // manual ones — so a slow network can never delay the local save the
-          // person asked for. uploadToCloud reports its own result.
-          void maybeUploadCreated(kind, result.meta.backupId);
+          // person asked for. A manual "Sync now" performs its own awaited
+          // upload and opts out here to avoid duplicate Drive files.
+          if (!input.skipAutoUpload) void maybeUploadCreated(kind, result.meta.backupId);
 
           return { meta: result.meta };
         } catch (error) {
@@ -666,7 +671,14 @@ export const useBackupStore = create<BackupState & BackupActions>((set, get) => 
           data = merged.data;
         }
 
-        // 3. apply
+        // 3. Cloud copies deliberately have no birth-date field. Keep the
+        // device's current value instead of letting a cloud restore clear it or
+        // treating any externally supplied cloud value as authoritative.
+        if (pending.source === "cloud") {
+          data = { ...data, birthDate: useAppStore.getState().birthDate };
+        }
+
+        // 4. apply
         const applied = useAppStore.getState().importJSON(JSON.stringify(data));
         if (!applied.ok) {
           const message = applied.error || "The workspace could not be replaced.";
@@ -923,9 +935,27 @@ export const useBackupStore = create<BackupState & BackupActions>((set, get) => 
         return;
       }
       patch({ cloud: { ...state.cloud, busy: provider, error: null } });
+
+      // Birth date is a strictly device-local perspective setting. Rebuild a
+      // cloud-only envelope with that one field redacted rather than uploading
+      // the complete vault artifact. Encrypted/incremental records cannot be
+      // safely transformed without their base/password, so privacy wins and
+      // the upload is refused instead of leaking the original bytes.
+      const decoded = await validateAdvancedBackup(record.text);
+      if (!decoded.ok || decoded.backup.incremental) {
+        const message = decoded.ok
+          ? "Incremental backups cannot be uploaded until a private-safe full copy is created."
+          : decoded.needsPassword
+            ? "Encrypted backups stay local because the private date cannot be removed without the password. Create a standard backup for cloud upload."
+            : "This backup could not be prepared for a private cloud upload.";
+        patch({ cloud: { ...get().cloud, busy: null, error: message } });
+        toast.error(message);
+        return;
+      }
+      const cloudCopy = await createCloudSafeBackup(decoded.backup.data as AppData);
       const result = await cloudUpload(provider, {
         filename: cloudFilename(new Date(record.createdAt).toISOString(), record.id),
-        text: record.text,
+        text: cloudCopy.text,
         fileId: record.cloud?.provider === provider ? record.cloud.fileId : undefined,
       });
 

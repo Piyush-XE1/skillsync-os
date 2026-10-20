@@ -10,9 +10,9 @@ import { createInitialData } from "@/lib/seed";
 function seed() {
   const data = createInitialData();
   data.goals = [
-    { id: "g1", title: "Gym", emoji: "🏋️", note: "Show up.", createdAt: 1 },
-    { id: "g2", title: "No fap", emoji: "🔒", note: "", createdAt: 2 },
-    { id: "g3", title: "Sleep on time", emoji: "😴", note: "", createdAt: 3 },
+    { id: "g1", title: "Gym", emoji: "\u{1f3cb}\ufe0f", note: "Show up.", createdAt: 1 },
+    { id: "g2", title: "No fap", emoji: "\u{1f512}", note: "", createdAt: 2 },
+    { id: "g3", title: "Sleep on time", emoji: "\u{1f634}", note: "", createdAt: 3 },
   ];
   useAppStore.setState({ ...data, _hydrated: true });
 }
@@ -57,6 +57,8 @@ describe("aims render", () => {
     expect(html).toContain("Gym");
     expect(html).toContain("No fap");
     expect(html).toContain("Sleep on time");
+    expect(container.querySelectorAll("svg.lucide").length).toBeGreaterThan(0);
+    expect(container.textContent).not.toContain("\u{1f3cb}");
     // The reward language is gone for good.
     expect(html).not.toContain("XP");
     expect(html).not.toContain("Badge");

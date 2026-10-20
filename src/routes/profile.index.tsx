@@ -35,16 +35,16 @@ import { BottomSheet } from "@/components/edit/Sheet";
 import { TextField } from "@/components/edit/Fields";
 import { ActionButton } from "@/components/edit/Buttons";
 import { Toggle } from "@/components/common/Toggle";
+import { SemanticIcon } from "@/components/common/SemanticIcon";
 import { useShallow } from "zustand/react/shallow";
 import { STORAGE_KEY, toAppData, useAppStore, useHydrated } from "@/store/useAppStore";
-import { BACKGROUND_OPTIONS, type BackgroundStyle } from "@/components/layout/backgrounds";
-import { ACCENT_PRESETS, defaultAccentFor, safeAccent } from "@/lib/accent";
 import { formatBytes, formatRelative, getBackupStatus } from "@/lib/backup/advanced-backup";
 import { useBackupStore } from "@/store/useBackupStore";
 import { APP_VERSION } from "@/lib/version";
 import { haptics, hapticsSupported, type HapticIntensity } from "@/lib/haptics";
 import { SOUND_CUES, previewSound, sound, soundSupported, type SoundCue } from "@/lib/sound";
 import { focusTotals } from "@/lib/focus";
+import { DEFAULT_GOAL_ICON } from "@/lib/semantic-icons";
 import type { GraphicsQuality } from "@/lib/schema";
 import { useUiStore } from "@/store/useUiStore";
 
@@ -85,7 +85,7 @@ const GRAPHICS_OPTIONS: { id: GraphicsQuality; label: string; description: strin
   {
     id: "high-fidelity",
     label: "High Fidelity",
-    description: "Keep ambient motion and glass surfaces enabled.",
+    description: "Keep the complete, restrained motion system enabled.",
   },
   {
     id: "battery-saver",
@@ -136,7 +136,7 @@ function ProfilePage() {
   const [openProfile, setOpenProfile] = useState(false);
   const [nameDraft, setNameDraft] = useState("");
   const [openJson, setOpenJson] = useState(false);
-  const [openAppearance, setOpenAppearance] = useState(false);
+  const [openGraphics, setOpenGraphics] = useState(false);
   const [openHaptics, setOpenHaptics] = useState(false);
   const [openSound, setOpenSound] = useState(false);
 
@@ -353,7 +353,11 @@ function ProfilePage() {
                     key={goal.id}
                     className="flex items-center gap-1.5 rounded-full border border-[color-mix(in_oklab,var(--primary)_24%,transparent)] bg-[color-mix(in_oklab,var(--primary)_8%,transparent)] px-3 py-1.5 text-[12.5px] font-medium"
                   >
-                    <span aria-hidden>{goal.emoji}</span>
+                    <SemanticIcon
+                      value={goal.emoji}
+                      fallback={DEFAULT_GOAL_ICON}
+                      className="h-3.5 w-3.5 text-primary"
+                    />
                     {goal.title}
                   </span>
                 ))}
@@ -570,12 +574,12 @@ function ProfilePage() {
               </button>
               <button
                 type="button"
-                onClick={() => setOpenAppearance(true)}
+                onClick={() => setOpenGraphics(true)}
                 className="w-full text-left transition-transform active:scale-[0.99]"
               >
                 <SettingRow
-                  icon={Sparkles}
-                  label="Appearance & graphics"
+                  icon={Gauge}
+                  label="Motion & performance"
                   right={
                     <span className="flex items-center gap-2">
                       <span className="text-[13px] text-muted-foreground">
@@ -882,189 +886,48 @@ function ProfilePage() {
       </BottomSheet>
 
       <BottomSheet
-        open={openAppearance}
-        onClose={() => setOpenAppearance(false)}
-        title="Appearance"
+        open={openGraphics}
+        onClose={() => setOpenGraphics(false)}
+        title="Motion & performance"
+        description="Monograph Noir is SkillSync's single visual identity. Choose only how much motion the device should render."
       >
-        <p className="mb-4 text-[13px] leading-relaxed text-muted-foreground">
-          Tap a style to apply it instantly across the whole app.
-        </p>
-        <div className="space-y-3">
-          {BACKGROUND_OPTIONS.map((opt) => {
-            const active = (preferences.background ?? "aurora") === opt.id;
+        <div className="space-y-2">
+          {GRAPHICS_OPTIONS.map((option) => {
+            const active = (preferences.graphicsQuality ?? "automatic") === option.id;
             return (
               <button
-                key={opt.id}
+                key={option.id}
                 type="button"
+                aria-pressed={active}
                 onClick={() => {
                   haptics.selection();
-                  updatePreferences({ background: opt.id as BackgroundStyle });
+                  updatePreferences({ graphicsQuality: option.id });
                 }}
                 className={
-                  "w-full overflow-hidden rounded-[18px] border text-left transition-all active:scale-[0.98] " +
+                  "flex w-full items-center justify-between gap-3 rounded-[8px] border px-4 py-3.5 text-left transition-colors " +
                   (active
-                    ? "border-[color-mix(in_oklab,var(--primary)_55%,transparent)] shadow-[var(--shadow-glow)]"
-                    : "border-border")
+                    ? "border-[color-mix(in_oklab,var(--primary)_55%,var(--border))] bg-[color-mix(in_oklab,var(--primary)_8%,var(--surface))]"
+                    : "border-border bg-surface")
                 }
               >
-                <div
-                  className="h-24 w-full"
-                  style={{ background: opt.swatch }}
+                <span className="min-w-0">
+                  <span className="block text-[13px] font-semibold">{option.label}</span>
+                  <span className="mt-0.5 block text-[11.5px] leading-relaxed text-muted-foreground">
+                    {option.description}
+                  </span>
+                </span>
+                <span
+                  className={
+                    "h-4 w-4 shrink-0 rounded-full border " +
+                    (active
+                      ? "border-[5px] border-[var(--primary)] bg-transparent"
+                      : "border-border-strong bg-transparent")
+                  }
                   aria-hidden="true"
                 />
-                <div className="flex items-center justify-between gap-3 bg-white/[0.03] px-4 py-3">
-                  <div className="min-w-0">
-                    <div className="text-[14px] font-semibold tracking-tight">{opt.label}</div>
-                    <div className="text-[12px] leading-relaxed text-muted-foreground">
-                      {opt.description}
-                    </div>
-                  </div>
-                  {active ? (
-                    <span className="shrink-0 rounded-full bg-[var(--primary)] px-2.5 py-1 text-[11px] font-semibold text-primary-foreground">
-                      Active
-                    </span>
-                  ) : null}
-                </div>
               </button>
             );
           })}
-        </div>
-
-        <div className="!mt-6 border-t border-white/[0.06] pt-5">
-          <div className="mb-3 flex items-center gap-2">
-            <Gauge className="h-4 w-4 text-[var(--primary-glow)]" />
-            <div className="text-[12px] font-semibold uppercase tracking-[0.1em] text-muted-foreground">
-              Graphics quality
-            </div>
-          </div>
-          <p className="mb-3 text-[12.5px] leading-relaxed text-muted-foreground">
-            Choose how much ambient motion and glass rendering the app uses. Atelier colours and
-            contrast stay intact.
-          </p>
-          <div className="space-y-2">
-            {GRAPHICS_OPTIONS.map((option) => {
-              const active = (preferences.graphicsQuality ?? "automatic") === option.id;
-              return (
-                <button
-                  key={option.id}
-                  type="button"
-                  aria-pressed={active}
-                  onClick={() => {
-                    haptics.selection();
-                    updatePreferences({ graphicsQuality: option.id });
-                  }}
-                  className={
-                    "flex w-full items-center justify-between gap-3 rounded-[15px] border px-3.5 py-3 text-left transition-colors " +
-                    (active
-                      ? "border-[color-mix(in_oklab,var(--primary)_45%,transparent)] bg-[color-mix(in_oklab,var(--primary)_9%,var(--surface))]"
-                      : "border-border bg-white/[0.02]")
-                  }
-                >
-                  <span className="min-w-0">
-                    <span className="block text-[13px] font-semibold">{option.label}</span>
-                    <span className="mt-0.5 block text-[11.5px] leading-relaxed text-muted-foreground">
-                      {option.description}
-                    </span>
-                  </span>
-                  <span
-                    className={
-                      "h-4 w-4 shrink-0 rounded-full border " +
-                      (active
-                        ? "border-[5px] border-[var(--primary)] bg-transparent"
-                        : "border-border-strong bg-transparent")
-                    }
-                    aria-hidden="true"
-                  />
-                </button>
-              );
-            })}
-          </div>
-        </div>
-
-        <div className="!mt-6 border-t border-white/[0.06] pt-5">
-          <div className="mb-3">
-            <div className="text-[12px] font-semibold uppercase tracking-[0.1em] text-muted-foreground">
-              Accent colour
-            </div>
-          </div>
-          <p className="mb-3 text-[12.5px] leading-relaxed text-muted-foreground">
-            Re-skin the entire OS. Pick an accent and the whole app follows instantly.
-          </p>
-          <div className="grid grid-cols-3 gap-2 sm:grid-cols-5">
-            {ACCENT_PRESETS.map((preset) => {
-              const active =
-                (
-                  preferences.accent ?? defaultAccentFor(preferences.background ?? "aurora")
-                ).toLowerCase() === preset.color.toLowerCase();
-              return (
-                <button
-                  key={preset.id}
-                  type="button"
-                  aria-label={preset.label}
-                  title={preset.label}
-                  aria-pressed={active}
-                  onClick={() => {
-                    haptics.selection();
-                    updatePreferences({ accent: preset.color });
-                  }}
-                  className={
-                    "relative flex h-14 flex-col items-center justify-center rounded-2xl border transition-all active:scale-[0.96] " +
-                    (active
-                      ? "border-[color-mix(in_oklab,var(--primary)_60%,transparent)] shadow-[var(--shadow-glow)]"
-                      : "border-border")
-                  }
-                >
-                  <span className="h-8 w-8 rounded-full" style={{ background: preset.color }} />
-                  <span className="mt-1 text-[9.5px] font-medium text-muted-foreground">
-                    {preset.label}
-                  </span>
-                  {active ? (
-                    <span className="absolute -right-1 -top-1 flex h-4 w-4 items-center justify-center rounded-full bg-[var(--primary)] text-[9px] font-bold text-primary-foreground">
-                      ✓
-                    </span>
-                  ) : null}
-                </button>
-              );
-            })}
-          </div>
-
-          <div className="mt-3 flex items-center gap-3">
-            <label
-              htmlFor="custom-accent"
-              className="flex flex-1 items-center gap-3 rounded-2xl border border-white/[0.06] bg-white/[0.02] px-3 py-2.5"
-            >
-              <input
-                id="custom-accent"
-                type="color"
-                value={
-                  /^#[0-9a-fA-F]{6}$/.test(preferences.accent ?? "")
-                    ? preferences.accent
-                    : defaultAccentFor(preferences.background ?? "aurora")
-                }
-                onChange={(e) => {
-                  haptics.tap();
-                  updatePreferences({ accent: safeAccent(e.target.value) });
-                }}
-                className="h-8 w-8 cursor-pointer rounded-lg border-0 bg-transparent p-0"
-              />
-              <span className="text-[12.5px] text-muted-foreground">
-                Custom colour{" "}
-                <span className="ml-1 font-mono text-[11px] text-foreground">
-                  {preferences.accent ?? ""}
-                </span>
-              </span>
-            </label>
-            <button
-              type="button"
-              onClick={() => {
-                haptics.tap();
-                updatePreferences({ accent: defaultAccentFor(preferences.background ?? "aurora") });
-              }}
-              className="rounded-2xl border border-white/[0.06] bg-white/[0.02] px-3 py-2.5 text-[12px] font-medium text-muted-foreground hover:text-foreground"
-            >
-              Theme default
-            </button>
-          </div>
         </div>
       </BottomSheet>
 

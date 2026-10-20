@@ -9,7 +9,7 @@
     </style>
 
     <!-- The app window: dark, edge-to-edge, transparent system bars so the
-         in-app safe-area padding and aurora background run to the edges. -->
+         in-app safe-area padding and Monograph Noir canvas run to the edges. -->
     <style name="AppTheme.NoActionBar" parent="Theme.AppCompat.NoActionBar">
         <item name="windowActionBar">false</item>
         <item name="windowNoTitle">true</item>

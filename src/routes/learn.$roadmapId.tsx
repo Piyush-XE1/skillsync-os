@@ -126,7 +126,7 @@ function RoadmapDetail() {
         <div className="flex items-center justify-between">
           <button
             onClick={() => navigate({ to: "/learn" })}
-            className="glass flex h-10 w-10 items-center justify-center rounded-full active:scale-95"
+            className="glass flex h-11 w-11 items-center justify-center rounded-[5px] active:scale-95"
             aria-label="Back"
           >
             <ArrowLeft className="h-[17px] w-[17px] text-muted-foreground" strokeWidth={1.75} />
@@ -159,12 +159,7 @@ function RoadmapDetail() {
             />
             Learning journey
           </div>
-          <h1
-            className="mt-2 bg-clip-text text-[30px] font-semibold leading-tight tracking-[-0.02em] text-transparent"
-            style={{
-              backgroundImage: `linear-gradient(120deg, var(--foreground) 30%, ${accent} 90%)`,
-            }}
-          >
+          <h1 className="font-editorial mt-2 text-[clamp(2rem,5vw,3.25rem)] font-medium leading-[1.02] tracking-[-0.04em] text-foreground">
             {roadmap.title}
           </h1>
           {roadmap.subtitle ? (

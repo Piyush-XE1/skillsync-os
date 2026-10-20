@@ -463,6 +463,15 @@ const CHANGE_MODULES: Array<{ key: keyof AppData; hasId: boolean }> = [
   { key: "preferences", hasId: false },
   { key: "widgets", hasId: false },
   { key: "goals", hasId: true },
+  { key: "archetypeTraits", hasId: true },
+  { key: "customQuotes", hasId: true },
+  { key: "quoteFilterPreference", hasId: false },
+  { key: "selectedCustomQuoteId", hasId: false },
+  { key: "antiSelfEntries", hasId: true },
+  { key: "birthDate", hasId: false },
+  { key: "ageDisplayUnit", hasId: false },
+  { key: "stopwatches", hasId: true },
+  { key: "stopwatchEnabled", hasId: false },
   { key: "expenses", hasId: false },
   { key: "focus", hasId: false },
   { key: "cgpa", hasId: false },
@@ -558,6 +567,15 @@ export function resolveEnvelopeData(value: AppData | Partial<AppData> | string):
 // ============================================================================
 // CREATION
 // ============================================================================
+
+/**
+ * Date of birth is explicitly device-local. Cloud uploads use this copy so the
+ * optional date can never leave the device, while local files and vault copies
+ * remain complete and user-restorable.
+ */
+export function redactCloudPrivateData(data: AppData): AppData {
+  return { ...data, birthDate: null };
+}
 
 export type CreateBackupOptions = Partial<BackupStrategy> & {
   /** Force compression even for small payloads. */
@@ -665,6 +683,38 @@ export async function createAdvancedBackup(
   }
 
   return { text, meta, createdAtISO, checksum, filename: backupFilename(createdAtISO, backupId) };
+}
+
+/**
+ * Build the only artifact that is allowed to cross a cloud boundary. The birth
+ * date key is removed entirely (rather than serialized as `null`) and the
+ * checksum is recomputed over that exact payload. Validation restores the
+ * schema default locally when a person later downloads this copy.
+ */
+export async function createCloudSafeBackup(data: AppData): Promise<CreatedBackup> {
+  const redacted = redactCloudPrivateData(data);
+  const created = await createAdvancedBackup(redacted, { compression: false });
+  const envelope = JSON.parse(created.text) as BackupEnvelope;
+  const payload: Partial<AppData> = { ...(envelope.data as AppData) };
+  delete payload.birthDate;
+
+  const checksum = await checksumOfData(payload);
+  envelope.data = payload;
+  envelope.checksum = checksum;
+  const text = JSON.stringify(envelope);
+  const sizeBytes = bytesOf(text);
+
+  return {
+    ...created,
+    text,
+    checksum,
+    meta: {
+      ...created.meta,
+      checksum,
+      sizeBytes,
+      modules: Object.keys(payload),
+    },
+  };
 }
 
 /** Incremental backup: only changed modules, restorable against `baseBackup`. */
@@ -1097,6 +1147,12 @@ export function countRecords(data: AppData): Record<string, number> {
   counts.plannerTasks = data?.planner?.length ?? 0;
   counts.habits = data?.habits?.length ?? 0;
   counts.habitLogs = data?.habitLogs?.length ?? 0;
+  counts.archetypeTraits = data?.archetypeTraits?.length ?? 0;
+  counts.customQuotes = data?.customQuotes?.length ?? 0;
+  counts.antiSelfEntries = data?.antiSelfEntries?.length ?? 0;
+  counts.stopwatches = data?.stopwatches?.length ?? 0;
+  counts.stopwatchRuns =
+    data?.stopwatches?.reduce((sum, timer) => sum + (timer.history?.length ?? 0), 0) ?? 0;
   counts.transactions = data?.expenses?.transactions?.length ?? 0;
   counts.focusSessions = data?.focus?.sessions?.length ?? 0;
   counts.cgpaSubjects =
@@ -1141,6 +1197,16 @@ export function getBackupSummary(data: AppData): {
     { key: "projects", label: "Projects", count: counts.projects },
     { key: "planner", label: "Planner", count: counts.plannerTasks },
     { key: "habits", label: "Habits", count: counts.habits + counts.habitLogs },
+    {
+      key: "monograph",
+      label: "Personal monograph",
+      count:
+        counts.archetypeTraits +
+        counts.customQuotes +
+        counts.antiSelfEntries +
+        counts.stopwatches +
+        counts.stopwatchRuns,
+    },
     { key: "expenses", label: "Expenses", count: counts.transactions },
     { key: "focus", label: "Focus", count: counts.focusSessions },
     { key: "cgpa", label: "CGPA", count: counts.cgpaSubjects },

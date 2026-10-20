@@ -25,14 +25,16 @@ export function PrimaryAction({
         props.onClick?.(e);
       }}
       className={cn(
-        "pressable gradient-primary inline-flex h-11 shrink-0 items-center justify-center gap-2 rounded-[14px] px-0 text-[14px] font-medium tracking-tight text-primary-foreground shadow-[var(--shadow-glow)] transition-all duration-200 hover:brightness-110 lg:px-4",
-        "w-11 lg:w-auto",
+        "pressable gradient-primary inline-flex h-11 shrink-0 items-center justify-center gap-2 rounded-[6px] border border-primary px-0 text-primary-foreground transition-colors duration-200 hover:bg-primary-glow",
+        "w-11 lg:w-auto lg:px-4",
         className,
       )}
       {...props}
     >
       <Plus className="h-[17px] w-[17px]" strokeWidth={2} />
-      <span className="hidden lg:inline">{label}</span>
+      <span className="font-numerical hidden text-[10px] font-semibold uppercase tracking-[0.1em] lg:inline">
+        {label}
+      </span>
     </button>
   );
 }

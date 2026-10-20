@@ -106,10 +106,7 @@ function WidgetRow({
       <Toggle
         on={entry.visible}
         label={def.title}
-        onChange={(visible) => {
-          toggleWidget(entry.id, visible);
-          sound.toggle();
-        }}
+        onChange={(visible) => toggleWidget(entry.id, visible)}
       />
     </div>
   );

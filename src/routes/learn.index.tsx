@@ -385,12 +385,15 @@ function LearnPage() {
 
           <section className="space-y-2">
             <h4 className="text-[13px] font-semibold tracking-tight">What gets imported</h4>
-            <ul className="space-y-1 text-[12.5px] text-muted-foreground">
-              <li>✅ Roadmap</li>
-              <li>✅ Phases</li>
-              <li>✅ Topics</li>
-              <li>✅ Subtopics</li>
-              <li>✅ Checklist items (optional)</li>
+            <ul className="space-y-1.5 text-[12.5px] text-muted-foreground">
+              {["Roadmap", "Phases", "Topics", "Subtopics", "Checklist items (optional)"].map(
+                (item) => (
+                  <li key={item} className="flex items-center gap-2">
+                    <CheckCircle2 className="h-3.5 w-3.5 shrink-0 text-success" strokeWidth={1.8} />
+                    {item}
+                  </li>
+                ),
+              )}
             </ul>
           </section>
 

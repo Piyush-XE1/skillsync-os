@@ -23,6 +23,7 @@ import {
 import { toast } from "sonner";
 import { Card, Chip, ProgressBar } from "@/components/ui/primitives";
 import { EmptyState } from "@/components/common/EmptyState";
+import { SemanticIcon } from "@/components/common/SemanticIcon";
 import { WidgetFrame, type WidgetProps } from "./WidgetFrame";
 import { useAppStore, useHydrated } from "@/store/useAppStore";
 import { roadmapPct, topicPct } from "@/lib/progress";
@@ -31,6 +32,7 @@ import { dailyQuote } from "@/lib/quotes";
 import { composeReview } from "@/lib/review";
 import { dataForEnabledModules } from "@/lib/modules";
 import { GOAL_PRESETS, unusedPresets } from "@/lib/goals";
+import { DEFAULT_GOAL_ICON, DEFAULT_HABIT_ICON } from "@/lib/semantic-icons";
 import { habitStreak } from "@/lib/habit-streaks";
 import { fireConfetti } from "@/lib/confetti";
 import { haptics } from "@/lib/haptics";
@@ -312,7 +314,11 @@ export function HabitsWidget({ size, ...chrome }: WidgetProps) {
                     : "border-white/[0.08] bg-white/[0.03] text-muted-foreground",
                 )}
               >
-                <span aria-hidden>{h.emoji}</span>
+                <SemanticIcon
+                  value={h.emoji}
+                  fallback={DEFAULT_HABIT_ICON}
+                  className="h-3.5 w-3.5"
+                />
                 {h.title}
                 {streak.current > 0 ? (
                   <span className="flex items-center gap-0.5 text-[10.5px] text-[var(--warning)]">
@@ -367,9 +373,7 @@ export function WeekReviewWidget({ size, ...chrome }: WidgetProps) {
     >
       <div className="flex items-start gap-4">
         <div className="glass flex h-16 w-16 shrink-0 flex-col items-center justify-center rounded-2xl">
-          <span className="text-[20px] leading-none" aria-hidden>
-            {review.gradeEmoji}
-          </span>
+          <SemanticIcon value={review.gradeIcon} className="h-5 w-5 text-primary" />
           <span className="mt-1 text-[15px] font-semibold leading-none tracking-tight">
             {hydrated ? review.grade : "—"}
           </span>
@@ -447,7 +451,7 @@ export function GoalsWidget({ size, ...chrome }: WidgetProps) {
   );
 
   const add = (preset: (typeof GOAL_PRESETS)[number]) => {
-    addGoal({ title: preset.title, emoji: preset.emoji, note: preset.note });
+    addGoal({ title: preset.title, icon: preset.icon, note: preset.note });
     haptics.success();
     sound.success();
     toast.success(`Added "${preset.title}"`, { description: "It now lives on your dashboard." });
@@ -485,7 +489,7 @@ export function GoalsWidget({ size, ...chrome }: WidgetProps) {
                 onClick={() => add(preset)}
                 className="pressable flex items-center gap-1.5 rounded-full border border-[color-mix(in_oklab,var(--primary)_35%,transparent)] bg-[color-mix(in_oklab,var(--primary)_10%,transparent)] px-3 py-1.5 text-[12.5px] font-medium transition-colors hover:border-[var(--primary)]"
               >
-                <span aria-hidden>{preset.emoji}</span>
+                <SemanticIcon value={preset.icon} className="h-3.5 w-3.5" />
                 <Plus className="h-3 w-3" strokeWidth={2.5} />
                 {preset.title}
               </button>
@@ -500,9 +504,11 @@ export function GoalsWidget({ size, ...chrome }: WidgetProps) {
                 key={goal.id}
                 className="flex items-center gap-2 rounded-2xl border border-[color-mix(in_oklab,var(--primary)_24%,transparent)] bg-[color-mix(in_oklab,var(--primary)_8%,transparent)] px-3 py-1.5"
               >
-                <span className="text-[15px] leading-none" aria-hidden>
-                  {goal.emoji}
-                </span>
+                <SemanticIcon
+                  value={goal.emoji}
+                  fallback={DEFAULT_GOAL_ICON}
+                  className="h-3.5 w-3.5 text-primary"
+                />
                 <span className="text-[13px] font-medium tracking-tight">{goal.title}</span>
               </li>
             ))}
@@ -514,9 +520,11 @@ export function GoalsWidget({ size, ...chrome }: WidgetProps) {
                 .slice(0, 3)
                 .map((goal) => (
                   <li key={`${goal.id}-note`} className="text-[11.5px] text-muted-foreground">
-                    <span className="mr-1.5" aria-hidden>
-                      {goal.emoji}
-                    </span>
+                    <SemanticIcon
+                      value={goal.emoji}
+                      fallback={DEFAULT_GOAL_ICON}
+                      className="mr-1.5 inline h-3 w-3 text-primary"
+                    />
                     {goal.note}
                   </li>
                 ))}
@@ -534,7 +542,7 @@ export function GoalsWidget({ size, ...chrome }: WidgetProps) {
                   onClick={() => add(preset)}
                   className="pressable flex items-center gap-1 rounded-full border border-white/[0.08] bg-white/[0.02] px-2.5 py-1 text-[11.5px] text-muted-foreground transition-colors hover:border-[color-mix(in_oklab,var(--primary)_40%,transparent)] hover:text-foreground"
                 >
-                  <span aria-hidden>{preset.emoji}</span>
+                  <SemanticIcon value={preset.icon} className="h-3 w-3" />
                   {preset.title}
                 </button>
               ))}

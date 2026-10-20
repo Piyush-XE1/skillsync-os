@@ -42,7 +42,7 @@ export function DashboardGuidance() {
           type="button"
           onClick={() => openQuickCapture("habit")}
           className={cn(
-            "pressable flex w-full items-center gap-3 rounded-[17px] border border-[color-mix(in_oklab,var(--primary)_30%,transparent)] bg-[color-mix(in_oklab,var(--primary)_7%,var(--surface))] px-3.5 py-3 text-left transition-colors hover:bg-[color-mix(in_oklab,var(--primary)_11%,var(--surface))] active:scale-[0.99]",
+            "pressable flex w-full items-center gap-3 border-l-2 border-primary bg-surface px-4 py-3 text-left transition-colors hover:bg-surface-2 active:scale-[0.99]",
           )}
         >
           <Sparkles className="h-4 w-4 shrink-0 text-[var(--primary-glow)]" strokeWidth={1.9} />
@@ -63,7 +63,7 @@ export function DashboardGuidance() {
         <button
           type="button"
           onClick={() => openQuickCapture("habit")}
-          className="pressable flex w-full items-center gap-3 rounded-[17px] border border-[color-mix(in_oklab,var(--primary)_30%,transparent)] bg-[color-mix(in_oklab,var(--primary)_7%,var(--surface))] px-3.5 py-3 text-left transition-colors hover:bg-[color-mix(in_oklab,var(--primary)_11%,var(--surface))] active:scale-[0.99]"
+          className="pressable flex w-full items-center gap-3 border-l-2 border-primary bg-surface px-4 py-3 text-left transition-colors hover:bg-surface-2 active:scale-[0.99]"
         >
           <BellRing className="h-4 w-4 shrink-0 text-[var(--primary-glow)]" strokeWidth={1.9} />
           <span className="min-w-0 flex-1">

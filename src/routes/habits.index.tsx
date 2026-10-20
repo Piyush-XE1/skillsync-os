@@ -1,15 +1,17 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { ArrowLeft, Plus, Flame, ChevronRight } from "lucide-react";
-import { AppShell } from "@/components/layout/AppShell";
+import { AppShell, PageHeader } from "@/components/layout/AppShell";
 import { PrimaryAction } from "@/components/layout/PrimaryAction";
 import { Card } from "@/components/ui/primitives";
 import { EmptyState } from "@/components/common/EmptyState";
+import { SemanticIcon, SemanticIconPicker } from "@/components/common/SemanticIcon";
 import { BottomSheet } from "@/components/edit/Sheet";
 import { TextField } from "@/components/edit/Fields";
 import { ActionButton } from "@/components/edit/Buttons";
 import { useAppStore, useHydrated } from "@/store/useAppStore";
 import { todayISO, addDaysISO } from "@/lib/date";
+import { DEFAULT_HABIT_ICON } from "@/lib/semantic-icons";
 import { emergencyFreezeCandidate, habitStreak } from "@/lib/habit-streaks";
 import { cn } from "@/lib/utils";
 import { haptics } from "@/lib/haptics";
@@ -41,7 +43,7 @@ function HabitsPage() {
 
   const [open, setOpen] = useState(false);
   const [title, setTitle] = useState("");
-  const [emoji, setEmoji] = useState("✨");
+  const [icon, setIcon] = useState<string>(DEFAULT_HABIT_ICON);
   /** Re-entrancy guard: a double tap must never create two habits. */
   const addGuard = useRef(false);
   useEffect(() => {
@@ -61,28 +63,17 @@ function HabitsPage() {
 
   return (
     <AppShell>
-      <header className="mb-5 flex items-center justify-between px-5 lg:px-2">
-        <Link
-          to="/"
-          className="glass flex h-10 w-10 items-center justify-center rounded-full active:scale-95"
-          aria-label="Back"
-        >
-          <ArrowLeft className="h-[17px] w-[17px] text-muted-foreground" strokeWidth={1.75} />
-        </Link>
-        <PrimaryAction label="Add Habit" onClick={() => setOpen(true)} />
-      </header>
-
-      <div className="mb-6 px-5 lg:px-2">
-        <div className="text-[11px] font-medium uppercase tracking-[0.14em] text-muted-foreground">
-          Operation Rebirth
-        </div>
-        <h1 className="mt-1.5 text-[28px] font-semibold leading-tight tracking-[-0.02em]">
-          Habits.
-        </h1>
-        <p className="mt-1 text-[13.5px] text-muted-foreground">
-          Tap a habit to view stats. Tap the emoji to check in.
-        </p>
-      </div>
+      <PageHeader
+        eyebrow={
+          <Link to="/" className="page-back-link" aria-label="Back to dashboard">
+            <ArrowLeft className="h-3.5 w-3.5" strokeWidth={1.75} />
+            <span className="truncate">Operation Rebirth / daily practice</span>
+          </Link>
+        }
+        title="Habits."
+        subtitle="Tap a habit to view its record. Use the check control to mark today."
+        right={<PrimaryAction label="Add Habit" onClick={() => setOpen(true)} />}
+      />
 
       {hydrated && freezeCandidate ? (
         <Card className="mx-5 mb-4 flex items-center gap-3 border-[color-mix(in_oklab,var(--primary)_28%,transparent)] p-4 lg:mx-2">
@@ -181,7 +172,11 @@ function HabitsPage() {
                         : "bg-white/[0.04]",
                     )}
                   >
-                    <span>{h.emoji}</span>
+                    <SemanticIcon
+                      value={h.emoji}
+                      fallback={DEFAULT_HABIT_ICON}
+                      className="h-5 w-5"
+                    />
                   </button>
                   <div className="flex min-w-0 flex-1 items-center gap-2 text-left">
                     <div className="min-w-0 flex-1">
@@ -223,31 +218,23 @@ function HabitsPage() {
 
       <BottomSheet open={open} onClose={() => setOpen(false)} title="New habit">
         <div className="space-y-3">
-          <div className="flex gap-2">
-            <TextField
-              value={emoji}
-              onChange={(e) => setEmoji(e.target.value)}
-              className="w-16 text-center text-[20px]"
-              maxLength={2}
-            />
-            <TextField
-              autoFocus
-              value={title}
-              onChange={(e) => setTitle(e.target.value)}
-              placeholder="Habit name"
-              className="flex-1"
-            />
-          </div>
+          <SemanticIconPicker value={icon} onChange={setIcon} label="Habit icon" />
+          <TextField
+            autoFocus
+            value={title}
+            onChange={(e) => setTitle(e.target.value)}
+            placeholder="Habit name"
+          />
           <ActionButton
             className="w-full"
             onClick={() => {
               if (!title.trim() || addGuard.current) return;
               addGuard.current = true;
-              addHabit(title.trim(), emoji || "✨");
+              addHabit(title.trim(), icon || DEFAULT_HABIT_ICON);
               haptics.success();
               sound.success();
               setTitle("");
-              setEmoji("✨");
+              setIcon(DEFAULT_HABIT_ICON);
               setOpen(false);
             }}
           >

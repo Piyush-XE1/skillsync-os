@@ -1,3 +1,7 @@
+@import "@fontsource-variable/manrope";
+@import "@fontsource-variable/playfair-display";
+@import "@fontsource-variable/playfair-display/wght-italic.css";
+@import "@fontsource-variable/jetbrains-mono";
 @import "tailwindcss" source(none);
 @source "../src";
 @import "tw-animate-css";
@@ -5,26 +9,28 @@
 @custom-variant dark (&:is(.dark *));
 
 /*
- * SkillSync — Personal Growth OS
- * Three themes, one token system:
- *   :root         → Animated Aurora (dark, default)
- *   html.light    → Minimalist Light (warm paper + botanical accent)
- *   html.atelier  → Atelier (warm graphite, ivory ink, restrained brass)
- * Design tokens are the single source of truth — components must never
- * hardcode raw colors, shadows or radii.
+ * SkillSync OS — Monograph Noir
+ * One appearance: obsidian canvas, ivory ink, brass punctuation. Locally bundled
+ * variable fonts keep the interface private, consistent, and free of network flashes.
  */
 
 @theme inline {
-  --font-sans: "Inter", ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
-  --font-display: "Inter", ui-sans-serif, system-ui, sans-serif;
+  --font-sans:
+    "Manrope Variable", "Geist", "Inter", ui-sans-serif, -apple-system, BlinkMacSystemFont,
+    "Segoe UI", sans-serif;
+  --font-display:
+    "Playfair Display Variable", "Iowan Old Style", "Palatino Linotype", Palatino, "Book Antiqua",
+    Baskerville, Georgia, serif;
+  --font-mono:
+    "JetBrains Mono Variable", "SFMono-Regular", "Cascadia Code", "Roboto Mono", Consolas,
+    "Liberation Mono", monospace;
 
-  /* 8-point radius scale */
-  --radius-sm: 10px;
-  --radius-md: 14px;
-  --radius-lg: 18px;
-  --radius-xl: 22px;
-  --radius-2xl: 28px;
-  --radius-3xl: 32px;
+  --radius-sm: 4px;
+  --radius-md: 6px;
+  --radius-lg: 8px;
+  --radius-xl: 10px;
+  --radius-2xl: 12px;
+  --radius-3xl: 14px;
 
   --color-background: var(--background);
   --color-foreground: var(--foreground);
@@ -56,168 +62,53 @@
   --color-input: var(--input);
   --color-ring: var(--ring);
 
-  --shadow-elegant: 0 1px 0 0 oklch(1 0 0 / 0.05) inset, 0 12px 28px -18px oklch(0 0 0 / 0.85);
-  --shadow-float: 0 24px 64px -24px oklch(0 0 0 / 0.8), 0 0 0 1px oklch(1 0 0 / 0.06);
-  --shadow-glow: 0 12px 34px -12px var(--glow);
+  --shadow-elegant: 0 16px 34px -28px rgba(0, 0, 0, 0.9);
+  --shadow-float: 0 30px 80px -38px rgba(0, 0, 0, 0.96), 0 0 0 1px var(--border);
+  --shadow-glow: 0 12px 34px -22px color-mix(in oklab, var(--primary) 50%, transparent);
 
-  --ease-spring: cubic-bezier(0.22, 1.2, 0.36, 1);
+  --ease-spring: cubic-bezier(0.22, 1, 0.36, 1);
   --ease-out-soft: cubic-bezier(0.2, 0.7, 0.2, 1);
 }
 
 :root,
 html,
-body {
-  /* Deep charcoal palette */
-  --background: #09090b;
-  --foreground: oklch(0.985 0 0);
-  --surface: #121214;
-  --surface-2: #18181b;
-  --surface-elevated: #1c1c20;
-  --card: #141417;
-  --card-foreground: oklch(0.985 0 0);
-  --popover: #121214;
-  --popover-foreground: oklch(0.985 0 0);
+body,
+html.monograph,
+html.monograph body {
+  --background: #08080a;
+  --foreground: #f3f1ec;
+  --surface: #0e0f12;
+  --surface-2: #15161a;
+  --surface-elevated: #18191d;
+  --card: #111216;
+  --card-foreground: #f3f1ec;
+  --popover: #18191d;
+  --popover-foreground: #f3f1ec;
 
-  /* Accent engine — change --primary/--secondary and the whole OS follows */
-  --primary: #7c3aed;
-  --primary-glow: #a78bfa;
-  --primary-foreground: oklch(0.99 0 0);
-  --secondary: #2563eb;
-  --secondary-foreground: oklch(0.99 0 0);
-  --glow: color-mix(in oklab, var(--primary) 55%, transparent);
+  --primary: #c9a664;
+  --primary-glow: #dec38c;
+  --primary-foreground: #08080a;
+  --secondary: #9f814f;
+  --secondary-foreground: #08080a;
+  --glow: color-mix(in oklab, var(--primary) 24%, transparent);
 
-  --muted: #18181b;
-  --muted-foreground: oklch(0.64 0.01 260);
-  --accent: #1f1f23;
-  --accent-foreground: oklch(0.985 0 0);
+  --muted: #18191d;
+  --muted-foreground: #929399;
+  --accent: #1d1c1a;
+  --accent-foreground: #f3f1ec;
 
-  --success: #22c55e;
-  --warning: #f59e0b;
-  --danger: #ef4444;
-  --info: #38bdf8;
+  --success: #82927d;
+  --warning: #c29f62;
+  --danger: #b7726c;
+  --info: #89949d;
 
-  --border: oklch(1 0 0 / 0.07);
-  --border-strong: oklch(1 0 0 / 0.12);
-  --divider: oklch(1 0 0 / 0.05);
-  --input: oklch(1 0 0 / 0.08);
-  --ring: var(--primary);
-
-  /* 8-point spacing scale (for arbitrary use) */
-  --space-1: 4px;
-  --space-2: 8px;
-  --space-3: 16px;
-  --space-4: 24px;
-  --space-5: 32px;
-  --space-6: 48px;
-
-  /* --- Background engine tokens (dark aurora) --- */
-  --bg-base: #070b19;
-  --aurora-sky: 1;
-  --aurora-stars: 0.6;
-  --aurora-stars-2: 0.3;
-  --aurora-noise: 0.03;
-  --aurora-vignette: rgba(0, 0, 0, 0.55);
-  /* Launch-animation energy intensity */
-  --launch-glow: 1;
-
-  color-scheme: dark;
-}
-
-/* ============================================================
-   LIGHT THEME — "Paper & Botanical".
-   Warm paper foundation, ink text, one deep botanical accent.
-   Minimal and bright, but deliberately art-directed: warm neutrals
-   instead of computer-gray, a quiet forest accent instead of the
-   default bright blue. --primary-glow is the *darker* accent here,
-   because small accent text/icons sit on light surfaces.
-   ============================================================ */
-html.light,
-html.light body {
-  --background: #f7f6f2;
-  --foreground: #1e1d19;
-  --surface: #ffffff;
-  --surface-2: #f0eee7;
-  --surface-elevated: #ffffff;
-  --card: #ffffff;
-  --card-foreground: #1e1d19;
-  --popover: #ffffff;
-  --popover-foreground: #1e1d19;
-
-  --primary: #20573f;
-  --primary-glow: #17402e;
-  --primary-foreground: #fbfaf5;
-  --secondary: #33714f;
-  --secondary-foreground: #f7f9f5;
-  --glow: color-mix(in oklab, var(--primary) 26%, transparent);
-
-  --muted: #f0eee7;
-  --muted-foreground: #6c675c;
-  --accent: #eae7de;
-  --accent-foreground: #1e1d19;
-
-  --success: #1a7f42;
-  --warning: #a15c07;
-  --danger: #c22e2e;
-  --info: #4d6f8e;
-
-  --border: rgba(30, 29, 25, 0.09);
-  --border-strong: rgba(30, 29, 25, 0.14);
-  --divider: rgba(30, 29, 25, 0.06);
-  --input: rgba(30, 29, 25, 0.12);
-  --ring: var(--primary);
-
-  --bg-base: #f7f6f2;
+  --border: #28292f;
+  --border-strong: #3a3b42;
+  --divider: #28292f;
+  --input: #3a3b42;
+  --ring: #c9a664;
+  --bg-base: #08080a;
   --launch-glow: 0.35;
-
-  color-scheme: light;
-}
-
-/* ============================================================
-   ATELIER — the premium studio theme.
-   Warm graphite surfaces, ivory ink, one restrained brass accent
-   with a deep olive counterweight. No neon, no blue, no glassy
-   spectacle: quiet paper-like depth, warm hairline borders and
-   brass reserved for the moments that matter.
-   ============================================================ */
-html.atelier,
-html.atelier body {
-  --background: #16130f;
-  --foreground: #ece6d8;
-  --surface: #1c1914;
-  --surface-2: #221e17;
-  --surface-elevated: #262119;
-  --card: #1e1a14;
-  --card-foreground: #ece6d8;
-  --popover: #1c1914;
-  --popover-foreground: #ece6d8;
-
-  --primary: #c9a35c;
-  --primary-glow: #debd83;
-  --primary-foreground: #261d0d;
-  --secondary: #6e6f47;
-  --secondary-foreground: #f2efe3;
-  --glow: color-mix(in oklab, var(--primary) 40%, transparent);
-
-  --muted: #221e17;
-  --muted-foreground: #a29886;
-  --accent: #282219;
-  --accent-foreground: #ece6d8;
-
-  --success: #83a86f;
-  --warning: #d18f42;
-  --danger: #cf6350;
-  --info: #93a2ae;
-
-  --border: rgba(236, 230, 216, 0.09);
-  --border-strong: rgba(236, 230, 216, 0.14);
-  --divider: rgba(236, 230, 216, 0.06);
-  --input: rgba(236, 230, 216, 0.11);
-  --ring: var(--primary);
-
-  --bg-base: #12100c;
-  --aurora-noise: 0.026;
-  --aurora-vignette: rgba(16, 12, 7, 0.55);
-  --launch-glow: 0.55;
 
   color-scheme: dark;
 }
@@ -226,9 +117,6 @@ html {
   background: var(--bg-base);
   -webkit-tap-highlight-color: transparent;
   scroll-behavior: smooth;
-  transition:
-    background-color 300ms var(--ease-out-soft),
-    color 300ms var(--ease-out-soft);
 }
 
 body {
@@ -239,66 +127,160 @@ body {
   -webkit-font-smoothing: antialiased;
   text-rendering: optimizeLegibility;
   font-feature-settings: "cv11", "ss01", "ss03";
+  font-kerning: normal;
   overscroll-behavior-y: contain;
-  transition: color 300ms var(--ease-out-soft);
 }
 
-/* Theme-change choreography: cards, borders, icons and gradients ease. */
-html.theme-transition * {
-  transition:
-    background-color 280ms var(--ease-out-soft),
-    border-color 280ms var(--ease-out-soft),
-    color 280ms var(--ease-out-soft),
-    fill 280ms var(--ease-out-soft),
-    stroke 280ms var(--ease-out-soft),
-    box-shadow 280ms var(--ease-out-soft) !important;
+:is(h1, h2, h3) {
+  text-wrap: balance;
 }
 
-/* Light-theme compatibility: white translucent overlays used across the app
-   are re-tinted to warm ink so surfaces keep their intended hierarchy. */
-html.light [class*="bg-white/"] {
-  background-color: color-mix(in oklab, #1e1d19 var(--overlay-strength, 4%), transparent);
+:is(p, li) {
+  text-wrap: pretty;
 }
-html.light [class*="border-white/"] {
-  border-color: rgba(30, 29, 25, 0.1);
+
+button,
+input,
+textarea,
+select {
+  font: inherit;
 }
-html.light [class*="divide-white/"] > * + * {
-  border-color: rgba(30, 29, 25, 0.07);
+
+input[type="date"],
+input[type="time"],
+input[type="number"] {
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums slashed-zero;
 }
-html.light [class*="text-white"] {
-  color: var(--foreground);
+
+.monograph-background {
+  background: #08080a;
 }
-html.light [class*="text-white/6"],
-html.light [class*="text-white/7"],
-html.light [class*="text-white/5"],
-html.light [class*="text-white/4"] {
-  color: var(--muted-foreground);
+
+.monograph-grain {
+  opacity: 0.022;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 180 180' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.82' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='.9'/%3E%3C/svg%3E");
+  background-size: 180px 180px;
 }
-html.light .icon-tile {
-  background: linear-gradient(180deg, rgba(30, 29, 25, 0.045), rgba(30, 29, 25, 0.02));
-  border-color: rgba(30, 29, 25, 0.09);
-  box-shadow: 0 8px 20px -16px rgba(30, 29, 25, 0.3);
-  color: var(--foreground);
+
+.font-editorial {
+  font-family: var(--font-display);
+  font-optical-sizing: auto;
 }
-html.light .icon-tile svg,
-html.light .icon-tile-accent svg {
-  color: currentColor;
+
+.font-numerical,
+.tabular-nums {
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums slashed-zero;
+  font-feature-settings: "zero", "ss02";
 }
-html.light .glass {
-  background: linear-gradient(180deg, rgba(255, 255, 255, 0.9), rgba(255, 255, 255, 0.72));
+
+.editorial-kicker {
+  font-family: var(--font-mono);
+  font-size: 0.64rem;
+  font-weight: 600;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--primary);
 }
-html.light .card-surface,
-html.light .card-elevated {
-  box-shadow:
-    0 1px 0 0 rgba(255, 255, 255, 0.9) inset,
-    0 18px 40px -30px rgba(30, 29, 25, 0.26);
+
+.editorial-rule {
+  height: 1px;
+  background: var(--border);
 }
-/* Text and icons sitting on the botanical gradient stay white — the blanket
-   "text-white → ink" retint above must not leak into accent surfaces. */
-html.light .gradient-primary,
-html.light .gradient-primary[class*="text-white"],
-html.light .gradient-primary [class*="text-white"] {
-  color: #ffffff;
+
+/* Shared editorial hierarchy. These classes deliberately mix the serif display,
+   utilitarian sans, and tabular mono roles without turning controls into artwork. */
+.editorial-page-title {
+  max-width: 14ch;
+  font-family: var(--font-display);
+  font-size: clamp(2.55rem, 1.85rem + 3vw, 4.85rem);
+  font-weight: 500;
+  font-optical-sizing: auto;
+  line-height: 0.94;
+  letter-spacing: -0.052em;
+  text-wrap: balance;
+}
+
+.editorial-page-title::first-letter {
+  color: var(--primary-glow);
+}
+
+.page-masthead {
+  position: relative;
+  border-bottom: 1px solid var(--border);
+}
+
+.page-masthead::after {
+  content: "";
+  position: absolute;
+  bottom: -1px;
+  left: 1.25rem;
+  width: clamp(3.25rem, 8vw, 5.5rem);
+  height: 1px;
+  background: var(--primary);
+}
+
+.page-back-link {
+  display: inline-flex;
+  min-width: 0;
+  max-width: 100%;
+  min-height: 2.75rem;
+  align-items: center;
+  gap: 0.5rem;
+  margin-left: -0.25rem;
+  padding-inline: 0.25rem;
+  border-radius: 4px;
+  color: var(--primary);
+  transition: color 160ms var(--ease-out-soft);
+}
+
+.page-back-link:hover {
+  color: var(--primary-glow);
+}
+
+.editorial-section-title {
+  font-family: var(--font-display);
+  font-size: clamp(1.08rem, 1rem + 0.35vw, 1.34rem);
+  font-weight: 500;
+  font-optical-sizing: auto;
+  line-height: 1.15;
+  letter-spacing: -0.025em;
+}
+
+@media (min-width: 1024px) {
+  .page-masthead::after {
+    left: 0.5rem;
+  }
+
+  .editorial-frame {
+    border-inline: 1px solid color-mix(in oklab, var(--border) 72%, transparent);
+  }
+}
+
+/* Portfolio-inspired typographic ribbon: motion is decorative and pauses for
+   hover/focus; reduced-motion users receive the same words without travel. */
+.type-ribbon {
+  overflow: hidden;
+}
+.type-ribbon-track {
+  display: flex;
+  width: max-content;
+  animation: type-ribbon-travel 34s linear infinite;
+}
+.type-ribbon-track:hover,
+.type-ribbon:focus-within .type-ribbon-track {
+  animation-play-state: paused;
+}
+.type-ribbon-track > span {
+  display: block;
+  padding-right: 1.75rem;
+  white-space: nowrap;
+}
+@keyframes type-ribbon-travel {
+  to {
+    transform: translateX(-50%);
+  }
 }
 
 @layer base {
@@ -323,30 +305,26 @@ html.light .gradient-primary [class*="text-white"] {
 /* --- Utilities --- */
 
 @utility glass {
-  background: linear-gradient(180deg, oklch(1 0 0 / 0.055), oklch(1 0 0 / 0.02));
-  backdrop-filter: blur(28px) saturate(150%);
-  border: 1px solid var(--border-strong);
+  background: var(--surface-elevated);
+  border: 1px solid var(--border);
+  backdrop-filter: none;
 }
 
-/* Floating surface: ambient shadow + hairline gradient border + inner light */
+/* Matte editorial surfaces: hairlines and tonal steps carry hierarchy, not blur. */
 @utility card-surface {
   position: relative;
-  background: linear-gradient(180deg, oklch(1 0 0 / 0.035), oklch(1 0 0 / 0.012)), var(--card);
+  background: var(--card);
   border: 1px solid var(--border);
-  border-radius: 20px;
-  box-shadow:
-    0 1px 0 0 oklch(1 0 0 / 0.05) inset,
-    0 18px 40px -26px oklch(0 0 0 / 0.9);
+  border-radius: 8px;
+  box-shadow: inset 0 1px 0 color-mix(in oklab, var(--foreground) 2.5%, transparent);
 }
 
 @utility card-elevated {
-  background:
-    linear-gradient(180deg, oklch(1 0 0 / 0.06), oklch(1 0 0 / 0.02)), var(--surface-elevated);
+  position: relative;
+  background: var(--surface-elevated);
   border: 1px solid var(--border-strong);
-  border-radius: 20px;
-  box-shadow:
-    0 1px 0 0 oklch(1 0 0 / 0.07) inset,
-    0 28px 60px -28px oklch(0 0 0 / 0.95);
+  border-radius: 8px;
+  box-shadow: var(--shadow-float);
 }
 
 @utility text-balance {
@@ -404,33 +382,21 @@ html.light .gradient-primary [class*="text-white"] {
 }
 
 @utility gradient-primary {
-  background-image: linear-gradient(135deg, var(--primary) 0%, var(--secondary) 100%);
+  background: var(--primary);
+  color: var(--primary-foreground);
 }
 
 @utility gradient-text {
-  background-image: linear-gradient(
-    120deg,
-    var(--foreground),
-    color-mix(in oklab, var(--primary-glow) 75%, white)
-  );
-  -webkit-background-clip: text;
-  background-clip: text;
-  color: transparent;
+  color: var(--foreground);
 }
 
 @utility gradient-mesh {
-  background:
-    radial-gradient(
-      600px 300px at 0% 0%,
-      color-mix(in oklab, var(--primary) 32%, transparent),
-      transparent 60%
-    ),
-    radial-gradient(
-      600px 300px at 100% 100%,
-      color-mix(in oklab, var(--secondary) 26%, transparent),
-      transparent 60%
-    ),
-    linear-gradient(180deg, #17171a, #101012);
+  background: var(--surface-elevated);
+}
+
+.gradient-primary[class*="text-white"],
+.gradient-primary [class*="text-white"] {
+  color: var(--primary-foreground);
 }
 
 /* Standard icon container */
@@ -441,10 +407,10 @@ html.light .gradient-primary [class*="text-white"] {
   height: 40px;
   width: 40px;
   flex-shrink: 0;
-  border-radius: 14px;
-  background: linear-gradient(180deg, oklch(1 0 0 / 0.07), oklch(1 0 0 / 0.025));
+  border-radius: 8px;
+  background: var(--surface-2);
   border: 1px solid var(--border);
-  box-shadow: 0 8px 20px -14px oklch(0 0 0 / 0.9);
+  box-shadow: none;
 }
 
 @utility icon-tile-accent {
@@ -454,26 +420,215 @@ html.light .gradient-primary [class*="text-white"] {
   height: 40px;
   width: 40px;
   flex-shrink: 0;
-  border-radius: 14px;
-  background: linear-gradient(
-    180deg,
-    color-mix(in oklab, var(--primary) 26%, transparent),
-    color-mix(in oklab, var(--secondary) 14%, transparent)
-  );
-  border: 1px solid color-mix(in oklab, var(--primary) 30%, transparent);
-  box-shadow: 0 10px 26px -14px var(--glow);
-  color: color-mix(in oklab, var(--primary-glow) 90%, white);
+  border-radius: 8px;
+  background: color-mix(in oklab, var(--primary) 12%, var(--surface));
+  border: 1px solid color-mix(in oklab, var(--primary) 32%, var(--border));
+  color: var(--primary-glow);
 }
 
 /* Pressable feedback — spring back */
 @utility pressable {
   transition:
-    transform 220ms var(--ease-spring),
-    box-shadow 220ms var(--ease-out-soft),
-    background-color 200ms var(--ease-out-soft),
-    border-color 200ms var(--ease-out-soft);
+    transform 180ms var(--ease-spring),
+    background-color 160ms var(--ease-out-soft),
+    border-color 160ms var(--ease-out-soft);
   &:active {
-    transform: scale(0.98);
+    transform: scale(0.985);
+  }
+}
+
+/* Folio Circuit -------------------------------------------------------------
+ * An app-wide on/off control drawn as an open or closed schematic. It avoids
+ * the generic mobile pill while remaining literal: the bridge physically
+ * completes the signal when the setting is on. */
+.signal-toggle {
+  position: relative;
+  display: grid;
+  width: 5.125rem;
+  height: 2.75rem;
+  flex: 0 0 auto;
+  grid-template-columns: 2.95rem minmax(0, 1fr);
+  align-items: stretch;
+  overflow: visible;
+  border: 1px solid var(--border-strong);
+  border-radius: 3px;
+  background: var(--surface);
+  color: var(--muted-foreground);
+  transition:
+    transform 180ms var(--ease-spring),
+    border-color 220ms var(--ease-out-soft),
+    background-color 220ms var(--ease-out-soft),
+    color 220ms var(--ease-out-soft);
+  user-select: none;
+  -webkit-tap-highlight-color: transparent;
+}
+.signal-toggle::before,
+.signal-toggle::after {
+  position: absolute;
+  z-index: 2;
+  width: 0.48rem;
+  height: 0.48rem;
+  pointer-events: none;
+  content: "";
+  transition:
+    width 220ms var(--ease-out-soft),
+    height 220ms var(--ease-out-soft),
+    border-color 220ms var(--ease-out-soft);
+}
+.signal-toggle::before {
+  top: -1px;
+  left: -1px;
+  border-top: 1px solid var(--muted-foreground);
+  border-left: 1px solid var(--muted-foreground);
+}
+.signal-toggle::after {
+  right: -1px;
+  bottom: -1px;
+  border-right: 1px solid var(--muted-foreground);
+  border-bottom: 1px solid var(--muted-foreground);
+}
+.signal-toggle:hover:not(:disabled) {
+  border-color: color-mix(in oklab, var(--primary) 48%, var(--border));
+  background: var(--surface-2);
+}
+.signal-toggle:active:not(:disabled) {
+  transform: scale(0.97);
+}
+.signal-toggle:disabled {
+  cursor: not-allowed;
+  opacity: 0.45;
+}
+.signal-toggle[data-state="on"] {
+  border-color: color-mix(in oklab, var(--primary) 62%, var(--border));
+  background: color-mix(in oklab, var(--primary) 7%, var(--surface));
+  color: var(--primary-glow);
+}
+.signal-toggle[data-state="on"]::before,
+.signal-toggle[data-state="on"]::after {
+  width: 0.72rem;
+  height: 0.72rem;
+  border-color: var(--primary);
+}
+.signal-toggle__schematic {
+  position: relative;
+  min-width: 0;
+  border-right: 1px solid var(--border);
+}
+.signal-toggle__wire,
+.signal-toggle__bridge {
+  position: absolute;
+  top: calc(50% - 1px);
+  height: 2px;
+  background: color-mix(in oklab, var(--muted-foreground) 62%, transparent);
+}
+.signal-toggle__wire--left {
+  left: 0.38rem;
+  width: 0.68rem;
+}
+.signal-toggle__wire--right {
+  right: 0.34rem;
+  width: 0.72rem;
+}
+.signal-toggle__node {
+  position: absolute;
+  top: calc(50% - 0.19rem);
+  width: 0.38rem;
+  height: 0.38rem;
+  border: 1px solid color-mix(in oklab, var(--muted-foreground) 72%, var(--surface));
+  border-radius: 50%;
+  background: var(--surface);
+  transition:
+    border-color 220ms var(--ease-out-soft),
+    background-color 220ms var(--ease-out-soft);
+}
+.signal-toggle__node--left {
+  left: 0.9rem;
+}
+.signal-toggle__node--right {
+  left: 2rem;
+}
+.signal-toggle__bridge {
+  left: 1.08rem;
+  width: 1.08rem;
+  transform: rotate(-42deg);
+  transform-origin: 0 50%;
+  transition:
+    transform 300ms var(--ease-spring),
+    background-color 220ms var(--ease-out-soft);
+}
+.signal-toggle__tip {
+  position: absolute;
+  top: -0.12rem;
+  right: -0.15rem;
+  width: 0.3rem;
+  height: 0.3rem;
+  border: 1px solid currentColor;
+  background: var(--surface);
+  transform: rotate(45deg);
+  transition:
+    border-color 220ms var(--ease-out-soft),
+    background-color 220ms var(--ease-out-soft);
+}
+.signal-toggle[data-state="on"] .signal-toggle__wire,
+.signal-toggle[data-state="on"] .signal-toggle__bridge {
+  background: var(--primary);
+}
+.signal-toggle[data-state="on"] .signal-toggle__node {
+  border-color: var(--primary);
+  background: var(--primary);
+}
+.signal-toggle[data-state="on"] .signal-toggle__bridge {
+  transform: rotate(0deg);
+}
+.signal-toggle[data-state="on"] .signal-toggle__tip {
+  border-color: var(--primary);
+  background: var(--primary);
+}
+.signal-toggle__readout {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  font-family: var(--font-mono);
+  line-height: 1;
+  animation: signal-readout-in 180ms var(--ease-out-soft) both;
+}
+.signal-toggle__folio {
+  color: var(--muted-foreground);
+  font-size: 0.48rem;
+  letter-spacing: 0.08em;
+}
+.signal-toggle__state {
+  margin-top: 0.22rem;
+  color: currentColor;
+  font-size: 0.64rem;
+  font-weight: 700;
+  letter-spacing: 0.09em;
+}
+@keyframes signal-readout-in {
+  from {
+    opacity: 0;
+    transform: translateY(2px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+@media (forced-colors: active) {
+  .signal-toggle {
+    border-color: ButtonText;
+    background: ButtonFace;
+    color: ButtonText;
+  }
+  .signal-toggle__wire,
+  .signal-toggle__bridge,
+  .signal-toggle[data-state="on"] .signal-toggle__wire,
+  .signal-toggle[data-state="on"] .signal-toggle__bridge,
+  .signal-toggle[data-state="on"] .signal-toggle__node,
+  .signal-toggle[data-state="on"] .signal-toggle__tip {
+    background: ButtonText;
   }
 }
 
@@ -502,7 +657,7 @@ html.light .gradient-primary [class*="text-white"] {
 @keyframes dialog-pop {
   from {
     opacity: 0;
-    transform: scale(0.94);
+    transform: scale(0.97);
   }
   to {
     opacity: 1;
@@ -511,65 +666,42 @@ html.light .gradient-primary [class*="text-white"] {
 }
 
 @utility animate-float-in {
-  animation: float-in 0.42s var(--ease-out-soft) both;
+  animation: float-in 0.32s var(--ease-out-soft) both;
 }
 
 @utility animate-sheet-up {
-  animation: sheet-up 0.28s var(--ease-spring) both;
+  animation: sheet-up 0.24s var(--ease-spring) both;
 }
 
 @utility animate-dialog-pop {
-  animation: dialog-pop 0.22s var(--ease-spring) both;
+  animation: dialog-pop 0.18s var(--ease-spring) both;
 }
 
-/* ------------------------------------------------------------------ *
- * Widget grid entrance — opacity only.
- * The animation deliberately avoids `transform`: the drag slots receive
- * inline transforms while dragging, and a CSS animation would win over
- * them. Opacity has no such conflict, so the stagger stays safe.
- * ------------------------------------------------------------------ */
+/* Widget editing remains available to legacy module surfaces. */
 .widget-grid > * {
-  animation: fade-in 520ms var(--ease-out-soft) both;
-}
-.widget-grid > *:nth-child(1) {
-  animation-delay: 40ms;
+  animation: fade-in 360ms var(--ease-out-soft) both;
 }
 .widget-grid > *:nth-child(2) {
-  animation-delay: 80ms;
+  animation-delay: 35ms;
 }
 .widget-grid > *:nth-child(3) {
-  animation-delay: 120ms;
+  animation-delay: 70ms;
 }
-.widget-grid > *:nth-child(4) {
-  animation-delay: 160ms;
-}
-.widget-grid > *:nth-child(5) {
-  animation-delay: 200ms;
-}
-.widget-grid > *:nth-child(6) {
-  animation-delay: 240ms;
-}
-.widget-grid > *:nth-child(n + 7) {
-  animation-delay: 280ms;
+.widget-grid > *:nth-child(n + 4) {
+  animation-delay: 105ms;
 }
 
-/* ------------------------------------------------------------------ *
- * Widget grid — customize mode
- * The jiggle animates the CARD inside the drag slot, never the slot itself,
- * so a CSS animation can't override the inline transforms DragSortList writes
- * while a widget is being dragged.
- * ------------------------------------------------------------------ */
 @keyframes widget-jiggle {
   0%,
   100% {
-    transform: rotate(-0.35deg);
+    transform: rotate(-0.25deg);
   }
   50% {
-    transform: rotate(0.35deg);
+    transform: rotate(0.25deg);
   }
 }
 .widget-jiggle > * {
-  animation: widget-jiggle 2.6s var(--ease-out-soft) infinite;
+  animation: widget-jiggle 2.8s var(--ease-out-soft) infinite;
 }
 .widget-jiggle:nth-child(2n) > * {
   animation-delay: -0.7s;
@@ -578,87 +710,57 @@ html.light .gradient-primary [class*="text-white"] {
   animation-delay: -1.4s;
 }
 
-/* ============================================================
-   MOTION & SURFACE SYSTEM (v4.2)
-   A small, dependency-free choreography kit used across the app:
-   one hero surface, one stagger primitive, one hover-lift, one
-   specular sweep. Everything is opacity/transform only, honors
-   `prefers-reduced-motion` (the global guard above collapses it),
-   and never animates layout-affecting properties.
-   ============================================================ */
-
-/* Hero surface — layered aurora over the elevated card. */
+/* Legacy utility name retained for modules; visual treatment is Monograph Noir. */
 @utility aurora-panel {
   position: relative;
   overflow: hidden;
-  border-radius: 24px;
-  background:
-    radial-gradient(
-      120% 150% at 10% 0%,
-      color-mix(in oklab, var(--primary) 34%, transparent),
-      transparent 58%
-    ),
-    radial-gradient(
-      120% 150% at 92% 100%,
-      color-mix(in oklab, var(--secondary) 28%, transparent),
-      transparent 62%
-    ),
-    linear-gradient(180deg, oklch(1 0 0 / 0.065), oklch(1 0 0 / 0.015)), var(--surface-elevated);
+  border-radius: 8px;
+  background: var(--surface-elevated);
   border: 1px solid var(--border-strong);
-  box-shadow:
-    0 1px 0 0 oklch(1 0 0 / 0.07) inset,
-    0 30px 70px -34px oklch(0 0 0 / 0.95);
+  box-shadow: none;
 }
 
-/* Inset glass tile used for the small telemetry cells inside a hero. */
 @utility stat-tile {
-  border-radius: 16px;
+  border-radius: 6px;
   border: 1px solid var(--border);
-  background: linear-gradient(180deg, oklch(1 0 0 / 0.05), oklch(1 0 0 / 0.015));
-  box-shadow: 0 1px 0 0 oklch(1 0 0 / 0.05) inset;
+  background: var(--surface);
+  box-shadow: none;
 }
 
-/* Desktop hover lift with an accent rim. */
 @utility glow-hover {
   transition:
-    transform 320ms var(--ease-spring),
-    box-shadow 320ms var(--ease-out-soft),
-    border-color 320ms var(--ease-out-soft);
+    transform 220ms var(--ease-spring),
+    border-color 180ms var(--ease-out-soft);
   @media (hover: hover) and (pointer: fine) {
     &:hover {
-      transform: translateY(-2px);
-      border-color: color-mix(in oklab, var(--primary) 32%, var(--border-strong));
-      box-shadow:
-        0 1px 0 0 oklch(1 0 0 / 0.07) inset,
-        0 26px 60px -30px var(--glow);
+      transform: translateY(-1px);
+      border-color: color-mix(in oklab, var(--primary) 35%, var(--border));
     }
   }
 }
 
-/* Stagger primitive: set `style={{ "--i": n }}` on siblings. */
 @utility animate-rise {
-  animation: rise-in 620ms var(--ease-out-soft) both;
-  animation-delay: calc(var(--i, 0) * 65ms);
+  animation: rise-in 480ms var(--ease-out-soft) both;
+  animation-delay: calc(var(--i, 0) * 50ms);
 }
 
 @utility animate-fade {
-  animation: fade-in 700ms var(--ease-out-soft) both;
-  animation-delay: calc(var(--i, 0) * 65ms);
+  animation: fade-in 500ms var(--ease-out-soft) both;
+  animation-delay: calc(var(--i, 0) * 50ms);
 }
 
-/* Slow ambient drift for background orbs / aurora layers. */
 @utility animate-drift {
-  animation: drift 26s ease-in-out infinite alternate;
+  animation: none;
 }
 
 @utility animate-breathe {
-  animation: breathe 7s ease-in-out infinite;
+  animation: breathe 4s ease-in-out infinite;
 }
 
 @keyframes rise-in {
   from {
     opacity: 0;
-    transform: translateY(14px) scale(0.985);
+    transform: translateY(10px);
   }
   to {
     opacity: 1;
@@ -675,54 +777,19 @@ html.light .gradient-primary [class*="text-white"] {
   }
 }
 
-@keyframes drift {
-  from {
-    transform: translate3d(-2%, -1%, 0) scale(1);
-  }
-  to {
-    transform: translate3d(3%, 2%, 0) scale(1.08);
-  }
-}
-
 @keyframes breathe {
   0%,
   100% {
-    opacity: 0.55;
+    opacity: 0.48;
   }
   50% {
-    opacity: 0.95;
+    opacity: 1;
   }
 }
 
-@keyframes sheen {
-  from {
-    transform: translateX(-120%) skewX(-14deg);
-  }
-  to {
-    transform: translateX(220%) skewX(-14deg);
-  }
-}
-
-/* Specular sweep across a surface — add to a ::after or a span. */
+/* Keep the historic sheen class inert in the quieter visual system. */
 .sheen::after {
-  content: "";
-  position: absolute;
-  inset: 0;
-  pointer-events: none;
-  background: linear-gradient(
-    90deg,
-    transparent,
-    color-mix(in oklab, white 14%, transparent),
-    transparent
-  );
-  animation: sheen 5.5s var(--ease-out-soft) 1.2s infinite;
-  mix-blend-mode: screen;
-}
-
-@keyframes draw-ring {
-  from {
-    stroke-dashoffset: var(--ring-circumference, 999);
-  }
+  display: none;
 }
 
 @utility hairline-top {
@@ -733,16 +800,11 @@ html.light .gradient-primary [class*="text-white"] {
     inset-inline: 12%;
     top: 0;
     height: 1px;
-    background: linear-gradient(
-      90deg,
-      transparent,
-      color-mix(in oklab, var(--primary-glow) 55%, transparent),
-      transparent
-    );
+    background: var(--border);
   }
 }
 
-/* Themed scrollbars + selection + focus ring: the last 5% of polish. */
+/* Themed scrollbars + selection + focus ring. */
 * {
   scrollbar-width: thin;
   scrollbar-color: color-mix(in oklab, var(--foreground) 16%, transparent) transparent;
@@ -773,7 +835,6 @@ html.light .gradient-primary [class*="text-white"] {
   outline-offset: 2px;
 }
 
-/* Hide scrollbars on horizontal scrollers */
 @utility no-scrollbar {
   scrollbar-width: none;
   &::-webkit-scrollbar {
@@ -781,55 +842,40 @@ html.light .gradient-primary [class*="text-white"] {
   }
 }
 
-/* Battery Saver: replace translucent glass with crisp, matte Atelier-compatible surfaces. */
-html.battery-saver .glass {
-  background: color-mix(in oklab, var(--surface) 94%, var(--foreground) 6%);
-  border: 1px solid var(--border-strong);
-  backdrop-filter: none !important;
-  -webkit-backdrop-filter: none !important;
-  box-shadow: none;
+.stopwatch-clock {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 1px;
+  background: var(--border);
+  border: 1px solid var(--border);
 }
-html.battery-saver [class*="backdrop-blur"] {
-  backdrop-filter: none !important;
-  -webkit-backdrop-filter: none !important;
+.stopwatch-clock > div {
+  min-width: 0;
+  background: var(--background);
+  padding: clamp(0.8rem, 2vw, 1.35rem) 0.4rem;
+  text-align: center;
 }
+@media (max-width: 420px) {
+  .stopwatch-clock {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+html.battery-saver .glass,
 html.battery-saver .card-surface,
 html.battery-saver .card-elevated {
-  background: var(--card);
-  border: 1px solid var(--border-strong);
-  box-shadow: none;
+  background: var(--card) !important;
+  backdrop-filter: none !important;
+  box-shadow: none !important;
 }
-html.battery-saver [style*="blur("] {
-  display: none !important;
-  filter: none !important;
+/* Monograph Noir uses opaque paper-like layers; blur is never an appearance mode. */
+html [class*="backdrop-blur"] {
+  backdrop-filter: none !important;
 }
-html.battery-saver svg [filter] {
-  filter: none !important;
-}
-html.battery-saver .blur-3xl,
-html.battery-saver .blur-2xl,
-html.battery-saver .blur-xl {
-  display: none !important;
-  filter: none !important;
-}
-html.battery-saver .animate-drift,
 html.battery-saver .animate-breathe,
-html.battery-saver .widget-jiggle > * {
+html.battery-saver .widget-jiggle > *,
+html.battery-saver .signal-toggle__readout {
   animation: none !important;
-  transform: none !important;
-  will-change: auto !important;
-}
-html.battery-saver .sheen::after {
-  display: none !important;
-  animation: none !important;
-}
-html.battery-saver .ss-aurora [style*="animation"],
-html.battery-saver .ss-atelier [style*="animation"],
-html.battery-saver [style*="ss-light-drift"] {
-  display: none !important;
-  animation: none !important;
-  transform: none !important;
-  will-change: auto !important;
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -841,167 +887,28 @@ html.battery-saver [style*="ss-light-drift"] {
     transition-duration: 0.01ms !important;
     scroll-behavior: auto !important;
   }
-  html .glass {
-    background: color-mix(in oklab, var(--surface) 94%, var(--foreground) 6%);
-    border: 1px solid var(--border-strong);
-    backdrop-filter: none !important;
-    -webkit-backdrop-filter: none !important;
-  }
   html [class*="backdrop-blur"] {
     backdrop-filter: none !important;
-    -webkit-backdrop-filter: none !important;
   }
-  html [style*="blur("] {
-    display: none !important;
-    filter: none !important;
-  }
-  html svg [filter] {
-    filter: none !important;
-  }
-  html [class*="blur-"]:not([class*="backdrop-blur"]) {
-    display: none !important;
-    filter: none !important;
-  }
-  html [class*="filter-"] {
-    filter: none !important;
-  }
-  html .ss-aurora [style*="animation"],
-  html .ss-atelier [style*="animation"],
-  html [style*="ss-light-drift"] {
-    display: none !important;
+  .type-ribbon-track {
     animation: none !important;
     transform: none !important;
-    will-change: auto !important;
-  }
-  html .animate-drift,
-  html .animate-breathe,
-  html .widget-jiggle > *,
-  html .sheen::after {
-    animation: none !important;
-    transform: none !important;
-    will-change: auto !important;
-  }
-  html .sheen::after {
-    display: none !important;
   }
 }
 
-/* ============================================================
-   LIGHT THEME surface refinements — ambient shadows & reflections
-   so cards still feel lifted off the animated background. Shadow
-   tints use the warm ink hue, never chromatic indigo.
-   ============================================================ */
-html.light .card-surface {
-  background:
-    linear-gradient(180deg, rgba(255, 255, 255, 0.9), rgba(255, 255, 255, 0.72)), var(--card);
-  border: 1px solid var(--border);
-  box-shadow:
-    0 1px 0 0 rgba(255, 255, 255, 0.9) inset,
-    0 1px 2px 0 rgba(30, 29, 25, 0.04),
-    0 18px 40px -28px rgba(30, 29, 25, 0.22);
-}
-html.light .card-elevated {
-  background: linear-gradient(180deg, #ffffff, rgba(255, 255, 255, 0.86)), var(--surface-elevated);
-  border: 1px solid var(--border-strong);
-  box-shadow:
-    0 1px 0 0 rgba(255, 255, 255, 1) inset,
-    0 24px 56px -28px rgba(30, 29, 25, 0.24);
-}
-html.light .glass {
-  background: linear-gradient(180deg, rgba(255, 255, 255, 0.78), rgba(255, 255, 255, 0.6));
-  border: 1px solid var(--border-strong);
-}
-html.light .icon-tile {
-  background: linear-gradient(180deg, #ffffff, rgba(241, 239, 231, 0.9));
-  box-shadow: 0 8px 20px -16px rgba(30, 29, 25, 0.28);
-}
-html.light .gradient-text {
-  background-image: linear-gradient(
-    120deg,
-    var(--foreground),
-    color-mix(in oklab, var(--primary) 85%, black)
-  );
-}
-html.light .gradient-mesh {
-  background:
-    radial-gradient(
-      600px 300px at 0% 0%,
-      color-mix(in oklab, var(--primary) 14%, transparent),
-      transparent 60%
-    ),
-    radial-gradient(
-      600px 300px at 100% 100%,
-      color-mix(in oklab, var(--secondary) 10%, transparent),
-      transparent 60%
-    ),
-    linear-gradient(180deg, #ffffff, #f3f1ea);
-}
-
-/* ============================================================
-   ATELIER surface refinements — warm ivory tints instead of cool
-   white overlays, deep warm-keyed shadows. Brass surfaces carry
-   espresso content for proper contrast. Mirror of the light block:
-   same specificity, no component changes required.
-   ============================================================ */
-html.atelier .card-surface {
-  background:
-    linear-gradient(180deg, rgba(238, 229, 209, 0.03), rgba(238, 229, 209, 0.012)), var(--card);
-  border: 1px solid var(--border);
-  box-shadow:
-    0 1px 0 0 rgba(238, 229, 209, 0.05) inset,
-    0 18px 40px -28px rgba(8, 6, 3, 0.85);
-}
-html.atelier .card-elevated {
-  background:
-    linear-gradient(180deg, rgba(238, 229, 209, 0.05), rgba(238, 229, 209, 0.018)),
-    var(--surface-elevated);
-  border: 1px solid var(--border-strong);
-  box-shadow:
-    0 1px 0 0 rgba(238, 229, 209, 0.07) inset,
-    0 28px 60px -30px rgba(8, 6, 3, 0.9);
-}
-html.atelier .glass {
-  background: linear-gradient(180deg, rgba(238, 229, 209, 0.05), rgba(238, 229, 209, 0.02));
-}
-html.atelier .icon-tile {
-  background: linear-gradient(180deg, rgba(238, 229, 209, 0.06), rgba(238, 229, 209, 0.025));
-  box-shadow: 0 8px 20px -14px rgba(8, 6, 3, 0.8);
-}
-html.atelier .gradient-primary,
-html.atelier .gradient-primary[class*="text-white"],
-html.atelier .gradient-primary [class*="text-white"] {
-  color: var(--primary-foreground);
-}
-html.atelier .gradient-mesh {
-  background:
-    radial-gradient(
-      600px 300px at 0% 0%,
-      color-mix(in oklab, var(--primary) 20%, transparent),
-      transparent 60%
-    ),
-    radial-gradient(
-      600px 300px at 100% 100%,
-      color-mix(in oklab, var(--secondary) 16%, transparent),
-      transparent 60%
-    ),
-    linear-gradient(180deg, #1b1712, #131009);
-}
-
-/* ------------------------------------------------------------------ *
- * Activity heatmap (GitHub-style contribution cells)
- * ------------------------------------------------------------------ */
+/* Activity heatmap */
 .heat-cell {
   display: block;
   width: 11px;
   height: 11px;
-  border-radius: 3px;
+  border-radius: 2px;
   background: var(--heat-0, color-mix(in oklab, var(--foreground) 7%, transparent));
   transition:
     background-color 150ms var(--ease-out-soft),
     transform 150ms var(--ease-out-soft);
 }
 .heat-cell:hover {
-  transform: scale(1.2);
+  transform: scale(1.15);
 }
 .heat-cell[data-level="1"] {
   background: color-mix(in oklab, var(--primary) 28%, transparent);
@@ -1014,30 +921,1109 @@ html.atelier .gradient-mesh {
 }
 .heat-cell[data-level="4"] {
   background: var(--primary);
-  box-shadow: 0 0 10px -2px var(--primary-glow);
-}
-html.light .heat-cell[data-level="4"] {
-  box-shadow: 0 1px 6px -2px color-mix(in oklab, var(--primary) 60%, transparent);
 }
 
-/* Keep Battery Saver surfaces matte even after light/Atelier theme refinements. */
-html.battery-saver .glass {
-  background: color-mix(in oklab, var(--surface) 94%, var(--foreground) 6%) !important;
-  border: 1px solid var(--border-strong);
-  backdrop-filter: none !important;
-  -webkit-backdrop-filter: none !important;
-  box-shadow: none;
+/* --------------------------------------------------------------------------
+ * Notebook workspace — editorial, local-first writing and reading
+ * -------------------------------------------------------------------------- */
+.focus-ring:focus-visible {
+  outline: 2px solid color-mix(in oklab, var(--primary-glow) 76%, transparent);
+  outline-offset: 3px;
 }
-html.battery-saver .card-surface,
-html.battery-saver .card-elevated {
-  background: var(--card) !important;
-  border: 1px solid var(--border-strong);
-  box-shadow: none;
+.section-kicker {
+  font-family: var(--font-mono);
+  font-size: 0.61rem;
+  font-weight: 600;
+  letter-spacing: 0.15em;
+  line-height: 1.4;
+  color: var(--primary);
 }
-html.battery-saver [class*="blur-"]:not([class*="backdrop-blur"]) {
-  display: none !important;
-  filter: none !important;
+
+.backup-destination-card {
+  min-height: 23rem;
+  border-top: 2px solid color-mix(in oklab, var(--primary) 60%, var(--border));
 }
-html.battery-saver [class*="filter-"] {
-  filter: none !important;
+
+.note-library-layout {
+  display: grid;
+  gap: 1.25rem;
+  padding-inline: 1.25rem;
+}
+.note-library-sidebar {
+  display: flex;
+  gap: 0.6rem;
+  overflow-x: auto;
+  padding: 0.15rem 0 0.85rem;
+  scrollbar-width: none;
+}
+.note-library-sidebar::-webkit-scrollbar {
+  display: none;
+}
+.note-collection-row,
+.note-tag-cloud {
+  display: flex;
+  flex: none;
+  gap: 0.45rem;
+}
+.note-sidebar-section {
+  display: flex;
+  flex: none;
+}
+.note-sidebar-section > .section-kicker {
+  display: none;
+}
+.note-sidebar-filter {
+  display: flex;
+  min-height: 2.75rem;
+  min-width: max-content;
+  align-items: center;
+  gap: 0.55rem;
+  border: 1px solid var(--border);
+  border-radius: 5px;
+  padding: 0.5rem 0.7rem;
+  color: var(--muted-foreground);
+  font-size: 0.72rem;
+  font-weight: 600;
+  transition:
+    color 150ms var(--ease-out-soft),
+    border-color 150ms var(--ease-out-soft),
+    background-color 150ms var(--ease-out-soft);
+}
+.note-sidebar-filter:hover,
+.note-sidebar-filter.is-active {
+  border-color: color-mix(in oklab, var(--primary) 44%, var(--border));
+  background: color-mix(in oklab, var(--primary) 8%, var(--surface));
+  color: var(--foreground);
+}
+.note-sidebar-filter.is-active svg {
+  color: var(--primary-glow);
+}
+.note-filter-chip,
+.note-active-filter {
+  display: inline-flex;
+  min-height: 2.75rem;
+  min-width: max-content;
+  align-items: center;
+  gap: 0.35rem;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  padding: 0.35rem 0.62rem;
+  color: var(--muted-foreground);
+  font-family: var(--font-mono);
+  font-size: 0.61rem;
+}
+.note-filter-chip.is-active,
+.note-filter-chip:hover,
+.note-active-filter {
+  border-color: color-mix(in oklab, var(--primary) 40%, var(--border));
+  color: var(--primary-glow);
+}
+.note-discovery-bar {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 0.55rem;
+  margin-bottom: 0.9rem;
+}
+.note-search-field {
+  grid-column: 1 / -1;
+  display: flex;
+  min-height: 3rem;
+  align-items: center;
+  gap: 0.65rem;
+  border: 1px solid var(--border);
+  background: var(--surface);
+  padding: 0 0.7rem 0 0.9rem;
+  color: var(--muted-foreground);
+  transition: border-color 150ms var(--ease-out-soft);
+}
+.note-search-field:focus-within {
+  border-color: color-mix(in oklab, var(--primary) 56%, var(--border));
+}
+.note-search-field input {
+  min-width: 0;
+  flex: 1;
+  border: 0;
+  outline: 0;
+  background: transparent;
+  color: var(--foreground);
+  font-size: 0.8rem;
+}
+.note-search-field input::placeholder {
+  color: var(--muted-foreground);
+}
+.note-search-field kbd {
+  display: none;
+  border: 1px solid var(--border);
+  border-radius: 3px;
+  padding: 0.1rem 0.38rem;
+  font-family: var(--font-mono);
+  font-size: 0.58rem;
+}
+.note-select-control select {
+  min-height: 2.75rem;
+  max-width: 11rem;
+  border: 1px solid var(--border);
+  border-radius: 5px;
+  background: var(--surface);
+  padding: 0 2rem 0 0.75rem;
+  color: var(--foreground);
+  font-size: 0.7rem;
+}
+.note-view-switch {
+  display: flex;
+  border: 1px solid var(--border);
+  border-radius: 5px;
+  background: var(--surface);
+}
+.note-view-switch button {
+  display: grid;
+  min-height: 2.7rem;
+  min-width: 2.7rem;
+  place-items: center;
+  color: var(--muted-foreground);
+}
+.note-view-switch button[aria-pressed="true"] {
+  background: var(--surface-2);
+  color: var(--primary-glow);
+}
+.note-card-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 15rem), 1fr));
+  gap: 0.8rem;
+}
+.note-card-grid.is-list {
+  grid-template-columns: minmax(0, 1fr);
+}
+.note-card {
+  position: relative;
+  min-width: 0;
+  border: 1px solid var(--border);
+  border-top: 2px solid var(--border-strong);
+  background: var(--card);
+  transition:
+    border-color 160ms var(--ease-out-soft),
+    background-color 160ms var(--ease-out-soft),
+    transform 160ms var(--ease-out-soft);
+}
+.note-card:hover,
+.note-card:focus-within {
+  border-color: color-mix(in oklab, var(--primary) 38%, var(--border));
+  background: var(--surface);
+}
+.note-card.is-pinned {
+  border-top-color: var(--primary);
+}
+.note-card.is-archived {
+  opacity: 0.82;
+}
+.note-card-link {
+  display: flex;
+  min-height: 16.5rem;
+  flex-direction: column;
+  padding: 1.2rem 1.2rem 3.35rem;
+}
+.note-card-link:focus-visible {
+  outline-offset: -4px;
+}
+.note-card-excerpt {
+  display: -webkit-box;
+  overflow: hidden;
+  margin-top: 1rem;
+  color: var(--muted-foreground);
+  font-size: 0.73rem;
+  line-height: 1.75;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 4;
+}
+.note-card mark {
+  border-radius: 2px;
+  background: color-mix(in oklab, var(--primary) 25%, transparent);
+  color: var(--foreground);
+}
+.note-card-tag {
+  border: 1px solid var(--border);
+  border-radius: 3px;
+  padding: 0.18rem 0.42rem;
+  color: var(--muted-foreground);
+  font-family: var(--font-mono);
+  font-size: 0.55rem;
+  line-height: 1.35;
+}
+.note-card-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  margin-top: auto;
+  padding-top: 1.25rem;
+  color: var(--muted-foreground);
+  font-family: var(--font-mono);
+  font-size: 0.57rem;
+}
+.note-card-meta span {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+}
+.note-card-actions {
+  position: absolute;
+  right: 0.75rem;
+  bottom: 0.68rem;
+  display: flex;
+  gap: 0.15rem;
+}
+.note-card-actions button {
+  display: grid;
+  min-height: 2.75rem;
+  min-width: 2.75rem;
+  place-items: center;
+  color: var(--muted-foreground);
+}
+.note-card-actions button:hover {
+  color: var(--primary-glow);
+}
+.note-card-grid.is-list .note-card-link {
+  min-height: 12rem;
+}
+.note-template-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.55rem;
+}
+.note-template-option {
+  display: flex;
+  min-height: 7.5rem;
+  flex-direction: column;
+  gap: 0.5rem;
+  border: 1px solid var(--border);
+  padding: 0.9rem;
+  text-align: left;
+  transition:
+    border-color 150ms var(--ease-out-soft),
+    background-color 150ms var(--ease-out-soft);
+}
+.note-template-option > span:last-child {
+  color: var(--muted-foreground);
+  font-size: 0.68rem;
+  line-height: 1.55;
+}
+.note-template-option.is-selected {
+  border-color: var(--primary);
+  background: color-mix(in oklab, var(--primary) 7%, var(--surface));
+}
+
+/* Safe Markdown renderer. Raw HTML is never mounted by the component. */
+.note-prose {
+  min-width: 0;
+  color: color-mix(in oklab, var(--foreground) 93%, var(--muted-foreground));
+  font-size: clamp(0.9rem, 0.86rem + 0.18vw, 1rem);
+  line-height: 1.82;
+  overflow-wrap: anywhere;
+}
+.note-prose > :first-child {
+  margin-top: 0;
+}
+.note-prose > :last-child {
+  margin-bottom: 0;
+}
+.note-prose :where(h1, h2, h3, h4) {
+  position: relative;
+  scroll-margin-top: 5.5rem;
+  color: var(--foreground);
+  font-family: var(--font-display);
+  font-weight: 520;
+  letter-spacing: -0.025em;
+  line-height: 1.15;
+}
+.note-prose h1 {
+  margin: 2.5rem 0 1rem;
+  font-size: clamp(2rem, 5vw, 3.25rem);
+}
+.note-prose h2 {
+  margin: 2.35rem 0 0.85rem;
+  padding-top: 0.6rem;
+  border-top: 1px solid var(--border);
+  font-size: clamp(1.55rem, 3.4vw, 2.15rem);
+}
+.note-prose h3 {
+  margin: 1.8rem 0 0.7rem;
+  font-size: clamp(1.25rem, 2.5vw, 1.55rem);
+}
+.note-prose h4 {
+  margin: 1.5rem 0 0.6rem;
+  font-family: var(--font-sans);
+  font-size: 0.86rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+.note-heading-anchor {
+  position: absolute;
+  right: 100%;
+  padding-right: 0.4rem;
+  color: var(--primary);
+  opacity: 0;
+  text-decoration: none !important;
+}
+.note-prose :where(h1, h2, h3, h4):hover .note-heading-anchor {
+  opacity: 0.55;
+}
+.note-prose p {
+  margin: 0.8rem 0 1.1rem;
+}
+.note-prose strong {
+  color: var(--foreground);
+  font-weight: 720;
+}
+.note-prose em {
+  color: var(--primary-glow);
+  font-family: var(--font-display);
+  font-size: 1.06em;
+}
+.note-prose a {
+  color: var(--primary-glow);
+  text-decoration: underline;
+  text-decoration-color: color-mix(in oklab, var(--primary) 45%, transparent);
+  text-underline-offset: 0.2em;
+}
+.note-prose a:hover {
+  text-decoration-color: var(--primary);
+}
+.note-prose :where(ul, ol) {
+  margin: 0.8rem 0 1.2rem;
+  padding-left: 1.4rem;
+}
+.note-prose ul {
+  list-style: square;
+}
+.note-prose ol {
+  list-style: decimal-leading-zero;
+}
+.note-prose li {
+  margin: 0.3rem 0;
+  padding-left: 0.25rem;
+}
+.note-prose li::marker {
+  color: var(--primary);
+  font-family: var(--font-mono);
+  font-size: 0.76em;
+}
+.note-prose .contains-task-list,
+.note-prose .task-list-item {
+  list-style: none;
+  padding-left: 0;
+}
+.note-prose input[type="checkbox"] {
+  width: 1rem;
+  height: 1rem;
+  margin: 0 0.5rem 0 -1.3rem;
+  accent-color: var(--primary);
+  vertical-align: -0.1rem;
+}
+.note-prose blockquote {
+  margin: 1.5rem 0;
+  border-left: 2px solid var(--primary);
+  background: color-mix(in oklab, var(--primary) 5%, var(--surface));
+  padding: 0.8rem 1rem;
+  color: color-mix(in oklab, var(--foreground) 80%, var(--muted-foreground));
+  font-family: var(--font-display);
+  font-size: 1.1em;
+  font-style: italic;
+}
+.note-prose blockquote > :first-child {
+  margin-top: 0;
+}
+.note-prose blockquote > :last-child {
+  margin-bottom: 0;
+}
+.note-prose code {
+  border: 1px solid var(--border);
+  border-radius: 3px;
+  background: var(--surface-2);
+  padding: 0.12rem 0.32rem;
+  color: #d9c49d;
+  font-family: var(--font-mono);
+  font-size: 0.86em;
+}
+.note-prose pre {
+  max-width: 100%;
+  overflow-x: auto;
+  margin: 1.3rem 0;
+  border: 1px solid var(--border);
+  background: #090a0c;
+  padding: 1rem;
+  tab-size: 2;
+}
+.note-prose pre code {
+  border: 0;
+  background: transparent;
+  padding: 0;
+  color: #dedbd3;
+}
+.note-prose hr {
+  width: min(9rem, 45%);
+  height: 1px;
+  margin: 2.4rem auto;
+  border: 0;
+  background: var(--primary);
+  opacity: 0.65;
+}
+.note-table-scroll {
+  max-width: 100%;
+  overflow-x: auto;
+  margin: 1.4rem 0;
+  border: 1px solid var(--border);
+}
+.note-prose table {
+  width: 100%;
+  min-width: 30rem;
+  border-collapse: collapse;
+  font-size: 0.8rem;
+}
+.note-prose :where(th, td) {
+  border-bottom: 1px solid var(--border);
+  padding: 0.65rem 0.75rem;
+  text-align: left;
+}
+.note-prose th {
+  background: var(--surface-2);
+  color: var(--primary-glow);
+  font-family: var(--font-mono);
+  font-size: 0.64rem;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+}
+.note-image-link {
+  display: inline-flex;
+  min-height: 2.75rem;
+  align-items: center;
+  border: 1px solid var(--border);
+  padding: 0.45rem 0.75rem;
+}
+.note-empty-copy {
+  border: 1px dashed var(--border-strong);
+  padding: 2rem;
+  color: var(--muted-foreground);
+  font-family: var(--font-display);
+  font-size: 1.05rem;
+  font-style: italic;
+  text-align: center;
+}
+
+/* Reading view */
+.note-reader-routebar {
+  display: flex;
+  min-height: 3.7rem;
+  align-items: center;
+  gap: 0.9rem;
+  margin: 0 1.25rem 1rem;
+  border-block: 1px solid var(--border);
+  color: var(--muted-foreground);
+  font-family: var(--font-mono);
+  font-size: 0.62rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+.note-reader-route-context {
+  display: none;
+  border-left: 1px solid var(--border-strong);
+  padding-left: 0.9rem;
+}
+.note-archive-banner {
+  display: flex;
+  min-height: 2.8rem;
+  align-items: center;
+  gap: 0.55rem;
+  margin: 0 1.25rem 1rem;
+  border: 1px solid color-mix(in oklab, var(--primary) 25%, var(--border));
+  background: color-mix(in oklab, var(--primary) 5%, var(--surface));
+  padding: 0.55rem 0.8rem;
+  color: var(--muted-foreground);
+  font-size: 0.7rem;
+}
+.note-archive-banner button {
+  min-height: 2.75rem;
+  margin-left: auto;
+  padding-inline: 0.45rem;
+  color: var(--primary-glow);
+  font-weight: 700;
+  text-decoration: underline;
+  text-underline-offset: 0.2em;
+}
+.note-reader-shell {
+  max-width: 75rem;
+  margin: 0 auto;
+  padding: 0 1.25rem;
+}
+.note-reader-title-block {
+  max-width: 58rem;
+  padding: clamp(1rem, 3vw, 2.5rem) 0 clamp(1.5rem, 4vw, 3rem);
+}
+.note-reader-title-block h1 {
+  max-width: 18ch;
+  margin-top: 1rem;
+  color: var(--foreground);
+  font-family: var(--font-display);
+  font-size: clamp(2.5rem, 7vw, 5.6rem);
+  font-weight: 480;
+  letter-spacing: -0.055em;
+  line-height: 0.94;
+  overflow-wrap: anywhere;
+}
+.note-reader-state {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  border-left: 1px solid var(--border-strong);
+  padding-left: 0.6rem;
+  color: var(--muted-foreground);
+  font-family: var(--font-mono);
+  font-size: 0.58rem;
+  text-transform: uppercase;
+}
+.note-reader-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.7rem 1.15rem;
+  margin-top: 1.4rem;
+  color: var(--muted-foreground);
+  font-family: var(--font-mono);
+  font-size: 0.6rem;
+}
+.note-reader-meta span {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+}
+.note-reader-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  margin-top: 1rem;
+}
+.note-reader-tags span {
+  border: 1px solid var(--border);
+  border-radius: 3px;
+  padding: 0.25rem 0.5rem;
+  color: var(--muted-foreground);
+  font-family: var(--font-mono);
+  font-size: 0.58rem;
+}
+.note-reader-actions {
+  display: flex;
+  overflow-x: auto;
+  border-block: 1px solid var(--border);
+  scrollbar-width: none;
+}
+.note-reader-actions::-webkit-scrollbar {
+  display: none;
+}
+.note-reader-actions button {
+  display: inline-flex;
+  min-height: 2.9rem;
+  min-width: max-content;
+  align-items: center;
+  gap: 0.42rem;
+  border-right: 1px solid var(--border);
+  padding: 0 0.8rem;
+  color: var(--muted-foreground);
+  font-family: var(--font-mono);
+  font-size: 0.59rem;
+  text-transform: uppercase;
+}
+.note-reader-actions button:hover {
+  background: var(--surface);
+  color: var(--foreground);
+}
+.note-reader-actions button.is-danger {
+  color: var(--danger);
+}
+.note-reader-layout {
+  display: grid;
+  gap: 2.5rem;
+  padding-block: clamp(1.8rem, 5vw, 4rem);
+}
+.note-reader-document {
+  min-width: 0;
+  max-width: 48rem;
+}
+.note-reader-aside {
+  display: grid;
+  align-content: start;
+  gap: 1.5rem;
+}
+.note-outline,
+.note-connections {
+  border-top: 1px solid var(--border-strong);
+  padding-top: 0.8rem;
+}
+.note-outline ol {
+  margin-top: 0.7rem;
+}
+.note-outline li a {
+  display: flex;
+  min-height: 2.75rem;
+  align-items: center;
+  padding: 0.35rem 0;
+  color: var(--muted-foreground);
+  font-size: 0.67rem;
+  line-height: 1.45;
+}
+.note-outline li a:hover {
+  color: var(--primary-glow);
+}
+.note-connections > div {
+  display: grid;
+  margin-top: 0.55rem;
+}
+.note-connections a {
+  display: flex;
+  min-height: 2.75rem;
+  align-items: center;
+  gap: 0.5rem;
+  border-bottom: 1px solid var(--border);
+  color: var(--muted-foreground);
+  font-size: 0.68rem;
+}
+.note-connections a:hover {
+  color: var(--foreground);
+}
+
+/* Markdown composer */
+.note-editor-shell {
+  padding: 0 1.25rem;
+}
+.note-editor-topbar {
+  position: sticky;
+  top: 0;
+  z-index: 30;
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 0.55rem;
+  min-height: 3.65rem;
+  border-block: 1px solid var(--border);
+  background: color-mix(in oklab, var(--background) 94%, transparent);
+}
+.note-editor-back {
+  display: grid;
+  width: 2.75rem;
+  height: 2.75rem;
+  place-items: center;
+  color: var(--muted-foreground);
+}
+.note-save-status {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  gap: 0.35rem;
+  color: var(--muted-foreground);
+  font-family: var(--font-mono);
+  font-size: 0.58rem;
+  white-space: nowrap;
+}
+.note-editor-modes {
+  grid-column: 1 / -1;
+  grid-row: 2;
+  display: flex;
+  justify-content: center;
+  border-top: 1px solid var(--border);
+}
+.note-editor-modes button {
+  display: inline-flex;
+  min-height: 2.75rem;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0 0.75rem;
+  color: var(--muted-foreground);
+  font-family: var(--font-mono);
+  font-size: 0.58rem;
+  text-transform: uppercase;
+}
+.note-editor-modes button[aria-pressed="true"] {
+  color: var(--primary-glow);
+  box-shadow: inset 0 -1px var(--primary);
+}
+.note-editor-details-toggle {
+  grid-column: 3;
+  grid-row: 1;
+  min-height: 2.75rem;
+  padding: 0 0.65rem;
+  color: var(--muted-foreground);
+  font-family: var(--font-mono);
+  font-size: 0.58rem;
+  text-transform: uppercase;
+}
+.note-editor-scroll {
+  min-width: 0;
+  padding-bottom: 3rem;
+}
+.note-editor-heading {
+  padding: clamp(1.5rem, 5vw, 3.5rem) 0 1.4rem;
+}
+.note-title-input {
+  display: block;
+  width: 100%;
+  min-height: 1.25em;
+  resize: none;
+  overflow: hidden;
+  border: 0;
+  outline: 0;
+  background: transparent;
+  color: var(--foreground);
+  font-family: var(--font-display);
+  font-size: clamp(2.15rem, 7vw, 4.8rem);
+  font-weight: 480;
+  letter-spacing: -0.05em;
+  line-height: 1;
+}
+.note-title-input::placeholder {
+  color: color-mix(in oklab, var(--muted-foreground) 52%, transparent);
+}
+.note-editor-heading .section-kicker {
+  margin-top: 0.8rem;
+}
+.note-editor-workspace {
+  display: grid;
+  min-width: 0;
+  border-block: 1px solid var(--border-strong);
+}
+.note-writing-panel,
+.note-preview-panel {
+  min-width: 0;
+}
+.note-writing-panel {
+  display: flex;
+  flex-direction: column;
+}
+.note-format-toolbar {
+  display: flex;
+  min-height: 3.05rem;
+  overflow-x: auto;
+  align-items: center;
+  border-bottom: 1px solid var(--border);
+  background: var(--surface);
+  padding: 0.2rem 0.35rem;
+  scrollbar-width: none;
+}
+.note-format-toolbar::-webkit-scrollbar {
+  display: none;
+}
+.note-format-button {
+  position: relative;
+  display: grid;
+  min-width: 2.75rem;
+  min-height: 2.75rem;
+  place-items: center;
+  color: var(--muted-foreground);
+}
+.note-format-button:hover {
+  background: var(--surface-2);
+  color: var(--foreground);
+}
+.note-toolbar-divider {
+  position: absolute;
+  right: -1px;
+  width: 1px;
+  height: 1.4rem;
+  background: var(--border-strong);
+}
+.note-body-editor {
+  display: block;
+  width: 100%;
+  min-height: 62vh;
+  resize: vertical;
+  border: 0;
+  outline: 0;
+  background: #0b0c0e;
+  padding: clamp(1rem, 3vw, 1.6rem);
+  color: #dedbd3;
+  caret-color: var(--primary-glow);
+  font-family: var(--font-mono);
+  font-size: 0.78rem;
+  line-height: 1.85;
+  tab-size: 2;
+}
+.note-body-editor::placeholder {
+  color: color-mix(in oklab, var(--muted-foreground) 65%, transparent);
+}
+.note-preview-panel {
+  min-height: 62vh;
+  background: var(--card);
+  padding: clamp(1.1rem, 3vw, 2.2rem);
+}
+.note-preview-label {
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-bottom: 2rem;
+  border-bottom: 1px solid var(--border);
+  padding-bottom: 0.65rem;
+  color: var(--muted-foreground);
+  font-family: var(--font-mono);
+  font-size: 0.55rem;
+  letter-spacing: 0.1em;
+}
+.note-editor-details {
+  display: none;
+  gap: 1rem;
+  border: 1px solid var(--border);
+  border-top: 0;
+  background: var(--surface);
+  padding: 1rem;
+}
+.note-editor-details.is-open {
+  display: grid;
+}
+.note-detail-field > label {
+  display: block;
+  margin-bottom: 0.4rem;
+  color: var(--muted-foreground);
+  font-family: var(--font-mono);
+  font-size: 0.58rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+.note-editor-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+  margin-bottom: 0.55rem;
+}
+.note-editor-tags > span {
+  display: inline-flex;
+  min-height: 1.9rem;
+  align-items: center;
+  gap: 0.2rem;
+  border: 1px solid var(--border);
+  border-radius: 3px;
+  padding-left: 0.45rem;
+  color: var(--muted-foreground);
+  font-family: var(--font-mono);
+  font-size: 0.57rem;
+}
+.note-editor-tags button {
+  display: grid;
+  min-width: 2.75rem;
+  min-height: 2.75rem;
+  place-items: center;
+}
+.note-details-stats {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  border: 1px solid var(--border);
+}
+.note-details-stats span {
+  padding: 0.65rem;
+  color: var(--muted-foreground);
+  font-family: var(--font-mono);
+  font-size: 0.56rem;
+}
+.note-details-stats strong {
+  display: block;
+  margin-bottom: 0.15rem;
+  color: var(--foreground);
+  font-size: 0.8rem;
+  font-weight: 600;
+}
+.note-editor-outline {
+  border-top: 1px solid var(--border);
+  padding-top: 0.8rem;
+}
+.note-editor-outline ol {
+  margin-top: 0.55rem;
+}
+.note-editor-outline button {
+  width: 100%;
+  min-height: 2.75rem;
+  padding: 0.3rem 0;
+  overflow: hidden;
+  color: var(--muted-foreground);
+  font-size: 0.66rem;
+  text-align: left;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.note-editor-outline button:hover {
+  color: var(--primary-glow);
+}
+.note-editor-secondary-actions {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 1px;
+  background: var(--border);
+  border: 1px solid var(--border);
+}
+.note-editor-secondary-actions button {
+  display: inline-flex;
+  min-height: 2.75rem;
+  align-items: center;
+  justify-content: center;
+  gap: 0.4rem;
+  background: var(--surface);
+  color: var(--muted-foreground);
+  font-size: 0.64rem;
+}
+.note-editor-secondary-actions button:hover {
+  color: var(--foreground);
+}
+.note-editor-secondary-actions button.is-danger {
+  color: var(--danger);
+}
+
+@media (min-width: 640px) {
+  .note-reader-route-context {
+    display: inline;
+  }
+  .note-discovery-bar {
+    grid-template-columns: minmax(0, 1fr) auto auto;
+  }
+  .note-search-field {
+    grid-column: auto;
+  }
+  .note-search-field kbd {
+    display: inline;
+  }
+  .note-editor-topbar {
+    display: flex;
+  }
+  .note-save-status {
+    flex: 1;
+  }
+  .note-editor-modes {
+    order: 3;
+    border: 1px solid var(--border);
+  }
+  .note-editor-details-toggle {
+    order: 4;
+  }
+}
+
+@media (min-width: 800px) {
+  .note-editor-workspace.is-split {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .note-editor-workspace.is-split .note-preview-panel {
+    border-left: 1px solid var(--border-strong);
+  }
+  .note-card-grid.is-list .note-card-link {
+    display: grid;
+    grid-template-columns: minmax(12rem, 0.7fr) minmax(0, 1.3fr);
+    min-height: 8.5rem;
+    column-gap: 1.5rem;
+  }
+  .note-card-grid.is-list .note-card-link > :first-child,
+  .note-card-grid.is-list .note-card-link > h2 {
+    grid-column: 1;
+  }
+  .note-card-grid.is-list .note-card-excerpt,
+  .note-card-grid.is-list .note-card-link > div[aria-label="Tags"] {
+    grid-column: 2;
+  }
+  .note-card-grid.is-list .note-card-meta {
+    grid-column: 1 / -1;
+  }
+}
+
+@media (min-width: 1024px) {
+  .backup-destination-card {
+    min-height: 25rem;
+  }
+  .note-library-layout {
+    grid-template-columns: 13.5rem minmax(0, 1fr);
+    gap: 2rem;
+    padding-inline: 0.5rem;
+  }
+  .note-library-sidebar {
+    position: sticky;
+    top: 1.5rem;
+    display: block;
+    overflow: visible;
+    border-top: 1px solid var(--border-strong);
+    padding-top: 0.8rem;
+  }
+  .note-collection-row,
+  .note-tag-cloud {
+    display: grid;
+    gap: 0.25rem;
+  }
+  .note-sidebar-section {
+    display: block;
+    margin-top: 1.5rem;
+    border-top: 1px solid var(--border);
+    padding-top: 0.85rem;
+  }
+  .note-sidebar-section > .section-kicker {
+    display: block;
+    margin-bottom: 0.55rem;
+  }
+  .note-sidebar-filter {
+    width: 100%;
+    min-width: 0;
+    border-color: transparent;
+  }
+  .note-tag-cloud {
+    display: flex;
+    flex-wrap: wrap;
+  }
+  .note-reader-layout {
+    grid-template-columns: minmax(0, 48rem) minmax(11rem, 14rem);
+    justify-content: space-between;
+  }
+  .note-reader-aside {
+    position: sticky;
+    top: 2rem;
+  }
+  .note-reader-shell,
+  .note-editor-shell {
+    padding-inline: 0.5rem;
+  }
+  .note-reader-routebar,
+  .note-archive-banner {
+    margin-inline: 0.5rem;
+  }
+}
+
+@media (min-width: 1200px) {
+  .note-editor-scroll {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 15rem;
+    column-gap: 1.25rem;
+  }
+  .note-editor-heading,
+  .note-editor-workspace {
+    grid-column: 1;
+  }
+  .note-editor-details {
+    position: sticky;
+    top: 4.8rem;
+    grid-column: 2;
+    grid-row: 1 / span 2;
+    display: grid;
+    max-height: calc(100dvh - 6rem);
+    align-self: start;
+    overflow-y: auto;
+    border-top: 1px solid var(--border);
+  }
+  .note-editor-details-toggle {
+    display: none;
+  }
+}
+
+@media (max-width: 479px) {
+  .note-template-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .note-reader-title-block h1 {
+    font-size: clamp(2.25rem, 14vw, 3.75rem);
+  }
+  .note-editor-modes button span {
+    display: none;
+  }
+  .note-editor-modes button {
+    min-width: 2.8rem;
+    justify-content: center;
+  }
+  .note-save-status {
+    font-size: 0.54rem;
+  }
 }

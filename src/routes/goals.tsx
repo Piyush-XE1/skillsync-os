@@ -1,10 +1,11 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useEffect, useRef, useState } from "react";
 import { ArrowLeft, Check, Pencil, Plus, Target, Trash2, X } from "lucide-react";
-import { AppShell } from "@/components/layout/AppShell";
+import { AppShell, PageHeader } from "@/components/layout/AppShell";
 import { PrimaryAction } from "@/components/layout/PrimaryAction";
 import { Card } from "@/components/ui/primitives";
 import { EmptyState } from "@/components/common/EmptyState";
+import { SemanticIcon, SemanticIconPicker } from "@/components/common/SemanticIcon";
 import {
   DragHandle,
   DragSortList,
@@ -15,6 +16,7 @@ import { TextField, TextArea, NO_AUTOFILL_PROPS } from "@/components/edit/Fields
 import { ActionButton, IconButton } from "@/components/edit/Buttons";
 import { useAppStore, useHydrated } from "@/store/useAppStore";
 import { GOAL_TITLE_MAX, GOAL_PRESETS, hasGoalNamed } from "@/lib/goals";
+import { DEFAULT_GOAL_ICON } from "@/lib/semantic-icons";
 import { haptics } from "@/lib/haptics";
 import { sound } from "@/lib/sound";
 import { cn } from "@/lib/utils";
@@ -57,7 +59,7 @@ function GoalsPage() {
   const [sheetOpen, setSheetOpen] = useState(false);
   const [editing, setEditing] = useState<Goal | null>(null);
   const [title, setTitle] = useState("");
-  const [emoji, setEmoji] = useState("🎯");
+  const [icon, setIcon] = useState<string>(DEFAULT_GOAL_ICON);
   const [note, setNote] = useState("");
   const [pendingDelete, setPendingDelete] = useState<Goal | null>(null);
   /** Re-entrancy guard: a double tap must never save twice. */
@@ -70,7 +72,7 @@ function GoalsPage() {
   const openNew = (preset?: (typeof GOAL_PRESETS)[number]) => {
     setEditing(null);
     setTitle(preset?.title ?? "");
-    setEmoji(preset?.emoji ?? "🎯");
+    setIcon(preset?.icon ?? DEFAULT_GOAL_ICON);
     setNote(preset?.note ?? "");
     setSheetOpen(true);
   };
@@ -78,7 +80,7 @@ function GoalsPage() {
   const openEdit = (goal: Goal) => {
     setEditing(goal);
     setTitle(goal.title);
-    setEmoji(goal.emoji);
+    setIcon(goal.emoji);
     setNote(goal.note);
     setSheetOpen(true);
   };
@@ -87,9 +89,9 @@ function GoalsPage() {
     if (!title.trim() || saveGuard.current) return;
     saveGuard.current = true;
     if (editing) {
-      updateGoal(editing.id, { title, emoji: emoji || "🎯", note });
+      updateGoal(editing.id, { title, emoji: icon || DEFAULT_GOAL_ICON, note });
     } else {
-      addGoal({ title, emoji: emoji || "🎯", note });
+      addGoal({ title, icon: icon || DEFAULT_GOAL_ICON, note });
     }
     haptics.success();
     sound.success();
@@ -97,7 +99,7 @@ function GoalsPage() {
   };
 
   const quickAdd = (preset: (typeof GOAL_PRESETS)[number]) => {
-    addGoal({ title: preset.title, emoji: preset.emoji, note: preset.note });
+    addGoal({ title: preset.title, icon: preset.icon, note: preset.note });
     haptics.success();
     sound.success();
   };
@@ -106,28 +108,17 @@ function GoalsPage() {
 
   return (
     <AppShell>
-      <header className="mb-5 flex items-center justify-between px-5 lg:px-2">
-        <Link
-          to="/"
-          className="glass flex h-10 w-10 items-center justify-center rounded-full active:scale-95"
-          aria-label="Back"
-        >
-          <ArrowLeft className="h-[17px] w-[17px] text-muted-foreground" strokeWidth={1.75} />
-        </Link>
-        <PrimaryAction label="New Aim" onClick={() => openNew()} />
-      </header>
-
-      <div className="mb-6 px-5 lg:px-2">
-        <div className="text-[11px] font-medium uppercase tracking-[0.14em] text-muted-foreground">
-          Direction
-        </div>
-        <h1 className="mt-1.5 text-[28px] font-semibold leading-tight tracking-[-0.02em]">
-          Your aims.
-        </h1>
-        <p className="mt-1 text-[13.5px] text-muted-foreground">
-          No points, no levels, no badges. Just what you are working on.
-        </p>
-      </div>
+      <PageHeader
+        eyebrow={
+          <Link to="/" className="page-back-link" aria-label="Back to dashboard">
+            <ArrowLeft className="h-3.5 w-3.5" strokeWidth={1.75} />
+            <span className="truncate">Direction / active aims</span>
+          </Link>
+        }
+        title="Your aims."
+        subtitle="No points, no levels, no badges. Just what you are working on."
+        right={<PrimaryAction label="New Aim" onClick={() => openNew()} />}
+      />
 
       <div className="space-y-5 px-5 lg:px-2">
         {/* Quick add */}
@@ -152,7 +143,7 @@ function GoalsPage() {
                   onDoubleClick={(e) => e.preventDefault()}
                   className="pressable flex items-center gap-1.5 rounded-full border border-white/[0.08] bg-white/[0.02] px-3 py-1.5 text-[12.5px] text-muted-foreground transition-colors hover:border-[color-mix(in_oklab,var(--primary)_45%,transparent)] hover:text-foreground"
                 >
-                  <span aria-hidden>{preset.emoji}</span>
+                  <SemanticIcon value={preset.icon} className="h-3.5 w-3.5" />
                   {preset.title}
                   <Plus className="h-3 w-3" strokeWidth={2.5} />
                 </button>
@@ -203,24 +194,20 @@ function GoalsPage() {
         }
       >
         <div className="space-y-3">
-          <div className="flex gap-2">
-            <TextField
-              value={emoji}
-              onChange={(e) => setEmoji(e.target.value)}
-              className="w-16 text-center text-[20px]"
-              maxLength={4}
-              aria-label="Aim emoji"
-            />
-            <TextField
-              autoFocus
-              value={title}
-              onChange={(e) => setTitle(e.target.value)}
-              placeholder="e.g. Gym"
-              maxLength={GOAL_TITLE_MAX}
-              className="flex-1"
-              {...NO_AUTOFILL_PROPS}
-            />
-          </div>
+          <SemanticIconPicker
+            value={icon}
+            onChange={setIcon}
+            label="Aim icon"
+            fallback={DEFAULT_GOAL_ICON}
+          />
+          <TextField
+            autoFocus
+            value={title}
+            onChange={(e) => setTitle(e.target.value)}
+            placeholder="e.g. Gym"
+            maxLength={GOAL_TITLE_MAX}
+            {...NO_AUTOFILL_PROPS}
+          />
           <TextArea
             value={note}
             onChange={(e) => setNote(e.target.value)}
@@ -312,11 +299,8 @@ function GoalRow({
         onClick={() => onEdit(goal)}
         aria-label={`Edit ${goal.title}`}
       >
-        <span
-          className="flex h-11 w-11 shrink-0 items-center justify-center rounded-[16px] border border-[color-mix(in_oklab,var(--primary)_28%,transparent)] bg-[color-mix(in_oklab,var(--primary)_10%,transparent)] text-[20px]"
-          aria-hidden
-        >
-          {goal.emoji}
+        <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-[16px] border border-[color-mix(in_oklab,var(--primary)_28%,transparent)] bg-[color-mix(in_oklab,var(--primary)_10%,transparent)] text-primary">
+          <SemanticIcon value={goal.emoji} fallback={DEFAULT_GOAL_ICON} className="h-5 w-5" />
         </span>
         <span className="min-w-0">
           <span className="block truncate text-[15px] font-semibold tracking-tight">
