@@ -400,7 +400,9 @@ function CloudSetupSheet({
     >
       <div className="space-y-4 pb-2">
         <div className="space-y-3">
-          {descriptor.fields.map((field) => (
+          {descriptor.fields
+            .filter((field) => !(handsFree && provider === "google-drive"))
+            .map((field) => (
             <FieldRow
               key={field.key}
               field={field}
