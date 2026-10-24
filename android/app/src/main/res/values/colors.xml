@@ -5,4 +5,17 @@
     <color name="colorPrimary">#08080A</color>
     <color name="colorPrimaryDark">#08080A</color>
     <color name="colorAccent">#C29F62</color>
+
+    <!-- Home screen widgets reuse the app's Monograph Noir palette. -->
+    <color name="widgetBackground">#F20B0B0F</color>
+    <color name="widgetSurface">#14FFFFFF</color>
+    <color name="widgetSurfaceStrong">#1FFFFFFF</color>
+    <color name="widgetStroke">#1FFFFFFF</color>
+    <color name="widgetAccent">#C29F62</color>
+    <color name="widgetAccentSoft">#2EC29F62</color>
+    <color name="widgetText">#F5F2EA</color>
+    <color name="widgetMuted">#8FA39C94</color>
+    <color name="widgetFaint">#5CFFFFFF</color>
+    <color name="widgetSuccess">#4ADE80</color>
+    <color name="widgetDanger">#E5484D</color>
 </resources>

@@ -4,4 +4,25 @@
     <string name="title_activity_main">SkillSync</string>
     <string name="package_name">com.skillsync.os</string>
     <string name="custom_url_scheme">com.skillsync.os</string>
+
+    <!-- Home screen widgets -->
+    <string name="widget_today_label">Today</string>
+    <string name="widget_today_description">Habits, deep work and tasks for today at a glance.</string>
+    <string name="widget_habits_label">Habits</string>
+    <string name="widget_habits_description">Check habits in and keep every streak alive.</string>
+    <string name="widget_focus_label">Focus</string>
+    <string name="widget_focus_description">Today\'s deep work, streak and one-tap focus starts.</string>
+    <string name="widget_aims_label">Aims</string>
+    <string name="widget_aims_description">The aims you are working on, pinned to your home screen.</string>
+    <string name="widget_planner_label">Planner</string>
+    <string name="widget_planner_description">Today\'s tasks — tap to complete them in place.</string>
+    <string name="widget_stats_label">Stats</string>
+    <string name="widget_stats_description">Solves, streaks, CGPA and focus totals.</string>
+    <string name="widget_quote_label">Daily quote</string>
+    <string name="widget_quote_description">One line of perspective, renewed every day.</string>
+    <string name="widget_quick_label">Quick actions</string>
+    <string name="widget_quick_description">One-tap shortcuts into tasks, notes, habits and focus.</string>
+    <string name="widget_overview_label">Overview</string>
+    <string name="widget_overview_description">The full dashboard: today, habits, aims and tasks.</string>
+    <string name="widget_empty_default">Open SkillSync to sync your workspace.</string>
 </resources>

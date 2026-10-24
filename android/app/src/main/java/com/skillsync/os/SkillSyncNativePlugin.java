@@ -1,6 +1,8 @@
 package com.skillsync.os;
 
 import android.Manifest;
+import android.appwidget.AppWidgetManager;
+import android.content.ComponentName;
 import android.content.Context;
 import android.os.Build;
 import android.os.VibrationEffect;
@@ -51,6 +53,8 @@ public class SkillSyncNativePlugin extends Plugin {
                 NotificationManagerCompat.from(getContext()).areNotificationsEnabled());
         result.put("permission", permissionValue());
         result.put("scheduledCount", ReminderStore.list(getContext()).size());
+        result.put("widgets", true);
+        result.put("widgetPinning", widgetPinningSupported(getContext()));
         call.resolve(result);
     }
 
@@ -385,6 +389,133 @@ public class SkillSyncNativePlugin extends Plugin {
         } catch (Exception error) {
             call.reject(error.getMessage() == null ? "Share failed" : error.getMessage(), error);
         }
+    }
+
+
+    /* --------------------------- home screen widgets ------------------------ */
+
+    /**
+     * widgetSync({ snapshot }) — the app's compact workspace snapshot.
+     *
+     * Widgets live outside the WebView and must draw with the app closed, so the
+     * whole widget model is pushed here after every meaningful change and cached
+     * in SharedPreferences. The native side never invents data.
+     */
+    @PluginMethod
+    public void widgetSync(PluginCall call) {
+        JSObject payload = call.getObject("snapshot");
+        if (payload == null) {
+            call.reject("widgetSync() requires a snapshot");
+            return;
+        }
+        try {
+            JSONObject snapshot = new JSONObject(payload.toString());
+            WidgetStore.saveSnapshot(getContext(), snapshot);
+            WidgetUpdater.refreshAll(getContext());
+            JSObject result = ok(true);
+            result.put("syncedAt", WidgetStore.syncedAt(getContext()));
+            result.put("pendingActions", WidgetStore.pendingActionCount(getContext()));
+            call.resolve(result);
+        } catch (JSONException error) {
+            call.reject("invalid widget snapshot");
+        }
+    }
+
+    /** widgetStatus() — what the widgets can do on this device right now. */
+    @PluginMethod
+    public void widgetStatus(PluginCall call) {
+        JSArray types = new JSArray();
+        for (WidgetSpecs.Spec spec : WidgetSpecs.ALL) {
+            JSObject item = new JSObject();
+            item.put("type", spec.type);
+            item.put("label", getContext().getString(spec.labelRes));
+            item.put("cellsWide", spec.cellsWide);
+            item.put("cellsTall", spec.cellsTall);
+            types.put(item);
+        }
+
+        JSObject result = new JSObject();
+        result.put("native", true);
+        result.put("platform", "android");
+        result.put("pinningSupported", widgetPinningSupported(getContext()));
+        result.put("syncedAt", WidgetStore.syncedAt(getContext()));
+        result.put("pendingActions", WidgetStore.pendingActionCount(getContext()));
+        result.put("types", types);
+        call.resolve(result);
+    }
+
+    /**
+     * widgetPin({ type }) — asks the launcher to pin a widget (Android 8+).
+     *
+     * The launcher shows its own confirmation sheet, so this is the friendliest
+     * "add to home screen" path; the gallery falls back to instructions when the
+     * launcher does not support pin requests.
+     */
+    @PluginMethod
+    public void widgetPin(PluginCall call) {
+        String type = call.getString("type", "today");
+        WidgetSpecs.Spec spec = WidgetSpecs.byType(type);
+        if (spec == null) {
+            call.reject("Unknown widget type: " + type);
+            return;
+        }
+
+        JSObject result = new JSObject();
+        result.put("type", type);
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.O) {
+            result.put("ok", false);
+            result.put("supported", false);
+            call.resolve(result);
+            return;
+        }
+        if (!widgetPinningSupported(getContext())) {
+            result.put("ok", false);
+            result.put("supported", false);
+            call.resolve(result);
+            return;
+        }
+
+        AppWidgetManager manager = AppWidgetManager.getInstance(getContext());
+        if (manager == null) {
+            result.put("ok", false);
+            result.put("supported", true);
+            call.resolve(result);
+            return;
+        }
+        ComponentName provider = new ComponentName(getContext(), spec.provider);
+        boolean requested = manager.requestPinAppWidget(provider, null, null);
+        result.put("ok", requested);
+        result.put("supported", true);
+        call.resolve(result);
+    }
+
+    /** widgetTakeActions() — drains the queue of taps made while the app was closed. */
+    @PluginMethod
+    public void widgetTakeActions(PluginCall call) {
+        JSArray actions = new JSArray();
+        org.json.JSONArray queue = WidgetStore.takeActions(getContext());
+        for (int i = 0; i < queue.length(); i++) {
+            JSONObject action = queue.optJSONObject(i);
+            if (action != null) actions.put(action);
+        }
+        JSObject result = new JSObject();
+        result.put("actions", actions);
+        call.resolve(result);
+    }
+
+    /** widgetRefresh() — repaints every placed widget from the cached snapshot. */
+    @PluginMethod
+    public void widgetRefresh(PluginCall call) {
+        WidgetUpdater.refreshAll(getContext());
+        JSObject result = ok(true);
+        result.put("syncedAt", WidgetStore.syncedAt(getContext()));
+        call.resolve(result);
+    }
+
+    private static boolean widgetPinningSupported(Context context) {
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.O) return false;
+        AppWidgetManager manager = AppWidgetManager.getInstance(context);
+        return manager != null && manager.isRequestPinAppWidgetSupported();
     }
 
     private String safeName(String name) {

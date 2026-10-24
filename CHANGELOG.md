@@ -2,6 +2,36 @@
 
 All notable changes to SkillSync OS are documented here.
 
+## [4.3.0] — 2026-10-24
+
+### Added
+
+- **Nine Android home screen widgets.** Real launcher widgets, not in-app cards:
+  *Overview* (4 × 4), *Today*, *Habits*, *Planner*, *Aims*, *Daily quote*
+  (4 × 2), *Focus* and *Stats* (2 × 2) and *Quick actions* (4 × 1). Each one
+  ships as a classic `RemoteViews` provider — no Glance, no new dependency, so
+  it works on every launcher and stays fully offline.
+- **Inline widget actions.** Tapping a habit or planner row checks it off
+  without opening the app. The change is applied to the cached snapshot
+  immediately, queued natively, and replayed into the store on the next resume
+  (`planWidgetActions`), so both sides converge.
+- **Widget gallery** at Profile → Home screen (`/profile/widgets`): live
+  previews of every widget built from your own data, default sizes, what each
+  one can do inline, a one-tap "Add" through the Android 8+ pin API, a manual
+  launcher fallback, and a sync status with "Sync now".
+- **`src/lib/home-widgets.ts`** — the pure widget model: snapshot builder
+  (habits, focus, planner, coding, CGPA, quotes, 7-day sparkline), gallery
+  catalogue and the idempotent action planner, with 22 unit tests.
+- **`docs/HOME_WIDGETS.md`** — widget catalogue, data flow, file map and a
+  how-to for adding the tenth widget.
+
+### Changed
+
+- The app now pushes a compact widget snapshot after workspace changes
+  (debounced), on launch, and repaints widgets every 30 minutes and just after
+  midnight, so "today" is never yesterday.
+- Profile gains a **Home screen** section; `APP_VERSION` is now 4.3.
+
 ## [4.2.0] — 2026-09-25
 
 ### Added

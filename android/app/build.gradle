@@ -83,6 +83,11 @@ android {
             ignoreAssetsPattern = '!.svn:!.git:!.ds_store:!*.scc:.*:!CVS:!thumbs.db:!picasa.ini:!*~'
         }
     }
+    compileOptions {
+        // Widget labels and row markers use typographic glyphs (·, ✓, —, ▁).
+        // Compile the Java sources as UTF-8 so they survive every builder.
+        encoding = "UTF-8"
+    }
     signingConfigs {
         if (releaseSigningReady) {
             release {

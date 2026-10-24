@@ -14,6 +14,9 @@ public class BootReceiver extends BroadcastReceiver {
                 || Intent.ACTION_MY_PACKAGE_REPLACED.equals(action)
                 || "android.intent.action.QUICKBOOT_POWERON".equals(action)) {
             ReminderScheduler.rescheduleAll(context);
+            // Widgets keep their own midnight wake-up and cached snapshot.
+            WidgetScheduler.armNextMidnight(context);
+            WidgetUpdater.refreshAll(context);
         }
     }
 }
