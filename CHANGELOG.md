@@ -2,6 +2,23 @@
 
 All notable changes to SkillSync OS are documented here.
 
+## [4.5.1] — 2026-10-25
+
+### Fixed
+
+- **Android build: `widget_expenses_description` failed resource compilation.**
+  The string contained an unescaped apostrophe (`Today's`), which aapt2 rejects
+  with "Invalid unicode escape sequence in string" and which broke
+  `mergeDebugResources` for the whole APK. Escaped it as `Today\'s`, and did the
+  same for the three layout strings that carried bare apostrophes.
+- **`scripts/validate-android-resources.mjs`** — a dependency-free pre-flight
+  check for everything aapt2 would reject: XML well-formedness, string escaping
+  (apostrophes, quotes, backslashes, lone `%`, leading `@`/`?`), duplicate
+  resource names, every `@type/name` and `R.type.name` reference, every manifest
+  class, and the RemoteViews view allow-list. Reports `file:line`, exits 1.
+  Wired into `android:apk` / `android:release` and into the Android workflow
+  (before Gradle), so this class of failure costs seconds instead of a CI run.
+
 ## [4.5.0] — 2026-10-25
 
 ### Added

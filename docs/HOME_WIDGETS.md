@@ -116,6 +116,11 @@ the widgets as a cache that always converges on it.
 - The Pulse heatmap is a single bitmap, not 84 views: RemoteViews cross a
   binder transaction with a ~1 MB budget, so cells are capped at 30 px and the
   grid is painted with `Canvas` once per refresh.
+- **Apostrophes in resource strings must be escaped** (`Today\'s`, not `Today's`)
+  — aapt2 rejects the bare form with a message that names the resource but not
+  the line. `res/values/strings.xml` and every `android:text` / `android:hint`
+  in a layout are affected. Run `npm run android:validate` before building; CI
+  runs the same check before Gradle.
 - Widgets use classic `RemoteViews` (FrameLayout / LinearLayout / TextView /
   ProgressBar). No Compose, no Glance, no extra dependency — nothing to download
   and it works on every launcher.
