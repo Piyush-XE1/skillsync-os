@@ -18,6 +18,11 @@ All notable changes to SkillSync OS are documented here.
   class, and the RemoteViews view allow-list. Reports `file:line`, exits 1.
   Wired into `android:apk` / `android:release` and into the Android workflow
   (before Gradle), so this class of failure costs seconds instead of a CI run.
+- **`MainActivity.onResume()` was `protected`** while Capacitor's
+  `BridgeActivity` declares it `public`, so `compileDebugJavaWithJavac` failed
+  with "attempting to assign weaker access privileges". Now `public`. The
+  validator also checks every `@Override` against its parent's real modifier
+  (Capacitor sources from `node_modules`, AOSP signatures in a table).
 
 ## [4.5.0] — 2026-10-25
 

@@ -377,11 +377,165 @@ for (const file of resFiles.filter((path) => /layout[/\\]widget_.*\.xml$/.test(p
   }
 }
 
+/* -------------------------- override visibility -------------------------- */
+/*
+ * javac only says "attempting to assign weaker access privileges; was public"
+ * after Gradle has spent a minute getting there. A Java override may widen
+ * visibility but never narrow it, so check each @Override against the parent's
+ * real declaration: the Capacitor sources in node_modules when the parent is a
+ * Capacitor class, otherwise a table of framework signatures.
+ */
+
+const ACCESS_RANK = { private: 0, package: 1, protected: 2, public: 3 };
+
+// Framework parents we subclass. Signatures from the AOSP sources they ship as.
+const FRAMEWORK_METHODS = {
+  "android.app.Activity": {
+    onCreate: "protected",
+    onStart: "protected",
+    onResume: "protected",
+    onPause: "protected",
+    onStop: "protected",
+    onDestroy: "protected",
+    onNewIntent: "protected",
+    onRestart: "protected",
+    onPostCreate: "protected",
+    onPostResume: "protected",
+    onSaveInstanceState: "protected",
+    onRestoreInstanceState: "protected",
+    onActivityResult: "protected",
+    onConfigurationChanged: "protected",
+    onUserLeaveHint: "protected",
+    onBackPressed: "public",
+    onRequestPermissionsResult: "public",
+    onCreateOptionsMenu: "public",
+    onOptionsItemSelected: "public",
+  },
+  "android.app.Service": {
+    onCreate: "public",
+    onStartCommand: "public",
+    onDestroy: "public",
+    onBind: "public",
+  },
+  "android.content.BroadcastReceiver": { onReceive: "public" },
+  "android.appwidget.AppWidgetProvider": {
+    onReceive: "public",
+    onUpdate: "public",
+    onEnabled: "public",
+    onDisabled: "public",
+    onDeleted: "public",
+    onRestored: "public",
+    onAppWidgetOptionsChanged: "public",
+  },
+  "android.view.View": {
+    onDraw: "protected",
+    onMeasure: "protected",
+    onLayout: "protected",
+    onTouchEvent: "public",
+  },
+};
+
+const METHOD_DECL = (source) =>
+  new RegExp(
+    String.raw`(^|\n)[ \t]*(public|protected|private)?[ \t]*(?:static[ \t]+|final[ \t]+|abstract[ \t]+|synchronized[ \t]+)*[\w<>\[\],.? \t]+[ \t]+(\w+)[ \t]*\(([^)]*)\)`,
+    "g",
+  );
+
+const arity = (args) => args.split(",").filter((part) => part.trim().length > 0).length;
+const declKey = (name, args) => `${name}/${arity(args)}`;
+
+/** method key -> weakest access a subclass may use (the parent's own modifier). */
+function methodsOf(source) {
+  const map = new Map();
+  for (const match of source.matchAll(METHOD_DECL())) {
+    const modifier = match[2] || "package";
+    if (["if", "for", "while", "switch", "catch", "return", "new"].includes(match[3])) continue;
+    if (modifier === "private") continue; // private methods are not overridden
+    map.set(declKey(match[3], match[4]), modifier);
+  }
+  return map;
+}
+
+// Both sources end up as Map<"method/arity" | "method/*", modifier>.
+const parents = new Map();
+for (const [name, methods] of Object.entries(FRAMEWORK_METHODS)) {
+  parents.set(
+    name,
+    new Map(Object.entries(methods).map(([method, modifier]) => [`${method}/*`, modifier])),
+  );
+}
+
+// Our own base classes count too: SkillSyncWidgetProvider declares
+// `public abstract String widgetType()`, so the 13 providers must keep it public.
+for (const file of javaFiles) {
+  const source = readFileSync(file, "utf8");
+  const name = /class\s+(\w+)/.exec(source)?.[1];
+  if (name) parents.set(name, methodsOf(source));
+}
+
+const CAPACITOR_DIR = join(
+  ROOT,
+  "node_modules/@capacitor/android/capacitor/src/main/java/com/getcapacitor",
+);
+try {
+  for (const file of walk(CAPACITOR_DIR).filter((path) => path.endsWith(".java"))) {
+    const source = readFileSync(file, "utf8");
+    const name = /class\s+(\w+)/.exec(source)?.[1];
+    if (name) parents.set(name, methodsOf(source));
+  }
+} catch {
+  console.warn(
+    "! node_modules/@capacitor/android not installed — skipping Capacitor override checks",
+  );
+}
+
+/** Loose framework match: our code names parents either fully or simply. */
+function parentMethods(superName) {
+  if (!superName) return null;
+  const simple = superName.split(".").pop();
+  return (
+    parents.get(superName) ??
+    parents.get(`android.app.${simple}`) ??
+    [...parents].find(([key]) => key.split(".").pop() === simple && key !== simple)?.[1] ??
+    null
+  );
+}
+
+let overridesChecked = 0;
+
+for (const file of javaFiles) {
+  const source = readFileSync(file, "utf8");
+  const declaration = /class\s+(\w+)\s+extends\s+([\w.]+)/.exec(source);
+  if (!declaration) continue;
+  const inherited = parentMethods(declaration[2]);
+  if (!inherited) continue;
+  for (const match of source.matchAll(
+    /@Override\s*\n\s*(?:(public|protected|private)\s+)?[^;\n(]*?(\w+)\s*\(([^)]*)\)/g,
+  )) {
+    const modifier = match[1] || "package";
+    const name = match[2];
+    const args = match[3].split(",").filter((part) => part.trim().length > 0).length;
+    // Framework entries are keyed by name only; Capacitor ones carry the arity.
+    const required = inherited.get(`${name}/${args}`) ?? inherited.get(`${name}/*`);
+    if (!required) continue;
+    overridesChecked += 1;
+    if (ACCESS_RANK[modifier] < ACCESS_RANK[required]) {
+      fail(
+        file,
+        lineOf(source, match.index),
+        `${declaration[1]}.${name}() is ${modifier} but ${declaration[2]}.${name}() is ${required} — ` +
+          `an override may widen visibility, never narrow it`,
+      );
+    }
+  }
+}
+
 /* -------------------------------- report --------------------------------- */
 
 if (errors.length === 0) {
   console.log(
-    `✓ Android resources valid (${allXml.length} XML files, ${defined.layout.size} layouts, ${defined.string.size} strings)`,
+    `✓ Android resources valid (${allXml.length} XML files, ${defined.layout.size} layouts, ` +
+      `${defined.string.size} strings, ${overridesChecked} overrides checked)`,
   );
   process.exit(0);
 }
