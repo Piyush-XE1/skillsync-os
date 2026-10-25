@@ -113,6 +113,23 @@ Android project; Gradle assembles debug/release APKs. Native back
 navigation, haptics and notifications flow through
 `src/lib/native/bridge.ts`, with web fallbacks everywhere.
 
+### 7.1 Home screen widgets
+
+Home screen widgets render outside the WebView, so they cannot read
+`localStorage`. The app therefore pushes a compact snapshot of the workspace
+(`src/lib/home-widgets.ts` → `buildWidgetSnapshot`) through the native bridge
+after every change; `WidgetStore` caches it in SharedPreferences and
+`WidgetRender` paints thirteen `RemoteViews` layouts from it. Widgets are drawn by
+`AppWidgetProvider` subclasses registered in the manifest — no Glance, no extra
+dependency.
+
+Taps travel back the other way. A habit row, task row, spend chip or capture
+sheet applies its change to the cached snapshot immediately, appends an item to a native action queue, and the
+web app drains that queue on its next resume (`useHomeWidgets` →
+`planWidgetActions`), so the workspace and the widgets converge. The midnight
+alarm in `WidgetScheduler` keeps "today" honest. Full detail:
+[docs/HOME_WIDGETS.md](HOME_WIDGETS.md).
+
 ## 8. Quality gates
 
 - `npm run typecheck` — strict TypeScript, zero `any` leaks in the domain.

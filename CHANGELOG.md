@@ -2,6 +2,84 @@
 
 All notable changes to SkillSync OS are documented here.
 
+## [4.5.0] — 2026-10-25
+
+### Added
+
+- **Three more widgets — thirteen in total.**
+  - **Notes** (4 × 2): your five most recent notes with a preview and relative
+    age, plus a `＋ New note` sheet.
+  - **Pulse** (4 × 2): a 12-week × 7-day activity heatmap (habits 50%, focus 40%,
+    solves 10%), painted as a single capped-size bitmap rather than 84 views.
+  - **Roadmaps** (4 × 2): each roadmap's progress bar and the next topic to open;
+    tapping a row deep-links into that roadmap.
+- **In-widget capture.** `WidgetCaptureActivity` is one translucent sheet with
+  two modes — write a note (saved to the Inbox, tagged `Widget`) or add a task
+  for today with an optional time and priority. Wired to the Notes and Planner
+  widgets and to the Quick actions `＋ Note` / `＋ Task` chips; every capture is
+  queued like a tap, so it lands in the workspace on the next resume.
+- Snapshot gains `notes`, `roadmaps` and an 84-sample `heatmap`; the action
+  planner learns `note` and `newTask` (validated: 120-char titles, 2000-char
+  bodies, `HH:MM` times, low/medium/high priority).
+- 44 tests for the widget model (was 34).
+
+### Changed
+
+- Widget gallery previews for the three new widgets; Planner widget's footer is
+  now `Open planner` + `＋ Task`. `APP_VERSION` is now 4.5.
+
+## [4.4.0] — 2026-10-25
+
+### Added
+
+- **Spend widget** (4 × 2) — today's spending, the monthly budget meter and three
+  one-tap amounts sized from your own median spend, with a `＋` chip that opens a
+  small custom-amount sheet (`WidgetExpenseActivity`: amount + Food / Transit /
+  Study / Other). Every logged spend becomes a normal debit transaction, tagged,
+  with `description: "Logged from a home screen widget"`.
+- **Widget-queued expenses are deduplicated** — a spend whose amount and
+  timestamp already exist in the workspace is dropped during replay, so a
+  queue drained twice after a crash can never double-charge.
+- `expenseChips` / `validExpenseAmount` helpers in `src/lib/home-widgets.ts`
+  (+12 tests covering chip sizing, amount validation and replay).
+- Quick actions widget: the Planner shortcut became `＋ Spend`, opening the
+  amount sheet.
+
+### Changed
+
+- Widget catalogue is now **ten** widgets; the gallery, docs and native
+  `WidgetSpecs` stay in lock-step. `APP_VERSION` is now 4.4.
+
+## [4.3.0] — 2026-10-24
+
+### Added
+
+- **Nine Android home screen widgets.** Real launcher widgets, not in-app cards:
+  *Overview* (4 × 4), *Today*, *Habits*, *Planner*, *Aims*, *Daily quote*
+  (4 × 2), *Focus* and *Stats* (2 × 2) and *Quick actions* (4 × 1). Each one
+  ships as a classic `RemoteViews` provider — no Glance, no new dependency, so
+  it works on every launcher and stays fully offline.
+- **Inline widget actions.** Tapping a habit or planner row checks it off
+  without opening the app. The change is applied to the cached snapshot
+  immediately, queued natively, and replayed into the store on the next resume
+  (`planWidgetActions`), so both sides converge.
+- **Widget gallery** at Profile → Home screen (`/profile/widgets`): live
+  previews of every widget built from your own data, default sizes, what each
+  one can do inline, a one-tap "Add" through the Android 8+ pin API, a manual
+  launcher fallback, and a sync status with "Sync now".
+- **`src/lib/home-widgets.ts`** — the pure widget model: snapshot builder
+  (habits, focus, planner, coding, CGPA, quotes, 7-day sparkline), gallery
+  catalogue and the idempotent action planner, with 22 unit tests.
+- **`docs/HOME_WIDGETS.md`** — widget catalogue, data flow, file map and a
+  how-to for adding the tenth widget.
+
+### Changed
+
+- The app now pushes a compact widget snapshot after workspace changes
+  (debounced), on launch, and repaints widgets every 30 minutes and just after
+  midnight, so "today" is never yesterday.
+- Profile gains a **Home screen** section; `APP_VERSION` is now 4.3.
+
 ## [4.2.0] — 2026-09-25
 
 ### Added

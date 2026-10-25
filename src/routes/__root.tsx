@@ -16,6 +16,7 @@ import { AppLaunchScreen } from "@/components/layout/AppLaunchScreen";
 import { OnboardingFocusSheet } from "@/components/layout/OnboardingFocusSheet";
 import { QuickCaptureSheet } from "@/components/layout/QuickCaptureSheet";
 import { NotificationRunner } from "@/components/notifications/NotificationRunner";
+import { HomeWidgetRunner } from "@/components/widgets/HomeWidgetRunner";
 import { BackupRunner } from "@/components/backup/BackupRunner";
 import { ThemeManager, APPEARANCE_INIT_SCRIPT } from "@/hooks/use-theme";
 
@@ -172,6 +173,7 @@ function RootComponent() {
       <OnboardingFocusSheet />
       <QuickCaptureSheet />
       <NotificationRunner />
+      <HomeWidgetRunner />
       <BackupRunner />
       {/* Required: nested routes render here. Removing <Outlet /> breaks all child routes. */}
       <Outlet />

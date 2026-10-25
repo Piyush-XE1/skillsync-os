@@ -42,6 +42,7 @@ import { Route as ProfileBackupRouteImport } from './routes/profile.backup'
 import { Route as ProfileModulesRouteImport } from './routes/profile.modules'
 import { Route as ProfileNotificationsRouteImport } from './routes/profile.notifications'
 import { Route as ProfileSystemRouteImport } from './routes/profile.system'
+import { Route as ProfileWidgetsRouteImport } from './routes/profile.widgets'
 import { Route as LearnRoadmapIdTopicIdRouteImport } from './routes/learn.$roadmapId_.$topicId'
 import { Route as NotesNoteIdEditRouteImport } from './routes/notes.$noteId_.edit'
 
@@ -210,6 +211,11 @@ const ProfileSystemRoute = ProfileSystemRouteImport.update({
   path: '/system',
   getParentRoute: () => ProfileRoute,
 } as any)
+const ProfileWidgetsRoute = ProfileWidgetsRouteImport.update({
+  id: '/widgets',
+  path: '/widgets',
+  getParentRoute: () => ProfileRoute,
+} as any)
 const LearnRoadmapIdTopicIdRoute = LearnRoadmapIdTopicIdRouteImport.update({
   id: '/$roadmapId_/$topicId',
   path: '/$roadmapId/$topicId',
@@ -248,6 +254,7 @@ export interface FileRoutesByFullPath {
   '/profile/modules': typeof ProfileModulesRoute
   '/profile/notifications': typeof ProfileNotificationsRoute
   '/profile/system': typeof ProfileSystemRoute
+  '/profile/widgets': typeof ProfileWidgetsRoute
   '/career/': typeof CareerIndexRoute
   '/coding/': typeof CodingIndexRoute
   '/expenses/': typeof ExpensesIndexRoute
@@ -278,6 +285,7 @@ export interface FileRoutesByTo {
   '/profile/modules': typeof ProfileModulesRoute
   '/profile/notifications': typeof ProfileNotificationsRoute
   '/profile/system': typeof ProfileSystemRoute
+  '/profile/widgets': typeof ProfileWidgetsRoute
   '/career': typeof CareerIndexRoute
   '/coding': typeof CodingIndexRoute
   '/expenses': typeof ExpensesIndexRoute
@@ -316,6 +324,7 @@ export interface FileRoutesById {
   '/profile/modules': typeof ProfileModulesRoute
   '/profile/notifications': typeof ProfileNotificationsRoute
   '/profile/system': typeof ProfileSystemRoute
+  '/profile/widgets': typeof ProfileWidgetsRoute
   '/career/': typeof CareerIndexRoute
   '/coding/': typeof CodingIndexRoute
   '/expenses/': typeof ExpensesIndexRoute
@@ -355,6 +364,7 @@ export interface FileRouteTypes {
     | '/profile/modules'
     | '/profile/notifications'
     | '/profile/system'
+    | '/profile/widgets'
     | '/career/'
     | '/coding/'
     | '/expenses/'
@@ -385,6 +395,7 @@ export interface FileRouteTypes {
     | '/profile/modules'
     | '/profile/notifications'
     | '/profile/system'
+    | '/profile/widgets'
     | '/career'
     | '/coding'
     | '/expenses'
@@ -422,6 +433,7 @@ export interface FileRouteTypes {
     | '/profile/modules'
     | '/profile/notifications'
     | '/profile/system'
+    | '/profile/widgets'
     | '/career/'
     | '/coding/'
     | '/expenses/'
@@ -688,6 +700,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ProfileSystemRouteImport
       parentRoute: typeof ProfileRoute
     }
+    '/profile/widgets': {
+      id: '/profile/widgets'
+      path: '/widgets'
+      fullPath: '/profile/widgets'
+      preLoaderRoute: typeof ProfileWidgetsRouteImport
+      parentRoute: typeof ProfileRoute
+    }
     '/learn/$roadmapId_/$topicId': {
       id: '/learn/$roadmapId_/$topicId'
       path: '/$roadmapId/$topicId'
@@ -785,6 +804,7 @@ interface ProfileRouteChildren {
   ProfileModulesRoute: typeof ProfileModulesRoute
   ProfileNotificationsRoute: typeof ProfileNotificationsRoute
   ProfileSystemRoute: typeof ProfileSystemRoute
+  ProfileWidgetsRoute: typeof ProfileWidgetsRoute
   ProfileIndexRoute: typeof ProfileIndexRoute
 }
 
@@ -793,6 +813,7 @@ const ProfileRouteChildren: ProfileRouteChildren = {
   ProfileModulesRoute: ProfileModulesRoute,
   ProfileNotificationsRoute: ProfileNotificationsRoute,
   ProfileSystemRoute: ProfileSystemRoute,
+  ProfileWidgetsRoute: ProfileWidgetsRoute,
   ProfileIndexRoute: ProfileIndexRoute,
 }
 

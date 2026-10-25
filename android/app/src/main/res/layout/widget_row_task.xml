@@ -1,0 +1,45 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- One tappable planner task. Tapping the row completes or re-opens it. -->
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/row_root"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:layout_marginBottom="6dp"
+    android:orientation="horizontal"
+    android:gravity="center_vertical"
+    android:paddingLeft="10dp"
+    android:paddingRight="10dp"
+    android:paddingTop="7dp"
+    android:paddingBottom="7dp"
+    android:background="@drawable/widget_surface">
+
+    <TextView
+        android:id="@+id/row_mark"
+        android:layout_width="18dp"
+        android:layout_height="wrap_content"
+        android:gravity="center"
+        android:textColor="@color/widgetMuted"
+        android:textSize="12sp"
+        android:text="□" />
+
+    <TextView
+        android:id="@+id/row_title"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_weight="1"
+        android:layout_marginLeft="8dp"
+        android:singleLine="true"
+        android:ellipsize="end"
+        android:textColor="@color/widgetText"
+        android:textSize="12.5sp"
+        android:text="Task" />
+
+    <TextView
+        android:id="@+id/row_meta"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginLeft="8dp"
+        android:textColor="@color/widgetMuted"
+        android:textSize="10sp"
+        android:text="" />
+</LinearLayout>

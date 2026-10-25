@@ -43,6 +43,188 @@
             </intent-filter>
         </receiver>
 
+
+        <!-- Capture sheet behind the Notes and Planner widgets (note or task). -->
+        <activity
+            android:name=".WidgetCaptureActivity"
+            android:exported="false"
+            android:excludeFromRecents="true"
+            android:noHistory="true"
+            android:taskAffinity=""
+            android:windowSoftInputMode="adjustResize"
+            android:theme="@style/WidgetDialog" />
+
+        <!-- The Spend widget's custom-amount sheet: a small translucent dialog. -->
+        <activity
+            android:name=".WidgetExpenseActivity"
+            android:exported="false"
+            android:excludeFromRecents="true"
+            android:noHistory="true"
+            android:taskAffinity=""
+            android:theme="@style/WidgetDialog" />
+
+        <!-- Home screen widgets. Each provider is one entry in WidgetSpecs. -->
+        <!-- Inline widget taps (habit check-ins, planner completions). -->
+        <receiver
+            android:name=".WidgetActions"
+            android:exported="false" />
+
+        <receiver
+            android:name=".TodayWidgetProvider"
+            android:exported="true"
+            android:label="@string/widget_today_label">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/widget_today_info" />
+        </receiver>
+
+        <receiver
+            android:name=".HabitsWidgetProvider"
+            android:exported="true"
+            android:label="@string/widget_habits_label">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/widget_habits_info" />
+        </receiver>
+
+        <receiver
+            android:name=".FocusWidgetProvider"
+            android:exported="true"
+            android:label="@string/widget_focus_label">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/widget_focus_info" />
+        </receiver>
+
+        <receiver
+            android:name=".ExpensesWidgetProvider"
+            android:exported="true"
+            android:label="@string/widget_expenses_label">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/widget_expenses_info" />
+        </receiver>
+
+        <receiver
+            android:name=".NotesWidgetProvider"
+            android:exported="true"
+            android:label="@string/widget_notes_label">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/widget_notes_info" />
+        </receiver>
+
+        <receiver
+            android:name=".PulseWidgetProvider"
+            android:exported="true"
+            android:label="@string/widget_pulse_label">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/widget_pulse_info" />
+        </receiver>
+
+        <receiver
+            android:name=".RoadmapsWidgetProvider"
+            android:exported="true"
+            android:label="@string/widget_roadmaps_label">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/widget_roadmaps_info" />
+        </receiver>
+
+        <receiver
+            android:name=".AimsWidgetProvider"
+            android:exported="true"
+            android:label="@string/widget_aims_label">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/widget_aims_info" />
+        </receiver>
+
+        <receiver
+            android:name=".PlannerWidgetProvider"
+            android:exported="true"
+            android:label="@string/widget_planner_label">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/widget_planner_info" />
+        </receiver>
+
+        <receiver
+            android:name=".StatsWidgetProvider"
+            android:exported="true"
+            android:label="@string/widget_stats_label">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/widget_stats_info" />
+        </receiver>
+
+        <receiver
+            android:name=".QuoteWidgetProvider"
+            android:exported="true"
+            android:label="@string/widget_quote_label">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/widget_quote_info" />
+        </receiver>
+
+        <receiver
+            android:name=".QuickActionsWidgetProvider"
+            android:exported="true"
+            android:label="@string/widget_quick_label">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/widget_quick_info" />
+        </receiver>
+
+        <receiver
+            android:name=".OverviewWidgetProvider"
+            android:exported="true"
+            android:label="@string/widget_overview_label">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/widget_overview_info" />
+        </receiver>
+
         <provider
             android:name="androidx.core.content.FileProvider"
             android:authorities="${applicationId}.fileprovider"

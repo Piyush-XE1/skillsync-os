@@ -1,0 +1,42 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- One aim line. Aims are statements of intent, so the row only opens the app. -->
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/row_root"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:layout_marginBottom="6dp"
+    android:orientation="horizontal"
+    android:gravity="center_vertical"
+    android:paddingLeft="10dp"
+    android:paddingRight="10dp"
+    android:paddingTop="7dp"
+    android:paddingBottom="7dp"
+    android:background="@drawable/widget_surface">
+
+    <!-- ImageView, not a bare View: RemoteViews only inflates @RemoteView classes. -->
+    <ImageView
+        android:layout_width="5dp"
+        android:layout_height="5dp"
+        android:background="@drawable/widget_dot" />
+
+    <TextView
+        android:id="@+id/row_title"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_weight="1"
+        android:layout_marginLeft="9dp"
+        android:singleLine="true"
+        android:ellipsize="end"
+        android:textColor="@color/widgetText"
+        android:textSize="12.5sp"
+        android:text="Aim" />
+
+    <TextView
+        android:id="@+id/row_meta"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginLeft="8dp"
+        android:textColor="@color/widgetMuted"
+        android:textSize="10sp"
+        android:text="" />
+</LinearLayout>

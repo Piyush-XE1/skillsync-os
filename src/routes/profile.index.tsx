@@ -28,6 +28,7 @@ import {
   Target,
   Gauge,
   RotateCcw,
+  Smartphone,
 } from "lucide-react";
 import { AppShell, AppFooter, PageHeader } from "@/components/layout/AppShell";
 import { Card, Chip, SectionHeader } from "@/components/ui/primitives";
@@ -463,6 +464,29 @@ function ProfilePage() {
               <ChevronRight className="h-4 w-4 text-muted-foreground/60" />
             </Link>
           ) : null}
+        </section>
+
+        {/* Home screen widgets */}
+        <section className="space-y-3">
+          <SectionHeader title="Home screen" />
+          <Link
+            to="/profile/widgets"
+            className="card-surface flex items-center gap-3 p-4 transition-all active:scale-[0.98]"
+          >
+            <div className="flex h-11 w-11 items-center justify-center rounded-2xl gradient-primary">
+              <Smartphone className="h-5 w-5 text-white" strokeWidth={1.75} />
+            </div>
+            <div className="min-w-0 flex-1">
+              <div className="flex items-center gap-2">
+                <div className="text-[14px] font-semibold tracking-tight">Home screen widgets</div>
+                <Chip>13</Chip>
+              </div>
+              <div className="text-[12px] text-muted-foreground">
+                Habits, focus, aims and tasks outside the app
+              </div>
+            </div>
+            <ChevronRight className="h-4 w-4 text-muted-foreground/60" />
+          </Link>
         </section>
 
         {/* Data */}

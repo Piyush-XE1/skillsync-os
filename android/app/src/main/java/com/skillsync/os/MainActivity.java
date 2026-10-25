@@ -38,6 +38,11 @@ public class MainActivity extends BridgeActivity {
         ReminderScheduler.ensureChannel(this);
         ReminderScheduler.rescheduleAll(this);
 
+        // Home screen widgets: keep the midnight repaint armed and show the
+        // latest cached snapshot as soon as the app starts.
+        WidgetScheduler.armNextMidnight(this);
+        WidgetUpdater.refreshAll(this);
+
         // Android back: an open sheet/dialog dismisses first, then walk the
         // WebView history, and only finish at the root. Registered after
         // Capacitor's own callback, so this one wins.
@@ -67,6 +72,25 @@ public class MainActivity extends BridgeActivity {
         });
 
         handleRouteIntent(getIntent());
+    }
+
+    @Override
+    protected void onResume() {
+        super.onResume();
+        // Widget taps made while the app was closed are queued natively; tell
+        // the web app to drain them as soon as it is visible again.
+        notifyWidgetActivity();
+    }
+
+    private void notifyWidgetActivity() {
+        if (getBridge() == null || getBridge().getWebView() == null) return;
+        getBridge().getWebView().postDelayed(() -> {
+            if (getBridge() != null) {
+                getBridge().eval(
+                        "window.dispatchEvent(new CustomEvent('skillsync:widget-actions'))",
+                        null);
+            }
+        }, 500);
     }
 
     @Override

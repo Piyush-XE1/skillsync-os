@@ -1,0 +1,192 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/widget_root"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical"
+    android:background="@drawable/widget_bg"
+    android:padding="16dp">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:gravity="center_vertical">
+
+        <TextView
+            android:id="@+id/widget_eyebrow"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:singleLine="true"
+            android:letterSpacing="0.14"
+            android:textAllCaps="true"
+            android:textColor="@color/widgetAccent"
+            android:textSize="9sp"
+            android:text="Today" />
+
+        <TextView
+            android:id="@+id/widget_meta"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:textColor="@color/widgetMuted"
+            android:textSize="9sp"
+            android:text="" />
+    </LinearLayout>
+
+    <TextView
+        android:id="@+id/widget_title"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="8dp"
+        android:singleLine="true"
+        android:ellipsize="end"
+        android:textColor="@color/widgetText"
+        android:textSize="22sp"
+        android:textStyle="bold"
+        android:letterSpacing="-0.02"
+        android:text="0 of 0 habits" />
+
+    <ProgressBar
+        android:id="@+id/widget_progress"
+        style="@android:style/Widget.ProgressBar.Horizontal"
+        android:layout_width="match_parent"
+        android:layout_height="4dp"
+        android:layout_marginTop="8dp"
+        android:max="100"
+        android:progress="0"
+        android:progressDrawable="@drawable/widget_progress" />
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="10dp"
+        android:orientation="horizontal"
+        android:baselineAligned="false">
+
+        <LinearLayout
+            android:id="@+id/widget_focus_cell"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:orientation="vertical"
+            android:background="@drawable/widget_surface"
+            android:padding="8dp">
+
+            <TextView
+                android:id="@+id/widget_focus_value"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:singleLine="true"
+                android:textColor="@color/widgetText"
+                android:textSize="13sp"
+                android:textStyle="bold"
+                android:text="0m" />
+
+            <TextView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:singleLine="true"
+                android:textColor="@color/widgetMuted"
+                android:textSize="8.5sp"
+                android:textAllCaps="true"
+                android:letterSpacing="0.08"
+                android:text="deep work" />
+        </LinearLayout>
+
+        <LinearLayout
+            android:id="@+id/widget_tasks_cell"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:layout_marginLeft="7dp"
+            android:orientation="vertical"
+            android:background="@drawable/widget_surface"
+            android:padding="8dp">
+
+            <TextView
+                android:id="@+id/widget_tasks_value"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:singleLine="true"
+                android:textColor="@color/widgetText"
+                android:textSize="13sp"
+                android:textStyle="bold"
+                android:text="0/0" />
+
+            <TextView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:singleLine="true"
+                android:textColor="@color/widgetMuted"
+                android:textSize="8.5sp"
+                android:textAllCaps="true"
+                android:letterSpacing="0.08"
+                android:text="tasks" />
+        </LinearLayout>
+
+        <LinearLayout
+            android:id="@+id/widget_solves_cell"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:layout_marginLeft="7dp"
+            android:orientation="vertical"
+            android:background="@drawable/widget_surface"
+            android:padding="8dp">
+
+            <TextView
+                android:id="@+id/widget_solves_value"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:singleLine="true"
+                android:textColor="@color/widgetText"
+                android:textSize="13sp"
+                android:textStyle="bold"
+                android:text="0" />
+
+            <TextView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:singleLine="true"
+                android:textColor="@color/widgetMuted"
+                android:textSize="8.5sp"
+                android:textAllCaps="true"
+                android:letterSpacing="0.08"
+                android:text="solves" />
+        </LinearLayout>
+    </LinearLayout>
+
+    <TextView
+        android:id="@+id/widget_strip"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="10dp"
+        android:singleLine="true"
+        android:letterSpacing="0.18"
+        android:fontFamily="monospace"
+        android:textColor="@color/widgetAccent"
+        android:textSize="13sp"
+        android:text="" />
+
+    <TextView
+        android:id="@+id/widget_strip_label"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:singleLine="true"
+        android:textColor="@color/widgetMuted"
+        android:textSize="8.5sp"
+        android:textAllCaps="true"
+        android:letterSpacing="0.1"
+        android:text="7-day effort" />
+
+    <TextView
+        android:id="@+id/widget_empty"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="8dp"
+        android:visibility="gone"
+        android:textColor="@color/widgetMuted"
+        android:textSize="10sp"
+        android:text="@string/widget_empty_default" />
+</LinearLayout>
