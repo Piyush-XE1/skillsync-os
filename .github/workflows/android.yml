@@ -57,6 +57,9 @@ jobs:
       - name: Install dependencies
         run: bun install --frozen-lockfile
 
+      - name: Validate Android resources
+        run: node scripts/validate-android-resources.mjs
+
       - name: Resolve version
         id: version
         run: |
