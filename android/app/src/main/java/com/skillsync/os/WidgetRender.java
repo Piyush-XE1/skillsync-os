@@ -10,7 +10,9 @@ import androidx.core.content.ContextCompat;
 import org.json.JSONArray;
 import org.json.JSONObject;
 
+import java.text.DecimalFormat;
 import java.text.SimpleDateFormat;
+import java.math.RoundingMode;
 import java.util.Date;
 import java.util.Locale;
 
@@ -42,6 +44,9 @@ final class WidgetRender {
                 break;
             case "focus":
                 renderFocus(context, views, snapshot, widgetId);
+                break;
+            case "expenses":
+                renderExpenses(context, views, snapshot, widgetId);
                 break;
             case "aims":
                 renderAims(context, views, snapshot, widgetId, minHeightDp);
@@ -153,6 +158,53 @@ final class WidgetRender {
         views.setOnClickPendingIntent(R.id.widget_root, WidgetIntents.open(context, widgetId, "/focus"));
     }
 
+    private static void renderExpenses(
+            Context context, RemoteViews views, JSONObject snapshot, int widgetId) {
+        JSONObject expenses = object(snapshot, "expenses");
+        String currency = expenses.optString("currency", "₹");
+        double today = expenses.optDouble("todaySpend", 0d);
+        double month = expenses.optDouble("monthSpend", 0d);
+        int todayCount = expenses.optInt("todayCount", 0);
+        double budget = expenses.optDouble("monthlyBudget", 0d);
+
+        heading(views, snapshot, "Spend");
+        text(views, R.id.widget_title, currency + money(today));
+
+        if (budget > 0d) {
+            int pct = (int) Math.round(month * 100d / budget);
+            text(
+                    views,
+                    R.id.widget_subtitle,
+                    "of " + currency + money(budget) + " this month · "
+                            + currency + money(month) + " spent · " + pct + "%");
+            progress(views, R.id.widget_progress, pct);
+            views.setViewVisibility(R.id.widget_progress, View.VISIBLE);
+        } else {
+            text(
+                    views,
+                    R.id.widget_subtitle,
+                    "today · " + todayCount + (todayCount == 1 ? " spend" : " spends")
+                            + " · " + currency + money(month) + " this month");
+            views.setViewVisibility(R.id.widget_progress, View.GONE);
+        }
+
+        // Quick-log chips, sized from the user's own spending habits.
+        JSONArray chips = expenses.optJSONArray("chips");
+        int[] ids = {R.id.log_chip_1, R.id.log_chip_2, R.id.log_chip_3};
+        for (int i = 0; i < ids.length; i++) {
+            double amount = chips == null ? 0d : chips.optDouble(i, 0d);
+            if (amount <= 0d) amount = new double[] {50d, 100d, 250d}[i];
+            text(views, ids[i], currency + money(amount));
+            views.setOnClickPendingIntent(ids[i], WidgetIntents.expense(context, widgetId, amount));
+        }
+        views.setOnClickPendingIntent(
+                R.id.log_chip_custom, WidgetIntents.customExpense(context, widgetId));
+
+        visible(views, R.id.widget_empty, !synced(snapshot));
+        views.setOnClickPendingIntent(
+                R.id.widget_root, WidgetIntents.open(context, widgetId, "/expenses"));
+    }
+
     private static void renderAims(
             Context context,
             RemoteViews views,
@@ -248,7 +300,8 @@ final class WidgetRender {
         views.setOnClickPendingIntent(R.id.qa_note, WidgetIntents.open(context, widgetId, "/notes"));
         views.setOnClickPendingIntent(R.id.qa_habit, WidgetIntents.open(context, widgetId, "/habits"));
         views.setOnClickPendingIntent(R.id.qa_focus, WidgetIntents.open(context, widgetId, "/focus"));
-        views.setOnClickPendingIntent(R.id.qa_plan, WidgetIntents.open(context, widgetId, "/planner"));
+        views.setOnClickPendingIntent(
+                R.id.qa_spend, WidgetIntents.customExpense(context, widgetId));
         views.setOnClickPendingIntent(R.id.qa_stats, WidgetIntents.open(context, widgetId, "/analytics"));
     }
 
@@ -431,6 +484,15 @@ final class WidgetRender {
         long hours = minutes / 60L;
         if (hours < 24L) return "synced " + hours + "h ago";
         return "synced " + (hours / 24L) + "d ago";
+    }
+
+    /** "1,240" / "1,240.50" — grouped, no stray decimals on whole amounts. */
+    static String money(double value) {
+        double safe = Math.max(0d, value);
+        boolean whole = Math.abs(safe - Math.rint(safe)) < 0.005d;
+        DecimalFormat format = new DecimalFormat(whole ? "#,##0" : "#,##0.00");
+        format.setRoundingMode(RoundingMode.HALF_UP);
+        return format.format(safe);
     }
 
     private static String minutes(int value) {

@@ -157,6 +157,26 @@ final class WidgetStore {
         prefs(context).edit().putString(KEY_SNAPSHOT, snapshot.toString()).commit();
     }
 
+    /**
+     * Adds a just-logged spend to the cached totals so the widget reflects the
+     * tap immediately, before the web app has applied it for real.
+     */
+    static void patchExpense(Context context, double amount) {
+        if (amount <= 0) return;
+        JSONObject snapshot = snapshot(context);
+        JSONObject expenses = snapshot.optJSONObject("expenses");
+        if (expenses == null) return;
+
+        put(expenses, "todaySpend", round(expenses.optDouble("todaySpend", 0) + amount));
+        put(expenses, "monthSpend", round(expenses.optDouble("monthSpend", 0) + amount));
+        put(expenses, "todayCount", expenses.optInt("todayCount", 0) + 1);
+        prefs(context).edit().putString(KEY_SNAPSHOT, snapshot.toString()).commit();
+    }
+
+    private static double round(double value) {
+        return Math.round(value * 100d) / 100d;
+    }
+
     private static void put(JSONObject object, String key, Object value) {
         try {
             object.put(key, value);

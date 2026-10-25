@@ -44,6 +44,15 @@
         </receiver>
 
 
+        <!-- The Spend widget's custom-amount sheet: a small translucent dialog. -->
+        <activity
+            android:name=".WidgetExpenseActivity"
+            android:exported="false"
+            android:excludeFromRecents="true"
+            android:noHistory="true"
+            android:taskAffinity=""
+            android:theme="@style/WidgetDialog" />
+
         <!-- Home screen widgets. Each provider is one entry in WidgetSpecs. -->
         <!-- Inline widget taps (habit check-ins, planner completions). -->
         <receiver
@@ -84,6 +93,18 @@
             <meta-data
                 android:name="android.appwidget.provider"
                 android:resource="@xml/widget_focus_info" />
+        </receiver>
+
+        <receiver
+            android:name=".ExpensesWidgetProvider"
+            android:exported="true"
+            android:label="@string/widget_expenses_label">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/widget_expenses_info" />
         </receiver>
 
         <receiver

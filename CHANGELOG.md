@@ -2,6 +2,28 @@
 
 All notable changes to SkillSync OS are documented here.
 
+## [4.4.0] — 2026-10-25
+
+### Added
+
+- **Spend widget** (4 × 2) — today's spending, the monthly budget meter and three
+  one-tap amounts sized from your own median spend, with a `＋` chip that opens a
+  small custom-amount sheet (`WidgetExpenseActivity`: amount + Food / Transit /
+  Study / Other). Every logged spend becomes a normal debit transaction, tagged,
+  with `description: "Logged from a home screen widget"`.
+- **Widget-queued expenses are deduplicated** — a spend whose amount and
+  timestamp already exist in the workspace is dropped during replay, so a
+  queue drained twice after a crash can never double-charge.
+- `expenseChips` / `validExpenseAmount` helpers in `src/lib/home-widgets.ts`
+  (+12 tests covering chip sizing, amount validation and replay).
+- Quick actions widget: the Planner shortcut became `＋ Spend`, opening the
+  amount sheet.
+
+### Changed
+
+- Widget catalogue is now **ten** widgets; the gallery, docs and native
+  `WidgetSpecs` stay in lock-step. `APP_VERSION` is now 4.4.
+
 ## [4.3.0] — 2026-10-24
 
 ### Added

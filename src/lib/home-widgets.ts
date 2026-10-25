@@ -24,6 +24,7 @@ export type HomeWidgetType =
   | "today"
   | "habits"
   | "focus"
+  | "expenses"
   | "aims"
   | "planner"
   | "stats"
@@ -88,6 +89,14 @@ export const HOME_WIDGETS: HomeWidgetDefinition[] = [
     module: "planner",
   },
   {
+    type: "expenses",
+    title: "Spend",
+    description: "Today's spend against your monthly budget, with quick-log amounts.",
+    size: "4 × 2",
+    interaction: "Log a spend in one tap, or enter a custom amount",
+    module: "expenses",
+  },
+  {
     type: "aims",
     title: "Aims",
     description: "The goals you are working on, pinned where you cannot avoid them.",
@@ -141,6 +150,16 @@ export type WidgetTaskRow = {
   priority: string;
 };
 
+export type WidgetExpenses = {
+  todaySpend: number;
+  todayCount: number;
+  monthSpend: number;
+  monthlyBudget: number;
+  /** Three one-tap amounts, derived from the user's own recent spends. */
+  chips: number[];
+  currency: string;
+};
+
 export type WidgetAimRow = {
   id: string;
   title: string;
@@ -182,6 +201,7 @@ export type WidgetSnapshot = {
   habits: WidgetHabitRow[];
   tasks: WidgetTaskRow[];
   aims: WidgetAimRow[];
+  expenses: WidgetExpenses;
   quote: { text: string; author: string };
   /** Seven block characters, oldest → today. */
   sparkline: string;
@@ -221,6 +241,62 @@ function taskSort(a: PlannerTask, b: PlannerTask): number {
   if (at !== bt) return at.localeCompare(bt);
   const rank: Record<string, number> = { high: 0, medium: 1, low: 2 };
   return (rank[a.priority] ?? 1) - (rank[b.priority] ?? 1);
+}
+
+const CURRENCY = "₹";
+
+/** Default one-tap amounts when there is no spending history yet. */
+export const DEFAULT_EXPENSE_CHIPS = [50, 100, 250];
+
+const roundTo = (value: number, step: number) => Math.max(step, Math.round(value / step) * step);
+
+/**
+ * Three one-tap amounts that fit how the user actually spends.
+ *
+ * Builds from the median debit over the last 30 days, rounded to a readable
+ * step, and offers half / once / double. With no history it falls back to
+ * ₹50 / ₹100 / ₹250 so the widget is useful on day one.
+ */
+export function expenseChips(transactions: Array<{ amount: number; type: string }>): number[] {
+  const amounts = transactions
+    .filter((tx) => tx.type === "debit" && Number.isFinite(tx.amount) && tx.amount > 0)
+    .map((tx) => tx.amount)
+    .sort((a, b) => a - b)
+    .slice(0, 30);
+  if (amounts.length === 0) return [...DEFAULT_EXPENSE_CHIPS];
+
+  const median = amounts[Math.floor(amounts.length / 2)];
+  const step = median >= 500 ? 100 : median >= 100 ? 50 : 10;
+  const base = roundTo(median, step);
+  const chips = [roundTo(base / 2, step), base, roundTo(base * 2, step)];
+  return [...new Set(chips)].sort((a, b) => a - b).slice(0, 3);
+}
+
+function expensesFor(data: AppData, now: Date): WidgetExpenses {
+  const today = todayISO(now);
+  const month = today.slice(0, 7);
+  let todaySpend = 0;
+  let todayCount = 0;
+  let monthSpend = 0;
+
+  for (const tx of data.expenses.transactions) {
+    if (tx.type !== "debit" || !Number.isFinite(tx.amount)) continue;
+    const day = todayISO(new Date(tx.at));
+    if (day === today) {
+      todaySpend += tx.amount;
+      todayCount += 1;
+    }
+    if (day.slice(0, 7) === month) monthSpend += tx.amount;
+  }
+
+  return {
+    todaySpend: round(todaySpend),
+    todayCount,
+    monthSpend: round(monthSpend),
+    monthlyBudget: round(data.expenses.monthlyBudget),
+    chips: expenseChips(data.expenses.transactions),
+    currency: CURRENCY,
+  };
 }
 
 function quoteFor(data: AppData, day: string): { text: string; author: string } {
@@ -334,6 +410,7 @@ export function buildWidgetSnapshot(data: AppData, now: Date = new Date()): Widg
     habits,
     tasks,
     aims,
+    expenses: expensesFor(data, now),
     quote: quoteFor(data, day),
     sparkline: sparkline(strip.map((entry) => entry.intensity)),
   };
@@ -348,18 +425,37 @@ export function buildWidgetSnapshot(data: AppData, now: Date = new Date()): Widg
  */
 export type HomeWidgetAction =
   | { type: "habit"; id: string; date?: string; done: boolean }
-  | { type: "task"; id: string; done: boolean };
+  | { type: "task"; id: string; done: boolean }
+  | { type: "expense"; amount: number; title?: string; category?: string; at?: number };
 
 export type HomeWidgetOperation =
   | { kind: "setHabit"; id: string; date: string; done: boolean }
-  | { kind: "setTaskDone"; id: string; done: boolean };
+  | { kind: "setTaskDone"; id: string; done: boolean }
+  | { kind: "addExpense"; amount: number; title: string; tags: string[]; at: number };
 
 type PlannerState = {
   /** Habits that still exist — a queued tap for a deleted habit is dropped. */
   habits: Array<{ id: string }>;
   habitLogs: Array<{ habitId: string; date: string }>;
   planner: Array<Pick<PlannerTask, "id" | "done">>;
+  /** Recent expenses, used to drop a queued spend the store already has. */
+  transactions?: Array<{ amount: number; type: string; at: number }>;
 };
+
+/** A widget-logged spend is only plausible in this range. */
+export const EXPENSE_MIN = 1;
+export const EXPENSE_MAX = 10_000_000;
+/** Two records of the same amount this close together are the same tap. */
+const EXPENSE_DEDUPE_MS = 5_000;
+
+/** A spent amount the store can accept, or null when the payload is junk. */
+export function validExpenseAmount(value: unknown): number | null {
+  const amount = typeof value === "number" ? value : Number(value);
+  if (!Number.isFinite(amount)) return null;
+  const rounded = Math.round(amount * 100) / 100;
+  if (rounded < EXPENSE_MIN || rounded > EXPENSE_MAX) return null;
+  return rounded;
+}
 
 /**
  * Replays queued widget taps into idempotent store operations.
@@ -398,6 +494,31 @@ export function planWidgetActions(
       if (done.get(action.id) === action.done) continue;
       done.set(action.id, action.done);
       operations.push({ kind: "setTaskDone", id: action.id, done: action.done });
+      continue;
+    }
+
+    if (action.type === "expense") {
+      const amount = validExpenseAmount(action.amount);
+      if (amount === null) continue;
+      const at = Number.isFinite(action.at) && (action.at ?? 0) > 0 ? action.at! : Date.now();
+      // A tap that already reached the store (e.g. the app drained the queue
+      // twice after a crash) must not become a second expense.
+      const duplicate = (state.transactions ?? []).some(
+        (tx) =>
+          tx.type === "debit" &&
+          Math.abs(tx.amount - amount) < 0.005 &&
+          Math.abs(tx.at - at) <= EXPENSE_DEDUPE_MS,
+      );
+      if (duplicate) continue;
+      const title =
+        typeof action.title === "string" && action.title.trim()
+          ? action.title.trim().slice(0, 60)
+          : "Quick spend";
+      const category =
+        typeof action.category === "string" && action.category.trim()
+          ? action.category.trim().slice(0, 24)
+          : "Quick";
+      operations.push({ kind: "addExpense", amount, title, tags: [category], at });
     }
   }
 
@@ -411,6 +532,18 @@ export function parseWidgetActions(payload: unknown): HomeWidgetAction[] {
   for (const raw of payload) {
     if (!raw || typeof raw !== "object") continue;
     const entry = raw as Record<string, unknown>;
+    if (entry.type === "expense") {
+      const amount = validExpenseAmount(entry.amount);
+      if (amount === null) continue;
+      actions.push({
+        type: "expense",
+        amount,
+        title: typeof entry.title === "string" ? entry.title : undefined,
+        category: typeof entry.category === "string" ? entry.category : undefined,
+        at: typeof entry.at === "number" ? entry.at : undefined,
+      });
+      continue;
+    }
     const id = typeof entry.id === "string" ? entry.id : "";
     if (!id) continue;
     if (entry.type === "habit") {

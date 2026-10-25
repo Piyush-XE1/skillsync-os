@@ -56,6 +56,25 @@ final class WidgetIntents {
                 context, requestCode(widgetId, "task|" + taskId), intent, flags());
     }
 
+    /** Logs a fixed-amount spend without opening the app. */
+    static PendingIntent expense(Context context, int widgetId, double amount) {
+        Intent intent = broadcast(context, WidgetActions.ACTION_EXPENSE);
+        intent.putExtra(WidgetActions.EXTRA_AMOUNT, amount);
+        intent.putExtra(WidgetActions.EXTRA_WIDGET_ID, widgetId);
+        return PendingIntent.getBroadcast(
+                context,
+                requestCode(widgetId, "expense|" + Math.round(amount * 100)),
+                intent,
+                flags());
+    }
+
+    /** Opens the small custom-amount sheet. */
+    static PendingIntent customExpense(Context context, int widgetId) {
+        Intent intent = WidgetExpenseActivity.intent(context);
+        return PendingIntent.getActivity(
+                context, requestCode(widgetId, "expense|custom"), intent, flags());
+    }
+
     private static Intent broadcast(Context context, String action) {
         Intent intent = new Intent(context, WidgetActions.class);
         intent.setAction(action);

@@ -12,6 +12,8 @@
     <string name="widget_habits_description">Check habits in and keep every streak alive.</string>
     <string name="widget_focus_label">Focus</string>
     <string name="widget_focus_description">Today\'s deep work, streak and one-tap focus starts.</string>
+    <string name="widget_expenses_label">Spend</string>
+    <string name="widget_expenses_description">Today's spend against your budget, with one-tap logging.</string>
     <string name="widget_aims_label">Aims</string>
     <string name="widget_aims_description">The aims you are working on, pinned to your home screen.</string>
     <string name="widget_planner_label">Planner</string>

@@ -43,6 +43,9 @@ final class WidgetSpecs {
     static final Spec FOCUS = new Spec(
             "focus", R.string.widget_focus_label, R.layout.widget_focus,
             FocusWidgetProvider.class, 2, 2);
+    static final Spec EXPENSES = new Spec(
+            "expenses", R.string.widget_expenses_label, R.layout.widget_expenses,
+            ExpensesWidgetProvider.class, 4, 2);
     static final Spec AIMS = new Spec(
             "aims", R.string.widget_aims_label, R.layout.widget_aims,
             AimsWidgetProvider.class, 4, 2);
@@ -63,7 +66,7 @@ final class WidgetSpecs {
             OverviewWidgetProvider.class, 4, 4);
 
     static final Spec[] ALL = {
-        TODAY, HABITS, FOCUS, AIMS, PLANNER, STATS, QUOTE, QUICK, OVERVIEW
+        TODAY, HABITS, FOCUS, EXPENSES, AIMS, PLANNER, STATS, QUOTE, QUICK, OVERVIEW
     };
 
     private WidgetSpecs() {}

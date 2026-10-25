@@ -88,7 +88,7 @@
             android:text="Focus" />
 
         <TextView
-            android:id="@+id/qa_plan"
+            android:id="@+id/qa_spend"
             android:layout_width="0dp"
             android:layout_height="wrap_content"
             android:layout_weight="1"
@@ -99,7 +99,7 @@
             android:background="@drawable/widget_pill"
             android:textColor="@color/widgetText"
             android:textSize="11sp"
-            android:text="Planner" />
+            android:text="＋ Spend" />
 
         <TextView
             android:id="@+id/qa_stats"

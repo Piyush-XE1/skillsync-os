@@ -8,6 +8,7 @@ import {
   CalendarCheck,
   Check,
   LayoutGrid,
+  Wallet,
   Plus,
   Quote,
   RefreshCw,
@@ -64,6 +65,7 @@ const ICONS: Record<HomeWidgetType, LucideIcon> = {
   today: Sun,
   habits: Activity,
   focus: Timer,
+  expenses: Wallet,
   planner: CalendarCheck,
   aims: Target,
   stats: BarChart3,
@@ -313,6 +315,18 @@ function WidgetsPage() {
 
 /* ------------------------------- previews ------------------------------- */
 
+/** Mirrors the native formatter: grouped thousands, decimals only when present. */
+function money(value: number, currency = "₹") {
+  const whole = Math.abs(value - Math.round(value)) < 0.005;
+  return (
+    currency +
+    value.toLocaleString(undefined, {
+      minimumFractionDigits: whole ? 0 : 2,
+      maximumFractionDigits: whole ? 0 : 2,
+    })
+  );
+}
+
 /** A faithful-in-spirit mock of what the native RemoteViews widget draws. */
 function WidgetPreview({
   type,
@@ -461,6 +475,38 @@ function WidgetPreview({
         </>
       ) : null}
 
+      {type === "expenses" ? (
+        <>
+          {heading("Spend", data ? "synced" : "not synced")}
+          <div className="mt-1 text-[15px] font-semibold tracking-tight">
+            {money(data?.expenses.todaySpend ?? 0, data?.expenses.currency)}
+          </div>
+          <div className="truncate text-[8.5px] text-muted-foreground">
+            {data && data.expenses.monthlyBudget > 0
+              ? `of ${money(data.expenses.monthlyBudget, data.expenses.currency)} this month · ${money(data.expenses.monthSpend, data.expenses.currency)} spent`
+              : `${data?.expenses.todayCount ?? 0} today · ${money(data?.expenses.monthSpend ?? 0, data?.expenses.currency)} this month`}
+          </div>
+          {meter(
+            data && data.expenses.monthlyBudget > 0
+              ? (data.expenses.monthSpend / data.expenses.monthlyBudget) * 100
+              : 0,
+          )}
+          <div className="mt-1.5 flex gap-1">
+            {[...(data?.expenses.chips ?? [50, 100, 250])].map((chip) => (
+              <span
+                key={chip}
+                className="flex-1 rounded-full border border-white/10 bg-white/[0.04] py-1 text-center text-[8.5px] text-foreground/80"
+              >
+                {money(chip, data?.expenses.currency)}
+              </span>
+            ))}
+            <span className="rounded-full border border-primary/60 bg-primary/15 px-2 py-1 text-center text-[8.5px] font-semibold text-primary">
+              ＋
+            </span>
+          </div>
+        </>
+      ) : null}
+
       {type === "aims" ? (
         <>
           {heading("Aims", aims.length ? `${aims.length} pinned` : "")}
@@ -520,7 +566,7 @@ function WidgetPreview({
         <>
           {heading("Quick capture")}
           <div className="mt-1.5 grid grid-cols-3 gap-1">
-            {["＋ Task", "＋ Note", "＋ Habit", "Focus", "Planner", "Analytics"].map((label) => (
+            {["＋ Task", "＋ Note", "＋ Habit", "＋ Spend", "Focus", "Analytics"].map((label) => (
               <span
                 key={label}
                 className={

@@ -1,7 +1,10 @@
 import { describe, expect, it } from "vitest";
 import {
+  DEFAULT_EXPENSE_CHIPS,
   HOME_WIDGETS,
   buildWidgetSnapshot,
+  expenseChips,
+  validExpenseAmount,
   homeWidgetDefinition,
   parseWidgetActions,
   planWidgetActions,
@@ -64,10 +67,10 @@ describe("sparkline", () => {
 });
 
 describe("home widget catalogue", () => {
-  it("lists nine widgets with unique types", () => {
-    expect(HOME_WIDGETS).toHaveLength(9);
+  it("lists ten widgets with unique types", () => {
+    expect(HOME_WIDGETS).toHaveLength(10);
     const types = new Set(HOME_WIDGETS.map((widget) => widget.type));
-    expect(types.size).toBe(9);
+    expect(types.size).toBe(10);
   });
 
   it("resolves a definition by type and ignores unknown types", () => {
@@ -83,6 +86,7 @@ describe("home widget catalogue", () => {
       "habits",
       "focus",
       "planner",
+      "expenses",
       "aims",
       "stats",
       "quote",
@@ -178,6 +182,68 @@ describe("buildWidgetSnapshot", () => {
     expect(buildWidgetSnapshot(data, NOW).quote).toEqual({ text: "Keep going.", author: "Me" });
   });
 
+  it("summarises spending for the Spend widget", () => {
+    const data = workspace({
+      expenses: {
+        monthlyBudget: 5000,
+        transactions: [
+          {
+            id: "t1",
+            title: "Food",
+            description: "",
+            amount: 120,
+            type: "debit",
+            tags: [],
+            at: NOW.getTime(),
+            position: 0,
+            updatedAt: 0,
+          },
+          {
+            id: "t2",
+            title: "Transit",
+            description: "",
+            amount: 80,
+            type: "debit",
+            tags: [],
+            at: NOW.getTime(),
+            position: 1,
+            updatedAt: 0,
+          },
+          {
+            id: "t3",
+            title: "Stipend",
+            description: "",
+            amount: 9000,
+            type: "credit",
+            tags: [],
+            at: NOW.getTime(),
+            position: 2,
+            updatedAt: 0,
+          },
+          {
+            id: "t4",
+            title: "Book",
+            description: "",
+            amount: 300,
+            type: "debit",
+            tags: [],
+            at: new Date(2026, 8, 2, 10).getTime(),
+            position: 3,
+            updatedAt: 0,
+          },
+        ],
+      },
+    });
+
+    const snapshot = buildWidgetSnapshot(data, NOW);
+    expect(snapshot.expenses.todaySpend).toBe(200); // credits excluded
+    expect(snapshot.expenses.todayCount).toBe(2);
+    expect(snapshot.expenses.monthSpend).toBe(500);
+    expect(snapshot.expenses.monthlyBudget).toBe(5000);
+    expect(snapshot.expenses.currency).toBe("₹");
+    expect(snapshot.expenses.chips.length).toBeGreaterThan(0);
+  });
+
   it("is plain JSON the native side can cache", () => {
     const snapshot = buildWidgetSnapshot(workspace(), NOW);
     expect(JSON.parse(JSON.stringify(snapshot))).toEqual(snapshot);
@@ -185,6 +251,46 @@ describe("buildWidgetSnapshot", () => {
 
   it("reports an empty CGPA as an empty string, never NaN", () => {
     expect(buildWidgetSnapshot(workspace({ cgpa: { semesters: [] } }), NOW).stats.cgpa).toBe("");
+  });
+});
+
+describe("expense chips", () => {
+  it("falls back to readable defaults with no history", () => {
+    expect(expenseChips([])).toEqual(DEFAULT_EXPENSE_CHIPS);
+  });
+
+  it("derives one-tap amounts from the user's own median spend", () => {
+    const chips = expenseChips([
+      { amount: 40, type: "debit" },
+      { amount: 60, type: "debit" },
+      { amount: 80, type: "debit" },
+      { amount: 9999, type: "credit" },
+    ]);
+    expect(chips).toEqual([30, 60, 120]);
+  });
+
+  it("rounds to a readable step for larger spends", () => {
+    const chips = expenseChips([{ amount: 1200, type: "debit" }]);
+    expect(chips).toEqual([600, 1200, 2400]);
+  });
+
+  it("never suggests a zero amount", () => {
+    const chips = expenseChips([{ amount: 5, type: "debit" }]);
+    expect(chips.every((chip) => chip > 0)).toBe(true);
+    expect(chips[0]).toBe(10);
+  });
+});
+
+describe("validExpenseAmount", () => {
+  it("accepts plausible spends and rounds to paise", () => {
+    expect(validExpenseAmount(120)).toBe(120);
+    expect(validExpenseAmount("150.456")).toBe(150.46);
+  });
+
+  it("rejects junk, zero, negatives and absurd amounts", () => {
+    for (const value of [0, -5, NaN, Infinity, "abc", null, undefined, 20_000_000]) {
+      expect(validExpenseAmount(value)).toBeNull();
+    }
   });
 });
 
@@ -238,6 +344,49 @@ describe("planWidgetActions", () => {
     expect(planWidgetActions(state, [{ type: "task", id: "lab", done: true }], TODAY)).toEqual([]);
   });
 
+  it("queues a widget-logged spend as an addExpense operation", () => {
+    const at = NOW.getTime();
+    expect(
+      planWidgetActions(state, [{ type: "expense", amount: 120, category: "Food", at }], TODAY),
+    ).toEqual([{ kind: "addExpense", amount: 120, title: "Quick spend", tags: ["Food"], at }]);
+  });
+
+  it("labels a custom-amount spend with its category", () => {
+    const at = NOW.getTime();
+    expect(
+      planWidgetActions(
+        state,
+        [{ type: "expense", amount: 65.5, title: "Transit", category: "Transit", at }],
+        TODAY,
+      ),
+    ).toEqual([{ kind: "addExpense", amount: 65.5, title: "Transit", tags: ["Transit"], at }]);
+  });
+
+  it("drops a spend the store already recorded", () => {
+    const at = NOW.getTime();
+    const withTx = {
+      ...state,
+      transactions: [{ amount: 120, type: "debit", at: at + 400 }],
+    };
+    expect(planWidgetActions(withTx, [{ type: "expense", amount: 120, at }], TODAY)).toEqual([]);
+  });
+
+  it("keeps two genuine identical spends made minutes apart", () => {
+    const at = NOW.getTime();
+    const withTx = {
+      ...state,
+      transactions: [{ amount: 120, type: "debit", at: at - 60_000 }],
+    };
+    expect(planWidgetActions(withTx, [{ type: "expense", amount: 120, at }], TODAY)).toHaveLength(
+      1,
+    );
+  });
+
+  it("ignores an impossible expense amount", () => {
+    expect(planWidgetActions(state, [{ type: "expense", amount: 0 }], TODAY)).toEqual([]);
+    expect(planWidgetActions(state, [{ type: "expense", amount: -20 }], TODAY)).toEqual([]);
+  });
+
   it("ignores a tap for a habit that no longer exists", () => {
     expect(planWidgetActions(state, [{ type: "habit", id: "deleted", done: true }], TODAY)).toEqual(
       [],
@@ -261,6 +410,8 @@ describe("parseWidgetActions", () => {
       parseWidgetActions([
         { type: "habit", id: "gym", date: TODAY, done: true },
         { type: "task", id: "dsa", done: false },
+        { type: "expense", amount: 90, category: "Food", at: 123 },
+        { type: "expense", amount: 0 },
         { type: "wat", id: "x", done: true },
         { type: "habit", done: true },
         "nope",
@@ -269,6 +420,7 @@ describe("parseWidgetActions", () => {
     ).toEqual([
       { type: "habit", id: "gym", date: TODAY, done: true },
       { type: "task", id: "dsa", done: false },
+      { type: "expense", amount: 90, title: undefined, category: "Food", at: 123 },
     ]);
   });
 

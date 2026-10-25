@@ -40,7 +40,12 @@ export function useHomeWidgets() {
 
       const state = useAppStore.getState();
       const operations = planWidgetActions(
-        { habits: state.habits, habitLogs: state.habitLogs, planner: state.planner },
+        {
+          habits: state.habits,
+          habitLogs: state.habitLogs,
+          planner: state.planner,
+          transactions: state.expenses.transactions,
+        },
         actions,
       );
       for (const operation of operations) {
@@ -49,8 +54,17 @@ export function useHomeWidgets() {
           // `toggleHabitToday` is the single writer for habit logs; the planner
           // above already established that this toggle reaches the desired state.
           store.toggleHabitToday(operation.id, operation.date);
-        } else {
+        } else if (operation.kind === "setTaskDone") {
           store.updatePlannerTask(operation.id, { done: operation.done });
+        } else {
+          store.addTransaction({
+            title: operation.title,
+            amount: operation.amount,
+            type: "debit",
+            tags: operation.tags,
+            at: operation.at,
+            description: "Logged from a home screen widget",
+          });
         }
       }
       if (operations.length > 0) await push();

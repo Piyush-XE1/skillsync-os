@@ -1,0 +1,144 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/widget_root"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical"
+    android:background="@drawable/widget_bg"
+    android:padding="16dp">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:gravity="center_vertical">
+
+        <TextView
+            android:id="@+id/widget_eyebrow"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:singleLine="true"
+            android:letterSpacing="0.14"
+            android:textAllCaps="true"
+            android:textColor="@color/widgetAccent"
+            android:textSize="9sp"
+            android:text="Spend" />
+
+        <TextView
+            android:id="@+id/widget_meta"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:textColor="@color/widgetMuted"
+            android:textSize="9sp"
+            android:text="" />
+    </LinearLayout>
+
+    <TextView
+        android:id="@+id/widget_title"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="7dp"
+        android:singleLine="true"
+        android:ellipsize="end"
+        android:textColor="@color/widgetText"
+        android:textSize="24sp"
+        android:textStyle="bold"
+        android:letterSpacing="-0.03"
+        android:text="₹0" />
+
+    <TextView
+        android:id="@+id/widget_subtitle"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:singleLine="true"
+        android:ellipsize="end"
+        android:textColor="@color/widgetMuted"
+        android:textSize="10sp"
+        android:text="today" />
+
+    <ProgressBar
+        android:id="@+id/widget_progress"
+        style="@android:style/Widget.ProgressBar.Horizontal"
+        android:layout_width="match_parent"
+        android:layout_height="4dp"
+        android:layout_marginTop="8dp"
+        android:max="100"
+        android:progress="0"
+        android:progressDrawable="@drawable/widget_progress" />
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="10dp"
+        android:orientation="horizontal"
+        android:baselineAligned="false">
+
+        <TextView
+            android:id="@+id/log_chip_1"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:gravity="center"
+            android:paddingTop="8dp"
+            android:paddingBottom="8dp"
+            android:background="@drawable/widget_pill"
+            android:textColor="@color/widgetText"
+            android:textSize="11.5sp"
+            android:text="₹50" />
+
+        <TextView
+            android:id="@+id/log_chip_2"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:layout_marginLeft="6dp"
+            android:gravity="center"
+            android:paddingTop="8dp"
+            android:paddingBottom="8dp"
+            android:background="@drawable/widget_pill"
+            android:textColor="@color/widgetText"
+            android:textSize="11.5sp"
+            android:text="₹100" />
+
+        <TextView
+            android:id="@+id/log_chip_3"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:layout_marginLeft="6dp"
+            android:gravity="center"
+            android:paddingTop="8dp"
+            android:paddingBottom="8dp"
+            android:background="@drawable/widget_pill"
+            android:textColor="@color/widgetText"
+            android:textSize="11.5sp"
+            android:text="₹250" />
+
+        <TextView
+            android:id="@+id/log_chip_custom"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:layout_marginLeft="6dp"
+            android:gravity="center"
+            android:paddingTop="8dp"
+            android:paddingBottom="8dp"
+            android:background="@drawable/widget_pill_accent"
+            android:textColor="@color/widgetAccent"
+            android:textSize="11.5sp"
+            android:textStyle="bold"
+            android:text="＋" />
+    </LinearLayout>
+
+    <TextView
+        android:id="@+id/widget_empty"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="7dp"
+        android:visibility="gone"
+        android:singleLine="true"
+        android:textColor="@color/widgetMuted"
+        android:textSize="10sp"
+        android:text="Open SkillSync to sync your workspace." />
+</LinearLayout>
