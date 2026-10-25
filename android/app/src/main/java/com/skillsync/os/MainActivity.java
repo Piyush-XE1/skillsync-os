@@ -74,8 +74,11 @@ public class MainActivity extends BridgeActivity {
         handleRouteIntent(getIntent());
     }
 
+    // public, not protected: BridgeActivity already widens onResume() to public,
+    // and an override may never narrow visibility (javac: "attempting to assign
+    // weaker access privileges; was public").
     @Override
-    protected void onResume() {
+    public void onResume() {
         super.onResume();
         // Widget taps made while the app was closed are queued natively; tell
         // the web app to drain them as soon as it is visible again.
