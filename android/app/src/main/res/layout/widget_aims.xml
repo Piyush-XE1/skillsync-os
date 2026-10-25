@@ -49,7 +49,7 @@
         android:textColor="@color/widgetMuted"
         android:textSize="11sp"
         android:lineSpacingExtra="2dp"
-        android:text="No aims pinned yet. Open SkillSync and add what you're working on." />
+        android:text="No aims pinned yet. Open SkillSync and add what you\'re working on." />
 
     <TextView
         android:id="@+id/widget_cta"

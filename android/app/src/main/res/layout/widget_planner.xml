@@ -23,7 +23,7 @@
             android:textAllCaps="true"
             android:textColor="@color/widgetAccent"
             android:textSize="9sp"
-            android:text="Today's plan" />
+            android:text="Today\'s plan" />
 
         <TextView
             android:id="@+id/widget_meta"

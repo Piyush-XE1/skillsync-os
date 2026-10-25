@@ -97,7 +97,7 @@
         android:textAllCaps="true"
         android:textColor="@color/widgetMuted"
         android:textSize="8.5sp"
-        android:text="Today's tasks" />
+        android:text="Today\'s tasks" />
 
     <LinearLayout
         android:id="@+id/widget_tasks_list"
