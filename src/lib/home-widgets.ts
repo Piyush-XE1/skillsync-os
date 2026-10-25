@@ -18,13 +18,17 @@ import { codingStats } from "@/lib/coding";
 import { cumulativeGpa } from "@/lib/cgpa";
 import { focusStreak, focusTotals } from "@/lib/focus";
 import { todayISO } from "@/lib/date";
-import type { AppData, FocusSettings, ModuleKey, PlannerTask } from "@/lib/schema";
+import { topicPct } from "@/lib/progress";
+import type { AppData, FocusSettings, ModuleKey, PlannerPriority, PlannerTask } from "@/lib/schema";
 
 export type HomeWidgetType =
   | "today"
   | "habits"
   | "focus"
   | "expenses"
+  | "notes"
+  | "pulse"
+  | "roadmaps"
   | "aims"
   | "planner"
   | "stats"
@@ -97,6 +101,29 @@ export const HOME_WIDGETS: HomeWidgetDefinition[] = [
     module: "expenses",
   },
   {
+    type: "notes",
+    title: "Notes",
+    description: "Your most recent notes, with a ＋ capture button.",
+    size: "4 × 2",
+    interaction: "Write a note from the home screen",
+    module: "notes",
+  },
+  {
+    type: "pulse",
+    title: "Pulse",
+    description: "A 12-week activity heatmap — habits, focus and solves in one grid.",
+    size: "4 × 2",
+    interaction: "Opens Analytics",
+  },
+  {
+    type: "roadmaps",
+    title: "Roadmaps",
+    description: "Learning roadmaps with their progress and the next topic to open.",
+    size: "4 × 2",
+    interaction: "opens the roadmap",
+    module: "roadmaps",
+  },
+  {
     type: "aims",
     title: "Aims",
     description: "The goals you are working on, pinned where you cannot avoid them.",
@@ -160,6 +187,24 @@ export type WidgetExpenses = {
   currency: string;
 };
 
+export type WidgetNoteRow = {
+  id: string;
+  title: string;
+  preview: string;
+  /** Epoch ms of the last edit — the widget shows a relative age. */
+  updatedAt: number;
+};
+
+export type WidgetRoadmapRow = {
+  id: string;
+  title: string;
+  pct: number;
+  /** First unfinished topic, or "" when the roadmap is complete. */
+  next: string;
+  topics: number;
+  done: number;
+};
+
 export type WidgetAimRow = {
   id: string;
   title: string;
@@ -202,6 +247,10 @@ export type WidgetSnapshot = {
   tasks: WidgetTaskRow[];
   aims: WidgetAimRow[];
   expenses: WidgetExpenses;
+  notes: WidgetNoteRow[];
+  roadmaps: WidgetRoadmapRow[];
+  /** 84 daily intensities (0..100), oldest → today: a 12-week × 7 grid. */
+  heatmap: number[];
   quote: { text: string; author: string };
   /** Seven block characters, oldest → today. */
   sparkline: string;
@@ -297,6 +346,88 @@ function expensesFor(data: AppData, now: Date): WidgetExpenses {
     chips: expenseChips(data.expenses.transactions),
     currency: CURRENCY,
   };
+}
+
+/** Days in the Pulse heatmap: 12 weeks, laid out as 12 columns × 7 rows. */
+export const HEATMAP_DAYS = 84;
+
+/** Notes shown on the Notes widget — newest first, archived ones excluded. */
+export const WIDGET_NOTE_LIMIT = 5;
+
+/**
+ * The trailing 84 days of effort, each 0..100.
+ *
+ * Reuses `activityStrip`, so the heatmap and the Today widget's 7-day strip are
+ * derived from exactly the same signal (habits 50%, focus 40%, solves 10%).
+ */
+export function heatmapFor(data: AppData, now: Date = new Date()): number[] {
+  return activityStrip(
+    {
+      habits: data.habits,
+      habitLogs: data.habitLogs,
+      goals: data.goals,
+      planner: data.planner,
+      coding: data.coding.problems,
+      focusSessions: data.focus.sessions,
+    },
+    now,
+    HEATMAP_DAYS,
+  ).map((entry) => entry.intensity);
+}
+
+function notesFor(data: AppData): WidgetNoteRow[] {
+  return [...data.notes]
+    .filter((note) => !note.archived)
+    .sort((a, b) => b.updatedAt - a.updatedAt)
+    .slice(0, WIDGET_NOTE_LIMIT)
+    .map((note) => {
+      const firstLine =
+        note.title.trim() ||
+        note.body
+          .split("\n")
+          .map((line) => line.trim())
+          .find((line) => line.length > 0) ||
+        "Untitled note";
+      const body = note.body.replace(/\s+/g, " ").trim();
+      return {
+        id: note.id,
+        title: firstLine.slice(0, 80),
+        preview: body.slice(0, 90),
+        updatedAt: note.updatedAt,
+      };
+    });
+}
+
+/**
+ * Flattens roadmaps into one row each: progress plus the next topic to open.
+ *
+ * A roadmap's progress is derived the same way the Learn module derives it
+ * (`topicPct`), so the widget can never disagree with the app.
+ */
+function roadmapsFor(data: AppData): WidgetRoadmapRow[] {
+  return data.roadmaps.slice(0, WIDGET_LIST_LIMIT).map((roadmap) => {
+    let total = 0;
+    let done = 0;
+    let sum = 0;
+    let next = "";
+    for (const phase of roadmap.phases) {
+      for (const topic of phase.topics) {
+        total += 1;
+        const pct = Math.round(topicPct(topic));
+        sum += pct;
+        if (pct >= 100) done += 1;
+        else if (!next) next = topic.title;
+      }
+    }
+    return {
+      id: roadmap.id,
+      title: roadmap.title,
+      pct: total === 0 ? 0 : Math.round(sum / total),
+      next,
+      topics: total,
+      done,
+    };
+  });
 }
 
 function quoteFor(data: AppData, day: string): { text: string; author: string } {
@@ -411,6 +542,9 @@ export function buildWidgetSnapshot(data: AppData, now: Date = new Date()): Widg
     tasks,
     aims,
     expenses: expensesFor(data, now),
+    notes: notesFor(data),
+    roadmaps: roadmapsFor(data),
+    heatmap: heatmapFor(data, now),
     quote: quoteFor(data, day),
     sparkline: sparkline(strip.map((entry) => entry.intensity)),
   };
@@ -426,12 +560,16 @@ export function buildWidgetSnapshot(data: AppData, now: Date = new Date()): Widg
 export type HomeWidgetAction =
   | { type: "habit"; id: string; date?: string; done: boolean }
   | { type: "task"; id: string; done: boolean }
-  | { type: "expense"; amount: number; title?: string; category?: string; at?: number };
+  | { type: "expense"; amount: number; title?: string; category?: string; at?: number }
+  | { type: "note"; title: string; body?: string }
+  | { type: "newTask"; title: string; time?: string; priority?: string; date?: string };
 
 export type HomeWidgetOperation =
   | { kind: "setHabit"; id: string; date: string; done: boolean }
   | { kind: "setTaskDone"; id: string; done: boolean }
-  | { kind: "addExpense"; amount: number; title: string; tags: string[]; at: number };
+  | { kind: "addExpense"; amount: number; title: string; tags: string[]; at: number }
+  | { kind: "addNote"; title: string; body: string; tags: string[] }
+  | { kind: "addTask"; title: string; date: string; time: string; priority: PlannerPriority };
 
 type PlannerState = {
   /** Habits that still exist — a queued tap for a deleted habit is dropped. */
@@ -441,6 +579,26 @@ type PlannerState = {
   /** Recent expenses, used to drop a queued spend the store already has. */
   transactions?: Array<{ amount: number; type: string; at: number }>;
 };
+
+const TASK_PRIORITIES = ["low", "medium", "high"] as const;
+
+/** Widget-captured text (a note title, a task title) is bounded, not trusted. */
+export const WIDGET_TITLE_MAX = 120;
+export const WIDGET_BODY_MAX = 2000;
+
+export function normalizePriority(value: unknown): PlannerPriority {
+  return typeof value === "string" && (TASK_PRIORITIES as readonly string[]).includes(value)
+    ? (value as PlannerPriority)
+    : "medium";
+}
+
+/** "18:30" or "" — anything else is dropped rather than stored as junk. */
+export function normalizeTime(value: unknown): string {
+  if (typeof value !== "string") return "";
+  const match = value.trim().match(/^([01]?\d|2[0-3]):([0-5]\d)$/);
+  if (!match) return "";
+  return `${match[1].padStart(2, "0")}:${match[2]}`;
+}
 
 /** A widget-logged spend is only plausible in this range. */
 export const EXPENSE_MIN = 1;
@@ -497,6 +655,27 @@ export function planWidgetActions(
       continue;
     }
 
+    if (action.type === "note") {
+      const title = (action.title ?? "").trim().slice(0, WIDGET_TITLE_MAX);
+      if (!title) continue;
+      const body = (action.body ?? "").trim().slice(0, WIDGET_BODY_MAX);
+      operations.push({ kind: "addNote", title, body, tags: ["Inbox", "Widget"] });
+      continue;
+    }
+
+    if (action.type === "newTask") {
+      const title = (action.title ?? "").trim().slice(0, WIDGET_TITLE_MAX);
+      if (!title) continue;
+      operations.push({
+        kind: "addTask",
+        title,
+        date: typeof action.date === "string" && action.date ? action.date : today,
+        time: normalizeTime(action.time),
+        priority: normalizePriority(action.priority),
+      });
+      continue;
+    }
+
     if (action.type === "expense") {
       const amount = validExpenseAmount(action.amount);
       if (amount === null) continue;
@@ -532,6 +711,26 @@ export function parseWidgetActions(payload: unknown): HomeWidgetAction[] {
   for (const raw of payload) {
     if (!raw || typeof raw !== "object") continue;
     const entry = raw as Record<string, unknown>;
+    if (entry.type === "note" || entry.type === "newTask") {
+      const title = typeof entry.title === "string" ? entry.title : "";
+      if (!title.trim()) continue;
+      if (entry.type === "note") {
+        actions.push({
+          type: "note",
+          title,
+          body: typeof entry.body === "string" ? entry.body : undefined,
+        });
+      } else {
+        actions.push({
+          type: "newTask",
+          title,
+          time: typeof entry.time === "string" ? entry.time : undefined,
+          priority: typeof entry.priority === "string" ? entry.priority : undefined,
+          date: typeof entry.date === "string" ? entry.date : undefined,
+        });
+      }
+      continue;
+    }
     if (entry.type === "expense") {
       const amount = validExpenseAmount(entry.amount);
       if (amount === null) continue;

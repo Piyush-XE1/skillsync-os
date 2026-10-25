@@ -35,7 +35,7 @@ Built with a **premium futuristic UI**, animated Aurora backgrounds, an offline-
 | 📈 **Analytics**           | GitHub-style activity heatmap, momentum & deep-work area charts, learning donut, coding bar chart + difficulty/platform donuts, habit trends             |
 | 🧾 **System**              | Workspace diagnostics — schema version, storage, aims, record counts                                                                                     |
 | 📱 **Android App**         | Native Android experience with haptics & system navigation                                                                                               |
-| 📲 **Home Widgets**        | Ten real Android home screen widgets — Today, Habits, Focus, Planner, Spend, Aims, Stats, Quote, Quick actions and a 4 × 4 Overview. Habit ticks, task completions and expense logging happen in place, with the app closed |
+| 📲 **Home Widgets**        | Thirteen real Android home screen widgets — Overview, Today, Habits, Focus, Planner, Spend, Notes, Pulse, Roadmaps, Aims, Stats, Quote and Quick actions. Habit ticks, task completions, expense logging and note/task capture all happen in place, with the app closed |
 | 🌌 **Aurora UI**           | Animated futuristic visual environment (plus Light & Atelier themes)                                                                                     |
 | ⚡ **Offline-First**       | Everything works without internet; data never leaves the device                                                                                          |
 
@@ -167,10 +167,11 @@ SkillSync OS can be packaged as a signed Android APK with:
 - Native Android back navigation
 - Haptic feedback
 - Native local notifications
-- **Ten home screen widgets** (see [docs/HOME_WIDGETS.md](docs/HOME_WIDGETS.md)) — add
+- **Thirteen home screen widgets** (see [docs/HOME_WIDGETS.md](docs/HOME_WIDGETS.md)) — add
   them from Profile → Home screen, or from the launcher's widget picker. Habit
-  ticks, planner completions and expense logging happen straight on the home
-  screen, with the app closed.
+  ticks, planner completions, expense logging and note/task capture happen
+  straight on the home screen, with the app closed. Includes a 12-week **Pulse**
+  heatmap and live **Roadmaps** progress.
 - Offline functionality
 - Custom splash/opening experience
 - Automated GitHub Actions APK builds
@@ -207,7 +208,7 @@ Instead of using separate tools for every part of personal development, SkillSyn
 - [x] Project showcase page + deterministic demo workspace
 - [x] Activity heatmaps & learning velocity analytics
 - [x] Local notifications · Android APK · native haptics
-- [x] Android home screen widgets (10 layouts, inline habit, task & expense actions)
+- [x] Android home screen widgets (13 layouts, inline habit · task · expense · note · task capture)
 - [x] Schema-versioned migrations (v1 → v12) with corruption salvage
 - [x] Unit + render test suite (Vitest) · CI (typecheck · lint · tests · build)
 - [ ] Cloud backup & sync

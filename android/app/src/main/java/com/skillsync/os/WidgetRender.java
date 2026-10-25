@@ -1,6 +1,8 @@
 package com.skillsync.os;
 
 import android.content.Context;
+import android.graphics.Bitmap;
+import android.graphics.Canvas;
 import android.graphics.Paint;
 import android.view.View;
 import android.widget.RemoteViews;
@@ -44,6 +46,15 @@ final class WidgetRender {
                 break;
             case "focus":
                 renderFocus(context, views, snapshot, widgetId);
+                break;
+            case "notes":
+                renderNotes(context, views, snapshot, widgetId, minHeightDp);
+                break;
+            case "pulse":
+                renderPulse(context, views, snapshot, widgetId, minWidthDp);
+                break;
+            case "roadmaps":
+                renderRoadmaps(context, views, snapshot, widgetId, minHeightDp);
                 break;
             case "expenses":
                 renderExpenses(context, views, snapshot, widgetId);
@@ -158,6 +169,142 @@ final class WidgetRender {
         views.setOnClickPendingIntent(R.id.widget_root, WidgetIntents.open(context, widgetId, "/focus"));
     }
 
+    private static void renderNotes(
+            Context context,
+            RemoteViews views,
+            JSONObject snapshot,
+            int widgetId,
+            int minHeightDp) {
+        JSONArray notes = array(snapshot, "notes");
+
+        heading(views, snapshot, "Notes");
+        views.setTextViewText(
+                R.id.widget_meta, notes.length() == 0 ? "" : notes.length() + " recent");
+
+        views.removeAllViews(R.id.widget_list);
+        int rows = rowsFor(minHeightDp, 108, 46, notes.length(), 5);
+        for (int i = 0; i < Math.min(rows, notes.length()); i++) {
+            JSONObject note = notes.optJSONObject(i);
+            if (note == null) continue;
+            RemoteViews row = inflate(context, R.layout.widget_row_note);
+            row.setTextViewText(R.id.row_title, shorten(note.optString("title", "Note"), 46));
+            String preview = note.optString("preview", "");
+            long updated = note.optLong("updatedAt", 0L);
+            String meta = preview.isEmpty() ? age(updated) : shorten(preview, 40);
+            row.setTextViewText(R.id.row_meta, meta);
+            row.setOnClickPendingIntent(R.id.row_root, WidgetIntents.open(context, widgetId, "/notes"));
+            views.addView(R.id.widget_list, row);
+        }
+
+        boolean empty = notes.length() == 0;
+        visible(views, R.id.widget_empty, empty);
+        visible(views, R.id.widget_list, !empty);
+        views.setOnClickPendingIntent(
+                R.id.widget_cta, WidgetIntents.capture(context, widgetId, "note"));
+        views.setOnClickPendingIntent(R.id.widget_root, WidgetIntents.open(context, widgetId, "/notes"));
+    }
+
+    /**
+     * The 12-week heatmap, drawn once as a bitmap.
+     *
+     * RemoteViews has no grid primitive, and 84 nested views would be far more
+     * expensive to inflate on every refresh, so the cells are painted into a
+     * small bitmap. It is deliberately capped at {@link #PULSE_MAX_CELL}px per
+     * cell: RemoteViews travel over a binder transaction with a ~1 MB budget.
+     */
+    private static void renderPulse(
+            Context context,
+            RemoteViews views,
+            JSONObject snapshot,
+            int widgetId,
+            int minWidthDp) {
+        final int columns = 12;
+        final int rows = 7;
+        final int cellCap = 30;
+
+        JSONArray heatmap = array(snapshot, "heatmap");
+        float density = context.getResources().getDisplayMetrics().density;
+        int availableDp = minWidthDp > 0 ? minWidthDp - 32 : 296;
+        availableDp = Math.max(180, Math.min(availableDp, 520));
+
+        int gap = Math.max(2, Math.round(3 * density));
+        int cell = (int) Math.floor((availableDp * density - gap * (columns - 1)) / columns);
+        cell = Math.max(6, Math.min(cellCap, cell));
+
+        int width = cell * columns + gap * (columns - 1);
+        int height = cell * rows + gap * (rows - 1);
+
+        Bitmap bitmap = Bitmap.createBitmap(Math.max(1, width), Math.max(1, height), Bitmap.Config.ARGB_8888);
+        Canvas canvas = new Canvas(bitmap);
+        Paint paint = new Paint(Paint.ANTI_ALIAS_FLAG);
+        int empty = ContextCompat.getColor(context, R.color.widgetSurfaceStrong);
+        int accent = ContextCompat.getColor(context, R.color.widgetAccent);
+        int accentRgb = accent & 0x00FFFFFF;
+
+        for (int column = 0; column < columns; column++) {
+            for (int row = 0; row < rows; row++) {
+                int value = heatmap.optInt(column * rows + row, 0);
+                if (value <= 0) {
+                    paint.setColor(empty);
+                } else {
+                    int alpha = Math.min(255, 70 + Math.round(value * 1.8f));
+                    paint.setColor((alpha << 24) | accentRgb);
+                }
+                float left = column * (cell + gap);
+                float top = row * (cell + gap);
+                float radius = cell * 0.3f;
+                canvas.drawRoundRect(left, top, left + cell, top + cell, radius, radius, paint);
+            }
+        }
+
+        heading(views, snapshot, "Pulse · 12 weeks");
+        views.setImageViewBitmap(R.id.widget_heatmap, bitmap);
+        JSONObject stats = object(snapshot, "stats");
+        text(
+                views,
+                R.id.widget_streak,
+                stats.optInt("bestStreak", 0) + "d best streak");
+        visible(views, R.id.widget_heatmap, synced(snapshot));
+        views.setOnClickPendingIntent(
+                R.id.widget_root, WidgetIntents.open(context, widgetId, "/analytics"));
+    }
+
+    private static void renderRoadmaps(
+            Context context,
+            RemoteViews views,
+            JSONObject snapshot,
+            int widgetId,
+            int minHeightDp) {
+        JSONArray roadmaps = array(snapshot, "roadmaps");
+
+        heading(views, snapshot, "Learning");
+        views.setTextViewText(
+                R.id.widget_meta, roadmaps.length() == 0 ? "" : roadmaps.length() + " active");
+
+        views.removeAllViews(R.id.widget_list);
+        int rows = rowsFor(minHeightDp, 108, 52, roadmaps.length(), 6);
+        for (int i = 0; i < Math.min(rows, roadmaps.length()); i++) {
+            JSONObject roadmap = roadmaps.optJSONObject(i);
+            if (roadmap == null) continue;
+            int pct = Math.max(0, Math.min(100, roadmap.optInt("pct", 0)));
+            RemoteViews row = inflate(context, R.layout.widget_row_roadmap);
+            row.setTextViewText(R.id.row_title, shorten(roadmap.optString("title", "Roadmap"), 40));
+            row.setTextViewText(R.id.row_meta, pct + "%");
+            row.setProgressBar(R.id.row_progress, 100, pct, false);
+            String id = roadmap.optString("id", "");
+            String route = id.isEmpty() ? "/learn" : "/learn/" + id;
+            row.setOnClickPendingIntent(R.id.row_root, WidgetIntents.open(context, widgetId, route));
+            views.addView(R.id.widget_list, row);
+        }
+
+        boolean empty = roadmaps.length() == 0;
+        visible(views, R.id.widget_empty, empty);
+        visible(views, R.id.widget_list, !empty);
+        views.setOnClickPendingIntent(
+                R.id.widget_cta, WidgetIntents.open(context, widgetId, "/learn"));
+        views.setOnClickPendingIntent(R.id.widget_root, WidgetIntents.open(context, widgetId, "/learn"));
+    }
+
     private static void renderExpenses(
             Context context, RemoteViews views, JSONObject snapshot, int widgetId) {
         JSONObject expenses = object(snapshot, "expenses");
@@ -263,6 +410,8 @@ final class WidgetRender {
         visible(views, R.id.widget_empty, empty);
         visible(views, R.id.widget_list, !empty);
         views.setOnClickPendingIntent(R.id.widget_cta, WidgetIntents.open(context, widgetId, "/planner"));
+        views.setOnClickPendingIntent(
+                R.id.widget_add_task, WidgetIntents.capture(context, widgetId, "task"));
         views.setOnClickPendingIntent(R.id.widget_root, WidgetIntents.open(context, widgetId, "/planner"));
     }
 
@@ -296,8 +445,9 @@ final class WidgetRender {
     }
 
     private static void renderQuick(Context context, RemoteViews views, int widgetId) {
-        views.setOnClickPendingIntent(R.id.qa_task, WidgetIntents.open(context, widgetId, "/planner"));
-        views.setOnClickPendingIntent(R.id.qa_note, WidgetIntents.open(context, widgetId, "/notes"));
+        // Task and note open their capture sheets: the tap does the work, not a trip into the app.
+        views.setOnClickPendingIntent(R.id.qa_task, WidgetIntents.capture(context, widgetId, "task"));
+        views.setOnClickPendingIntent(R.id.qa_note, WidgetIntents.capture(context, widgetId, "note"));
         views.setOnClickPendingIntent(R.id.qa_habit, WidgetIntents.open(context, widgetId, "/habits"));
         views.setOnClickPendingIntent(R.id.qa_focus, WidgetIntents.open(context, widgetId, "/focus"));
         views.setOnClickPendingIntent(
@@ -484,6 +634,28 @@ final class WidgetRender {
         long hours = minutes / 60L;
         if (hours < 24L) return "synced " + hours + "h ago";
         return "synced " + (hours / 24L) + "d ago";
+    }
+
+    /** "18:30" kept, "9:5" padded, anything else dropped. */
+    static String normalizeTime(String raw) {
+        if (raw == null) return "";
+        java.util.regex.Matcher matcher =
+                java.util.regex.Pattern.compile("^([01]?\\d|2[0-3]):([0-5]\\d)$")
+                        .matcher(raw.trim());
+        if (!matcher.matches()) return "";
+        String hour = matcher.group(1);
+        return (hour.length() == 1 ? "0" + hour : hour) + ":" + matcher.group(2);
+    }
+
+    /** "just now" / "4h" / "3d" — a compact age for a note row. */
+    private static String age(long at) {
+        if (at <= 0L) return "";
+        long minutes = Math.max(0L, (System.currentTimeMillis() - at) / 60000L);
+        if (minutes < 1L) return "just now";
+        if (minutes < 60L) return minutes + "m ago";
+        long hours = minutes / 60L;
+        if (hours < 24L) return hours + "h ago";
+        return (hours / 24L) + "d ago";
     }
 
     /** "1,240" / "1,240.50" — grouped, no stray decimals on whole amounts. */

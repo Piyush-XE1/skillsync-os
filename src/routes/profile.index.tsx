@@ -479,7 +479,7 @@ function ProfilePage() {
             <div className="min-w-0 flex-1">
               <div className="flex items-center gap-2">
                 <div className="text-[14px] font-semibold tracking-tight">Home screen widgets</div>
-                <Chip>10</Chip>
+                <Chip>13</Chip>
               </div>
               <div className="text-[12px] text-muted-foreground">
                 Habits, focus, aims and tasks outside the app

@@ -1,10 +1,14 @@
 import { describe, expect, it } from "vitest";
 import {
   DEFAULT_EXPENSE_CHIPS,
+  HEATMAP_DAYS,
   HOME_WIDGETS,
   buildWidgetSnapshot,
   expenseChips,
+  normalizePriority,
+  normalizeTime,
   validExpenseAmount,
+  WIDGET_TITLE_MAX,
   homeWidgetDefinition,
   parseWidgetActions,
   planWidgetActions,
@@ -23,6 +27,18 @@ const habit = (id: string, title = id): Habit => ({
   emoji: "flame",
   createdAt: 0,
   startDate: null,
+});
+
+const topic = (id: string, title: string, done: boolean) => ({
+  id,
+  title,
+  done,
+  notes: "",
+  resources: [],
+  subtopics: [],
+  checklist: [],
+  createdAt: 0,
+  completedAt: done ? NOW.getTime() : null,
 });
 
 const task = (id: string, date: string, done = false, time = ""): PlannerTask => ({
@@ -67,10 +83,10 @@ describe("sparkline", () => {
 });
 
 describe("home widget catalogue", () => {
-  it("lists ten widgets with unique types", () => {
-    expect(HOME_WIDGETS).toHaveLength(10);
+  it("lists thirteen widgets with unique types", () => {
+    expect(HOME_WIDGETS).toHaveLength(13);
     const types = new Set(HOME_WIDGETS.map((widget) => widget.type));
-    expect(types.size).toBe(10);
+    expect(types.size).toBe(13);
   });
 
   it("resolves a definition by type and ignores unknown types", () => {
@@ -87,6 +103,9 @@ describe("home widget catalogue", () => {
       "focus",
       "planner",
       "expenses",
+      "notes",
+      "pulse",
+      "roadmaps",
       "aims",
       "stats",
       "quote",
@@ -244,6 +263,89 @@ describe("buildWidgetSnapshot", () => {
     expect(snapshot.expenses.chips.length).toBeGreaterThan(0);
   });
 
+  it("lists recent notes newest-first and never archived ones", () => {
+    const base = createInitialData();
+    const data = workspace({
+      notes: [
+        {
+          id: "n1",
+          title: "Older",
+          body: "first",
+          tags: [],
+          pinned: false,
+          notebook: "General",
+          archived: false,
+          linkedTo: null,
+          createdAt: 1,
+          updatedAt: 100,
+        },
+        {
+          id: "n2",
+          title: "",
+          body: "\n\nBody only line\nsecond",
+          tags: [],
+          pinned: false,
+          notebook: "General",
+          archived: false,
+          linkedTo: null,
+          createdAt: 2,
+          updatedAt: 300,
+        },
+        {
+          id: "n3",
+          title: "Archived",
+          body: "x",
+          tags: [],
+          pinned: false,
+          notebook: "General",
+          archived: true,
+          linkedTo: null,
+          createdAt: 3,
+          updatedAt: 900,
+        },
+      ],
+    });
+    expect(base.notes).toBeDefined();
+    const notes = buildWidgetSnapshot(data, NOW).notes;
+    expect(notes.map((note) => note.id)).toEqual(["n2", "n1"]);
+    expect(notes[0].title).toBe("Body only line");
+  });
+
+  it("derives roadmap progress and the next topic", () => {
+    const base = createInitialData();
+    const data = workspace({
+      roadmaps: [
+        {
+          id: "r1",
+          title: "Python",
+          subtitle: "",
+          color: "#fff",
+          createdAt: 0,
+          phases: [
+            {
+              id: "p1",
+              title: "Foundations",
+              createdAt: 0,
+              topics: [topic("t1", "Syntax", true), topic("t2", "Loops", false)],
+            },
+          ],
+        },
+      ],
+    });
+    expect(base.roadmaps).toBeDefined();
+    const [roadmap] = buildWidgetSnapshot(data, NOW).roadmaps;
+    expect(roadmap.topics).toBe(2);
+    expect(roadmap.done).toBe(1);
+    expect(roadmap.pct).toBe(50);
+    expect(roadmap.next).toBe("Loops");
+  });
+
+  it("returns an 84-day heatmap", () => {
+    const heatmap = buildWidgetSnapshot(workspace(), NOW).heatmap;
+    expect(heatmap).toHaveLength(HEATMAP_DAYS);
+    expect(heatmap.every((value) => value >= 0 && value <= 100)).toBe(true);
+  });
+
   it("is plain JSON the native side can cache", () => {
     const snapshot = buildWidgetSnapshot(workspace(), NOW);
     expect(JSON.parse(JSON.stringify(snapshot))).toEqual(snapshot);
@@ -291,6 +393,22 @@ describe("validExpenseAmount", () => {
     for (const value of [0, -5, NaN, Infinity, "abc", null, undefined, 20_000_000]) {
       expect(validExpenseAmount(value)).toBeNull();
     }
+  });
+});
+
+describe("capture helpers", () => {
+  it("normalises a task time or drops it", () => {
+    expect(normalizeTime("18:30")).toBe("18:30");
+    expect(normalizeTime("9:05")).toBe("09:05");
+    expect(normalizeTime("25:00")).toBe("");
+    expect(normalizeTime("later")).toBe("");
+    expect(normalizeTime(undefined)).toBe("");
+  });
+
+  it("defaults an unknown priority to medium", () => {
+    expect(normalizePriority("high")).toBe("high");
+    expect(normalizePriority("urgent")).toBe("medium");
+    expect(normalizePriority(7)).toBe("medium");
   });
 });
 
@@ -382,6 +500,46 @@ describe("planWidgetActions", () => {
     );
   });
 
+  it("turns a captured note into an inbox addNote operation", () => {
+    expect(
+      planWidgetActions(
+        state,
+        [{ type: "note", title: "  Idea  ", body: " try the h3 index " }],
+        TODAY,
+      ),
+    ).toEqual([
+      { kind: "addNote", title: "Idea", body: "try the h3 index", tags: ["Inbox", "Widget"] },
+    ]);
+  });
+
+  it("rejects a note with no title", () => {
+    expect(planWidgetActions(state, [{ type: "note", title: "   " }], TODAY)).toEqual([]);
+  });
+
+  it("turns a captured task into a task for today", () => {
+    expect(
+      planWidgetActions(
+        state,
+        [{ type: "newTask", title: "Revise OS", time: "7:30", priority: "high" }],
+        TODAY,
+      ),
+    ).toEqual([
+      { kind: "addTask", title: "Revise OS", date: TODAY, time: "07:30", priority: "high" },
+    ]);
+  });
+
+  it("defaults a captured task's time and priority", () => {
+    expect(planWidgetActions(state, [{ type: "newTask", title: "Gym" }], TODAY)).toEqual([
+      { kind: "addTask", title: "Gym", date: TODAY, time: "", priority: "medium" },
+    ]);
+  });
+
+  it("clamps an over-long capture title", () => {
+    const [operation] = planWidgetActions(state, [{ type: "note", title: "x".repeat(400) }], TODAY);
+    expect(operation.kind).toBe("addNote");
+    expect(operation.kind === "addNote" && operation.title.length).toBe(WIDGET_TITLE_MAX);
+  });
+
   it("ignores an impossible expense amount", () => {
     expect(planWidgetActions(state, [{ type: "expense", amount: 0 }], TODAY)).toEqual([]);
     expect(planWidgetActions(state, [{ type: "expense", amount: -20 }], TODAY)).toEqual([]);
@@ -411,6 +569,8 @@ describe("parseWidgetActions", () => {
         { type: "habit", id: "gym", date: TODAY, done: true },
         { type: "task", id: "dsa", done: false },
         { type: "expense", amount: 90, category: "Food", at: 123 },
+        { type: "note", title: "Captured" },
+        { type: "newTask", title: "Captured task", time: "18:00" },
         { type: "expense", amount: 0 },
         { type: "wat", id: "x", done: true },
         { type: "habit", done: true },
@@ -421,6 +581,14 @@ describe("parseWidgetActions", () => {
       { type: "habit", id: "gym", date: TODAY, done: true },
       { type: "task", id: "dsa", done: false },
       { type: "expense", amount: 90, title: undefined, category: "Food", at: 123 },
+      { type: "note", title: "Captured", body: undefined },
+      {
+        type: "newTask",
+        title: "Captured task",
+        time: "18:00",
+        priority: undefined,
+        date: undefined,
+      },
     ]);
   });
 

@@ -6,12 +6,14 @@ import {
   ArrowLeft,
   BarChart3,
   CalendarCheck,
+  BookOpen,
   Check,
   LayoutGrid,
   Wallet,
   Plus,
   Quote,
   RefreshCw,
+  Route as RouteIcon,
   Smartphone,
   Sun,
   Target,
@@ -66,7 +68,10 @@ const ICONS: Record<HomeWidgetType, LucideIcon> = {
   habits: Activity,
   focus: Timer,
   expenses: Wallet,
+  notes: BookOpen,
   planner: CalendarCheck,
+  pulse: Activity,
+  roadmaps: RouteIcon,
   aims: Target,
   stats: BarChart3,
   quote: Quote,
@@ -503,6 +508,84 @@ function WidgetPreview({
             <span className="rounded-full border border-primary/60 bg-primary/15 px-2 py-1 text-center text-[8.5px] font-semibold text-primary">
               ＋
             </span>
+          </div>
+        </>
+      ) : null}
+
+      {type === "notes" ? (
+        <>
+          {heading("Notes", `${data?.notes.length ?? 0} recent`)}
+          <div className="mt-1.5 space-y-1">
+            {(data?.notes.length
+              ? data.notes.slice(0, 3)
+              : [{ id: "x", title: "No notes yet", preview: "", updatedAt: 0 }]
+            ).map((note) => (
+              <div key={note.id} className="rounded-md bg-white/[0.035] px-2 py-1">
+                <div className="truncate text-[9.5px] text-foreground/90">{note.title}</div>
+                {note.preview ? (
+                  <div className="truncate text-[7.5px] text-muted-foreground">{note.preview}</div>
+                ) : null}
+              </div>
+            ))}
+          </div>
+          <div className="mt-1.5 rounded-full border border-primary/60 bg-primary/15 py-1 text-center text-[8.5px] font-semibold text-primary">
+            ＋ Note
+          </div>
+        </>
+      ) : null}
+
+      {type === "pulse" ? (
+        <>
+          {heading("Pulse", "12 weeks")}
+          <div className="mt-1.5 flex gap-[3px]">
+            {Array.from({ length: 12 }).map((_, col) => (
+              <div key={col} className="flex flex-1 flex-col gap-[3px]">
+                {Array.from({ length: 7 }).map((__, row) => {
+                  const intensity = data?.heatmap[col * 7 + row] ?? 0;
+                  return (
+                    <span
+                      key={row}
+                      className="aspect-square w-full rounded-[2px]"
+                      style={{
+                        background:
+                          intensity === 0
+                            ? "rgba(255,255,255,0.06)"
+                            : `color-mix(in oklab, var(--primary) ${Math.max(18, intensity)}%, transparent)`,
+                      }}
+                    />
+                  );
+                })}
+              </div>
+            ))}
+          </div>
+          <div className="mt-1.5 flex items-center justify-between text-[7.5px] text-muted-foreground">
+            <span>12 weeks ago</span>
+            <span className="text-primary">{data?.stats.bestStreak ?? 0}d best streak</span>
+          </div>
+        </>
+      ) : null}
+
+      {type === "roadmaps" ? (
+        <>
+          {heading("Roadmaps", `${data?.roadmaps.length ?? 0}`)}
+          <div className="mt-1.5 space-y-1">
+            {(data?.roadmaps.length
+              ? data.roadmaps.slice(0, 3)
+              : [{ id: "x", title: "No roadmaps yet", pct: 0, next: "", topics: 0, done: 0 }]
+            ).map((roadmap) => (
+              <div key={roadmap.id} className="rounded-md bg-white/[0.035] px-2 py-1">
+                <div className="flex items-center justify-between gap-2">
+                  <span className="truncate text-[9.5px] text-foreground/90">{roadmap.title}</span>
+                  <span className="shrink-0 text-[8px] text-primary">{roadmap.pct}%</span>
+                </div>
+                <div className="mt-0.5 h-[2px] w-full overflow-hidden rounded-full bg-white/10">
+                  <div
+                    className="h-full rounded-full bg-primary"
+                    style={{ width: `${roadmap.pct}%` }}
+                  />
+                </div>
+              </div>
+            ))}
           </div>
         </>
       ) : null}

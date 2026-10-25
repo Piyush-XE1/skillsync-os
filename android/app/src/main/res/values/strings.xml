@@ -14,6 +14,12 @@
     <string name="widget_focus_description">Today\'s deep work, streak and one-tap focus starts.</string>
     <string name="widget_expenses_label">Spend</string>
     <string name="widget_expenses_description">Today's spend against your budget, with one-tap logging.</string>
+    <string name="widget_notes_label">Notes</string>
+    <string name="widget_notes_description">Your most recent notes, with a one-tap capture sheet.</string>
+    <string name="widget_pulse_label">Pulse</string>
+    <string name="widget_pulse_description">A twelve-week activity heatmap of habits, focus and solves.</string>
+    <string name="widget_roadmaps_label">Roadmaps</string>
+    <string name="widget_roadmaps_description">Learning roadmap progress and the next topic to open.</string>
     <string name="widget_aims_label">Aims</string>
     <string name="widget_aims_description">The aims you are working on, pinned to your home screen.</string>
     <string name="widget_planner_label">Planner</string>

@@ -68,6 +68,13 @@ final class WidgetIntents {
                 flags());
     }
 
+    /** Opens the capture sheet: write a note, or add a task for today. */
+    static PendingIntent capture(Context context, int widgetId, String mode) {
+        Intent intent = WidgetCaptureActivity.intent(context, mode, null);
+        return PendingIntent.getActivity(
+                context, requestCode(widgetId, "capture|" + mode), intent, flags());
+    }
+
     /** Opens the small custom-amount sheet. */
     static PendingIntent customExpense(Context context, int widgetId) {
         Intent intent = WidgetExpenseActivity.intent(context);

@@ -61,18 +61,42 @@
         android:textSize="11sp"
         android:text="Nothing planned for today." />
 
-    <TextView
-        android:id="@+id/widget_cta"
+    <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:layout_marginTop="8dp"
-        android:gravity="center"
-        android:paddingTop="7dp"
-        android:paddingBottom="7dp"
-        android:background="@drawable/widget_pill"
-        android:textColor="@color/widgetAccent"
-        android:textSize="11sp"
-        android:textAllCaps="true"
-        android:letterSpacing="0.1"
-        android:text="Add a task" />
+        android:orientation="horizontal"
+        android:baselineAligned="false">
+
+        <TextView
+            android:id="@+id/widget_cta"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:gravity="center"
+            android:paddingTop="7dp"
+            android:paddingBottom="7dp"
+            android:background="@drawable/widget_pill"
+            android:textColor="@color/widgetAccent"
+            android:textSize="11sp"
+            android:textAllCaps="true"
+            android:letterSpacing="0.1"
+            android:text="Open planner" />
+
+        <TextView
+            android:id="@+id/widget_add_task"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:layout_marginLeft="6dp"
+            android:gravity="center"
+            android:paddingTop="7dp"
+            android:paddingBottom="7dp"
+            android:background="@drawable/widget_pill_accent"
+            android:textColor="@color/widgetAccent"
+            android:textSize="11sp"
+            android:textAllCaps="true"
+            android:letterSpacing="0.1"
+            android:text="＋ Task" />
+    </LinearLayout>
 </LinearLayout>

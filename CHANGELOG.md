@@ -2,6 +2,32 @@
 
 All notable changes to SkillSync OS are documented here.
 
+## [4.5.0] — 2026-10-25
+
+### Added
+
+- **Three more widgets — thirteen in total.**
+  - **Notes** (4 × 2): your five most recent notes with a preview and relative
+    age, plus a `＋ New note` sheet.
+  - **Pulse** (4 × 2): a 12-week × 7-day activity heatmap (habits 50%, focus 40%,
+    solves 10%), painted as a single capped-size bitmap rather than 84 views.
+  - **Roadmaps** (4 × 2): each roadmap's progress bar and the next topic to open;
+    tapping a row deep-links into that roadmap.
+- **In-widget capture.** `WidgetCaptureActivity` is one translucent sheet with
+  two modes — write a note (saved to the Inbox, tagged `Widget`) or add a task
+  for today with an optional time and priority. Wired to the Notes and Planner
+  widgets and to the Quick actions `＋ Note` / `＋ Task` chips; every capture is
+  queued like a tap, so it lands in the workspace on the next resume.
+- Snapshot gains `notes`, `roadmaps` and an 84-sample `heatmap`; the action
+  planner learns `note` and `newTask` (validated: 120-char titles, 2000-char
+  bodies, `HH:MM` times, low/medium/high priority).
+- 44 tests for the widget model (was 34).
+
+### Changed
+
+- Widget gallery previews for the three new widgets; Planner widget's footer is
+  now `Open planner` + `＋ Task`. `APP_VERSION` is now 4.5.
+
 ## [4.4.0] — 2026-10-25
 
 ### Added

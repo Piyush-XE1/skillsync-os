@@ -38,6 +38,7 @@ describe("/profile/widgets", () => {
     // The browser has no native bridge, so the page explains the Android path.
     expect(text).toContain("Home screen");
     expect(text).toContain("Add these on your phone");
+    expect(text).toContain("13 widgets");
     for (const title of [
       "Overview",
       "Today",
@@ -48,6 +49,9 @@ describe("/profile/widgets", () => {
       "Stats",
       "Daily quote",
       "Quick actions",
+      "Notes",
+      "Pulse",
+      "Roadmaps",
     ]) {
       expect(text).toContain(title);
     }
