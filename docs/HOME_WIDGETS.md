@@ -121,6 +121,10 @@ the widgets as a cache that always converges on it.
   the line. `res/values/strings.xml` and every `android:text` / `android:hint`
   in a layout are affected. Run `npm run android:validate` before building; CI
   runs the same check before Gradle.
+  The validator also verifies that no `@Override` in the native code narrows its
+  parent's visibility (e.g. `protected void onResume()` against Capacitor's
+  `public onResume()`, which javac rejects as "weaker access privileges") —
+  checked against the real Capacitor sources plus a table of AOSP signatures.
 - Widgets use classic `RemoteViews` (FrameLayout / LinearLayout / TextView /
   ProgressBar). No Compose, no Glance, no extra dependency — nothing to download
   and it works on every launcher.
