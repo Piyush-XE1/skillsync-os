@@ -4,20 +4,29 @@ import { toast } from "sonner";
 import { ArrowLeft, Pencil, Plus, Search, Trash2, TrendingDown, TrendingUp, X } from "lucide-react";
 import { AppShell, PageHeader } from "@/components/layout/AppShell";
 import { PrimaryAction } from "@/components/layout/PrimaryAction";
+import { z } from "zod";
 import { Card, Chip } from "@/components/ui/primitives";
 import { EmptyState } from "@/components/common/EmptyState";
 import { DragHandle, DragSortList, type HandleProps } from "@/components/common/DragSortList";
 import { BottomSheet, ConfirmDialog } from "@/components/edit/Sheet";
 import { TextField, TextArea } from "@/components/edit/Fields";
+import { TagPicker } from "@/components/edit/TagPicker";
 import { ActionButton, IconButton } from "@/components/edit/Buttons";
 import { useAppStore, useHydrated } from "@/store/useAppStore";
 import { haptics } from "@/lib/haptics";
 import { sound } from "@/lib/sound";
 import { cn } from "@/lib/utils";
 import { expenseDateTimestamp, formatRupees, monthlySpendingPace } from "@/lib/expenses";
+import { mergeTags } from "@/lib/tags";
 import type { Transaction } from "@/lib/schema";
 
+const expenseSearchSchema = z.object({
+  /** The 1 × 1 launcher widget opens the full entry sheet with `?add=1`. */
+  add: z.union([z.literal("1"), z.literal("true"), z.boolean()]).optional(),
+});
+
 export const Route = createFileRoute("/expenses/")({
+  validateSearch: expenseSearchSchema,
   head: () => ({
     meta: [
       { title: "Expenses — SkillSync" },
@@ -256,61 +265,129 @@ function TransactionList({
 }
 /* -------------------------------- Tag input ------------------------------ */
 
-function TagPicker({ value, onChange }: { value: string[]; onChange: (tags: string[]) => void }) {
-  const [custom, setCustom] = useState("");
-  const toggle = (tag: string) =>
-    onChange(
-      value.some((t) => t.toLowerCase() === tag.toLowerCase())
-        ? value.filter((t) => t.toLowerCase() !== tag.toLowerCase())
-        : [...value, tag],
-    );
-  const addCustom = () => {
-    const tag = custom.trim();
-    if (!tag) return;
-    if (!value.some((t) => t.toLowerCase() === tag.toLowerCase())) {
-      onChange([...value, tag]);
-    }
-    setCustom("");
-  };
-  const extras = value.filter((t) => !PRESET_TAGS.some((p) => p.toLowerCase() === t.toLowerCase()));
+type ExpenseFormState = {
+  title: string;
+  description: string;
+  amount: string;
+  date: string;
+  type: "credit" | "debit";
+  tags: string[];
+};
 
+function blankExpenseForm(): ExpenseFormState {
+  return {
+    title: "",
+    description: "",
+    amount: "",
+    date: toDateInput(Date.now()),
+    type: "debit",
+    tags: [],
+  };
+}
+
+function formFromTransaction(tx: Transaction): ExpenseFormState {
+  return {
+    title: tx.title,
+    description: tx.description ?? "",
+    amount: String(tx.amount),
+    date: toDateInput(tx.at),
+    type: tx.type,
+    tags: [...(tx.tags ?? [])],
+  };
+}
+
+/**
+ * One form powers both creation and editing. There is deliberately no
+ * "basic" add path: every supported field is available the first time.
+ */
+function ExpenseFormFields({
+  form,
+  patch,
+  savedTags,
+}: {
+  form: ExpenseFormState;
+  patch: (value: Partial<ExpenseFormState>) => void;
+  savedTags: string[];
+}) {
   return (
-    <div className="space-y-2">
-      <div className="flex flex-wrap gap-1.5">
-        {[...PRESET_TAGS, ...extras].map((tag) => {
-          const on = value.some((t) => t.toLowerCase() === tag.toLowerCase());
-          return (
-            <button
-              key={tag}
-              type="button"
-              onClick={() => toggle(tag)}
-              className={cn(
-                "font-numerical min-h-9 rounded-[4px] border px-2.5 py-1.5 text-[9px] uppercase tracking-[0.06em] transition-colors",
-                on
-                  ? "border-primary bg-[color-mix(in_oklab,var(--primary)_10%,var(--surface))] text-primary-glow"
-                  : "border-border bg-background text-muted-foreground hover:border-border-strong",
-              )}
-            >
-              {tag}
-            </button>
-          );
-        })}
-      </div>
+    <div className="space-y-3.5">
       <div className="flex gap-2">
-        <TextField
-          value={custom}
-          onChange={(e) => setCustom(e.target.value)}
-          onKeyDown={(e) => {
-            if (e.key === "Enter") {
-              e.preventDefault();
-              addCustom();
+        {(["debit", "credit"] as const).map((kind) => (
+          <button
+            key={kind}
+            type="button"
+            onClick={() => patch({ type: kind })}
+            aria-pressed={form.type === kind}
+            className={
+              "font-numerical min-h-11 flex-1 rounded-[5px] border py-2.5 text-[10px] font-semibold uppercase tracking-[0.08em] transition-colors " +
+              (form.type === kind
+                ? kind === "credit"
+                  ? "border-success/35 bg-success/10 text-success"
+                  : "border-danger/35 bg-danger/10 text-danger"
+                : "border-border bg-background text-muted-foreground")
             }
-          }}
-          placeholder="Custom tag e.g. Hostel"
+          >
+            {kind}
+          </button>
+        ))}
+      </div>
+      <label className="block space-y-1.5">
+        <span className="font-numerical text-[9px] font-medium uppercase tracking-[0.1em] text-muted-foreground">
+          Title
+        </span>
+        <TextField
+          value={form.title}
+          onChange={(event) => patch({ title: event.target.value })}
+          placeholder="e.g. Train ticket"
         />
-        <ActionButton variant="outline" onClick={addCustom}>
-          Add
-        </ActionButton>
+      </label>
+      <label className="block space-y-1.5">
+        <span className="font-numerical text-[9px] font-medium uppercase tracking-[0.1em] text-muted-foreground">
+          Description
+        </span>
+        <TextArea
+          rows={3}
+          value={form.description}
+          onChange={(event) => patch({ description: event.target.value })}
+          placeholder="Optional detail about this transaction"
+        />
+      </label>
+      <div className="grid grid-cols-2 gap-2">
+        <label className="block space-y-1.5">
+          <span className="font-numerical text-[9px] font-medium uppercase tracking-[0.1em] text-muted-foreground">
+            Amount
+          </span>
+          <TextField
+            type="number"
+            inputMode="decimal"
+            min="0"
+            step="0.01"
+            value={form.amount}
+            onChange={(event) => patch({ amount: event.target.value })}
+            placeholder="0"
+          />
+        </label>
+        <label className="block space-y-1.5">
+          <span className="font-numerical text-[9px] font-medium uppercase tracking-[0.1em] text-muted-foreground">
+            Date
+          </span>
+          <TextField
+            type="date"
+            value={form.date}
+            onChange={(event) => patch({ date: event.target.value })}
+          />
+        </label>
+      </div>
+      <div className="space-y-1.5">
+        <span className="font-numerical block text-[9px] font-medium uppercase tracking-[0.1em] text-muted-foreground">
+          Tags
+        </span>
+        <TagPicker
+          value={form.tags}
+          suggestions={mergeTags(PRESET_TAGS, savedTags)}
+          onChange={(tags) => patch({ tags })}
+          placeholder="Custom tag e.g. College"
+        />
       </div>
     </div>
   );
@@ -329,13 +406,17 @@ function ExpensesPage() {
   const deleteTransaction = useAppStore((s) => s.deleteTransaction);
   const setTransactionOrder = useAppStore((s) => s.setTransactionOrder);
 
+  const savedTags = useAppStore((s) => s.expenses.customTags);
+  const rememberExpenseTags = useAppStore((s) => s.rememberExpenseTags);
+  const search = Route.useSearch();
+
   const [addOpen, setAddOpen] = useState(false);
   const [budgetOpen, setBudgetOpen] = useState(false);
   const [budgetDraft, setBudgetDraft] = useState("");
-  const [title, setTitle] = useState("");
-  const [amount, setAmount] = useState("");
-  const [expenseDate, setExpenseDate] = useState(() => toDateInput(Date.now()));
-  const [type, setType] = useState<"credit" | "debit">("debit");
+  const [form, setForm] = useState<ExpenseFormState>(blankExpenseForm);
+  const patchForm = useCallback((patch: Partial<ExpenseFormState>) => {
+    setForm((current) => ({ ...current, ...patch }));
+  }, []);
 
   const [query, setQuery] = useState("");
   const [filter, setFilter] = useState("All");
@@ -346,15 +427,14 @@ function ExpensesPage() {
   }, [addOpen]);
 
   const [editing, setEditing] = useState<Transaction | null>(null);
-  const [form, setForm] = useState({
-    title: "",
-    description: "",
-    amount: "",
-    date: "",
-    type: "debit" as "credit" | "debit",
-    tags: [] as string[],
-  });
   const [confirmDelete, setConfirmDelete] = useState(false);
+
+  // The tiny launcher widget deep-links here with `?add=1`.
+  useEffect(() => {
+    if (!search.add || !hydrated) return;
+    setForm(blankExpenseForm());
+    setAddOpen(true);
+  }, [search.add, hydrated]);
 
   /**
    * Reordering is scoped: the dragged rows swap the positions they already own,
@@ -432,15 +512,15 @@ function ExpensesPage() {
 
   const openAdd = () => {
     // A fresh sheet should always begin on the current local calendar date.
-    setExpenseDate(toDateInput(Date.now()));
+    setForm(blankExpenseForm());
     setAddOpen(true);
   };
 
   const submit = () => {
     if (addGuard.current) return;
-    const value = Number(amount);
-    const at = expenseDateTimestamp(expenseDate);
-    if (!title.trim() || !value || value <= 0 || at === null) {
+    const value = Number(form.amount);
+    const at = expenseDateTimestamp(form.date);
+    if (!form.title.trim() || !value || value <= 0 || at === null) {
       haptics.error();
       sound.error();
       toast.error("Add a title, a positive amount, and an expense date");
@@ -449,24 +529,22 @@ function ExpensesPage() {
     addGuard.current = true;
     haptics.success();
     sound.coin();
-    addTransaction({ title: title.trim(), amount: value, type, at });
-    setTitle("");
-    setAmount("");
-    setExpenseDate(toDateInput(Date.now()));
-    setType("debit");
+    addTransaction({
+      title: form.title.trim(),
+      description: form.description.trim(),
+      amount: value,
+      type: form.type,
+      tags: form.tags,
+      at,
+    });
+    rememberExpenseTags(form.tags);
+    setForm(blankExpenseForm());
     setAddOpen(false);
   };
 
   const openEditor = useCallback((tx: Transaction) => {
     setEditing(tx);
-    setForm({
-      title: tx.title,
-      description: tx.description ?? "",
-      amount: String(tx.amount),
-      date: toDateInput(tx.at),
-      type: tx.type,
-      tags: tx.tags ?? [],
-    });
+    setForm(formFromTransaction(tx));
   }, []);
 
   const saveEdit = () => {
@@ -486,6 +564,7 @@ function ExpensesPage() {
       tags: form.tags,
       at: expenseDateTimestamp(form.date, editing.at) ?? editing.at,
     });
+    rememberExpenseTags(form.tags);
     setEditing(null);
     haptics.success();
     sound.success();
@@ -681,68 +760,17 @@ function ExpensesPage() {
       </div>
 
       {/* Add */}
-      <BottomSheet open={addOpen} onClose={() => setAddOpen(false)} title="New transaction">
-        <div className="space-y-3">
-          <div className="flex gap-2">
-            {(["debit", "credit"] as const).map((tp) => (
-              <button
-                key={tp}
-                onClick={() => setType(tp)}
-                className={
-                  "font-numerical min-h-11 flex-1 rounded-[5px] border py-2.5 text-[10px] font-semibold uppercase tracking-[0.08em] transition-colors " +
-                  (type === tp
-                    ? tp === "credit"
-                      ? "border-success/35 bg-success/10 text-success"
-                      : "border-danger/35 bg-danger/10 text-danger"
-                    : "border-border bg-background text-muted-foreground")
-                }
-              >
-                {tp}
-              </button>
-            ))}
-          </div>
-          <div className="space-y-1.5">
-            <label className="font-numerical text-[9px] font-medium uppercase tracking-[0.1em] text-muted-foreground">
-              Title
-            </label>
-            <TextField
-              autoFocus
-              value={title}
-              onChange={(e) => setTitle(e.target.value)}
-              placeholder="e.g. Groceries"
-            />
-          </div>
-          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-            <label className="block space-y-1.5">
-              <span className="font-numerical text-[9px] font-medium uppercase tracking-[0.1em] text-muted-foreground">
-                Amount
-              </span>
-              <TextField
-                type="number"
-                inputMode="decimal"
-                min="0"
-                step="0.01"
-                value={amount}
-                onChange={(e) => setAmount(e.target.value)}
-                placeholder="0"
-              />
-            </label>
-            <label className="block space-y-1.5">
-              <span className="font-numerical text-[9px] font-medium uppercase tracking-[0.1em] text-muted-foreground">
-                Date of expense
-              </span>
-              <TextField
-                type="date"
-                value={expenseDate}
-                onChange={(e) => setExpenseDate(e.target.value)}
-                required
-              />
-            </label>
-          </div>
+      <BottomSheet
+        open={addOpen}
+        onClose={() => setAddOpen(false)}
+        title="New transaction"
+        footer={
           <ActionButton className="w-full" onClick={submit}>
-            Save
+            Save expense
           </ActionButton>
-        </div>
+        }
+      >
+        <ExpenseFormFields form={form} patch={patchForm} savedTags={savedTags} />
       </BottomSheet>
 
       <BottomSheet
@@ -789,74 +817,7 @@ function ExpensesPage() {
         }
       >
         <div className="space-y-3.5">
-          <div className="flex gap-2">
-            {(["debit", "credit"] as const).map((tp) => (
-              <button
-                key={tp}
-                onClick={() => setForm((f) => ({ ...f, type: tp }))}
-                className={
-                  "font-numerical min-h-11 flex-1 rounded-[5px] border py-2.5 text-[10px] font-semibold uppercase tracking-[0.08em] transition-colors " +
-                  (form.type === tp
-                    ? tp === "credit"
-                      ? "border-success/35 bg-success/10 text-success"
-                      : "border-danger/35 bg-danger/10 text-danger"
-                    : "border-border bg-background text-muted-foreground")
-                }
-              >
-                {tp}
-              </button>
-            ))}
-          </div>
-          <div className="space-y-1.5">
-            <label className="font-numerical text-[9px] font-medium uppercase tracking-[0.1em] text-muted-foreground">
-              Title
-            </label>
-            <TextField
-              value={form.title}
-              onChange={(e) => setForm((f) => ({ ...f, title: e.target.value }))}
-              placeholder="e.g. Train Ticket"
-            />
-          </div>
-          <div className="space-y-1.5">
-            <label className="font-numerical text-[9px] font-medium uppercase tracking-[0.1em] text-muted-foreground">
-              Description
-            </label>
-            <TextArea
-              rows={3}
-              value={form.description}
-              onChange={(e) => setForm((f) => ({ ...f, description: e.target.value }))}
-              placeholder="e.g. Bus ticket from Salempur to Gorakhpur."
-            />
-          </div>
-          <div className="grid grid-cols-2 gap-2">
-            <div className="space-y-1.5">
-              <label className="font-numerical text-[9px] font-medium uppercase tracking-[0.1em] text-muted-foreground">
-                Amount
-              </label>
-              <TextField
-                type="number"
-                inputMode="decimal"
-                value={form.amount}
-                onChange={(e) => setForm((f) => ({ ...f, amount: e.target.value }))}
-              />
-            </div>
-            <div className="space-y-1.5">
-              <label className="font-numerical text-[9px] font-medium uppercase tracking-[0.1em] text-muted-foreground">
-                Date
-              </label>
-              <TextField
-                type="date"
-                value={form.date}
-                onChange={(e) => setForm((f) => ({ ...f, date: e.target.value }))}
-              />
-            </div>
-          </div>
-          <div className="space-y-1.5">
-            <label className="font-numerical text-[9px] font-medium uppercase tracking-[0.1em] text-muted-foreground">
-              Tags
-            </label>
-            <TagPicker value={form.tags} onChange={(tags) => setForm((f) => ({ ...f, tags }))} />
-          </div>
+          <ExpenseFormFields form={form} patch={patchForm} savedTags={savedTags} />
           <button
             onClick={() => setConfirmDelete(true)}
             className="font-numerical pressable flex w-full items-center justify-center gap-2 rounded-[5px] border border-danger/30 bg-danger/5 py-3 text-[10px] font-semibold uppercase tracking-[0.08em] text-danger transition-colors hover:bg-danger/10"

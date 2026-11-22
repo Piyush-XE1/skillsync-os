@@ -9,126 +9,47 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
-import { Route as IndexRouteImport } from './routes/index'
-import { Route as AnalyticsRouteImport } from './routes/analytics'
-import { Route as CareerRouteImport } from './routes/career'
-import { Route as CgpaRouteImport } from './routes/cgpa'
-import { Route as CodingRouteImport } from './routes/coding'
-import { Route as ExpensesRouteImport } from './routes/expenses'
-import { Route as FocusRouteImport } from './routes/focus'
-import { Route as GoalsRouteImport } from './routes/goals'
-import { Route as HabitsRouteImport } from './routes/habits'
-import { Route as LearnRouteImport } from './routes/learn'
-import { Route as NotesRouteImport } from './routes/notes'
-import { Route as NotificationsRouteImport } from './routes/notifications'
-import { Route as PlannerRouteImport } from './routes/planner'
-import { Route as ProfileRouteImport } from './routes/profile'
-import { Route as ProjectsRouteImport } from './routes/projects'
-import { Route as ReviewRouteImport } from './routes/review'
-import { Route as SearchRouteImport } from './routes/search'
-import { Route as ShowcaseRouteImport } from './routes/showcase'
 import { Route as SitemapDotxmlRouteImport } from './routes/sitemap[.]xml'
-import { Route as CareerIndexRouteImport } from './routes/career.index'
-import { Route as CodingIndexRouteImport } from './routes/coding.index'
-import { Route as ExpensesIndexRouteImport } from './routes/expenses.index'
-import { Route as HabitsIndexRouteImport } from './routes/habits.index'
-import { Route as HabitsHabitIdRouteImport } from './routes/habits.$habitId'
-import { Route as LearnIndexRouteImport } from './routes/learn.index'
-import { Route as LearnRoadmapIdRouteImport } from './routes/learn.$roadmapId'
-import { Route as NotesIndexRouteImport } from './routes/notes.index'
-import { Route as NotesNoteIdRouteImport } from './routes/notes.$noteId'
+import { Route as ShowcaseRouteImport } from './routes/showcase'
+import { Route as SearchRouteImport } from './routes/search'
+import { Route as ReviewRouteImport } from './routes/review'
+import { Route as ProjectsRouteImport } from './routes/projects'
+import { Route as ProfileRouteImport } from './routes/profile'
+import { Route as PlannerRouteImport } from './routes/planner'
+import { Route as PeopleRouteImport } from './routes/people'
+import { Route as NotificationsRouteImport } from './routes/notifications'
+import { Route as NotesRouteImport } from './routes/notes'
+import { Route as LearnRouteImport } from './routes/learn'
+import { Route as HabitsRouteImport } from './routes/habits'
+import { Route as GoalsRouteImport } from './routes/goals'
+import { Route as FocusRouteImport } from './routes/focus'
+import { Route as ExpensesRouteImport } from './routes/expenses'
+import { Route as CodingRouteImport } from './routes/coding'
+import { Route as CgpaRouteImport } from './routes/cgpa'
+import { Route as CareerRouteImport } from './routes/career'
+import { Route as AnalyticsRouteImport } from './routes/analytics'
+import { Route as IndexRouteImport } from './routes/index'
 import { Route as ProfileIndexRouteImport } from './routes/profile.index'
-import { Route as ProfileBackupRouteImport } from './routes/profile.backup'
-import { Route as ProfileModulesRouteImport } from './routes/profile.modules'
-import { Route as ProfileNotificationsRouteImport } from './routes/profile.notifications'
-import { Route as ProfileSystemRouteImport } from './routes/profile.system'
+import { Route as NotesIndexRouteImport } from './routes/notes.index'
+import { Route as LearnIndexRouteImport } from './routes/learn.index'
+import { Route as HabitsIndexRouteImport } from './routes/habits.index'
+import { Route as ExpensesIndexRouteImport } from './routes/expenses.index'
+import { Route as CodingIndexRouteImport } from './routes/coding.index'
+import { Route as CareerIndexRouteImport } from './routes/career.index'
 import { Route as ProfileWidgetsRouteImport } from './routes/profile.widgets'
-import { Route as LearnRoadmapIdTopicIdRouteImport } from './routes/learn.$roadmapId_.$topicId'
+import { Route as ProfileSystemRouteImport } from './routes/profile.system'
+import { Route as ProfileNotificationsRouteImport } from './routes/profile.notifications'
+import { Route as ProfileModulesRouteImport } from './routes/profile.modules'
+import { Route as ProfileBackupRouteImport } from './routes/profile.backup'
+import { Route as NotesNoteIdRouteImport } from './routes/notes.$noteId'
+import { Route as LearnRoadmapIdRouteImport } from './routes/learn.$roadmapId'
+import { Route as HabitsHabitIdRouteImport } from './routes/habits.$habitId'
 import { Route as NotesNoteIdEditRouteImport } from './routes/notes.$noteId_.edit'
+import { Route as LearnRoadmapIdTopicIdRouteImport } from './routes/learn.$roadmapId_.$topicId'
 
-const IndexRoute = IndexRouteImport.update({
-  id: '/',
-  path: '/',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const AnalyticsRoute = AnalyticsRouteImport.update({
-  id: '/analytics',
-  path: '/analytics',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const CareerRoute = CareerRouteImport.update({
-  id: '/career',
-  path: '/career',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const CgpaRoute = CgpaRouteImport.update({
-  id: '/cgpa',
-  path: '/cgpa',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const CodingRoute = CodingRouteImport.update({
-  id: '/coding',
-  path: '/coding',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const ExpensesRoute = ExpensesRouteImport.update({
-  id: '/expenses',
-  path: '/expenses',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const FocusRoute = FocusRouteImport.update({
-  id: '/focus',
-  path: '/focus',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const GoalsRoute = GoalsRouteImport.update({
-  id: '/goals',
-  path: '/goals',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const HabitsRoute = HabitsRouteImport.update({
-  id: '/habits',
-  path: '/habits',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const LearnRoute = LearnRouteImport.update({
-  id: '/learn',
-  path: '/learn',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const NotesRoute = NotesRouteImport.update({
-  id: '/notes',
-  path: '/notes',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const NotificationsRoute = NotificationsRouteImport.update({
-  id: '/notifications',
-  path: '/notifications',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const PlannerRoute = PlannerRouteImport.update({
-  id: '/planner',
-  path: '/planner',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const ProfileRoute = ProfileRouteImport.update({
-  id: '/profile',
-  path: '/profile',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const ProjectsRoute = ProjectsRouteImport.update({
-  id: '/projects',
-  path: '/projects',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const ReviewRoute = ReviewRouteImport.update({
-  id: '/review',
-  path: '/review',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const SearchRoute = SearchRouteImport.update({
-  id: '/search',
-  path: '/search',
+const SitemapDotxmlRoute = SitemapDotxmlRouteImport.update({
+  id: '/sitemap.xml',
+  path: '/sitemap.xml',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ShowcaseRoute = ShowcaseRouteImport.update({
@@ -136,74 +57,134 @@ const ShowcaseRoute = ShowcaseRouteImport.update({
   path: '/showcase',
   getParentRoute: () => rootRouteImport,
 } as any)
-const SitemapDotxmlRoute = SitemapDotxmlRouteImport.update({
-  id: '/sitemap.xml',
-  path: '/sitemap.xml',
+const SearchRoute = SearchRouteImport.update({
+  id: '/search',
+  path: '/search',
   getParentRoute: () => rootRouteImport,
 } as any)
-const CareerIndexRoute = CareerIndexRouteImport.update({
+const ReviewRoute = ReviewRouteImport.update({
+  id: '/review',
+  path: '/review',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ProjectsRoute = ProjectsRouteImport.update({
+  id: '/projects',
+  path: '/projects',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ProfileRoute = ProfileRouteImport.update({
+  id: '/profile',
+  path: '/profile',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const PlannerRoute = PlannerRouteImport.update({
+  id: '/planner',
+  path: '/planner',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const PeopleRoute = PeopleRouteImport.update({
+  id: '/people',
+  path: '/people',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const NotificationsRoute = NotificationsRouteImport.update({
+  id: '/notifications',
+  path: '/notifications',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const NotesRoute = NotesRouteImport.update({
+  id: '/notes',
+  path: '/notes',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const LearnRoute = LearnRouteImport.update({
+  id: '/learn',
+  path: '/learn',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const HabitsRoute = HabitsRouteImport.update({
+  id: '/habits',
+  path: '/habits',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const GoalsRoute = GoalsRouteImport.update({
+  id: '/goals',
+  path: '/goals',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const FocusRoute = FocusRouteImport.update({
+  id: '/focus',
+  path: '/focus',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ExpensesRoute = ExpensesRouteImport.update({
+  id: '/expenses',
+  path: '/expenses',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const CodingRoute = CodingRouteImport.update({
+  id: '/coding',
+  path: '/coding',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const CgpaRoute = CgpaRouteImport.update({
+  id: '/cgpa',
+  path: '/cgpa',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const CareerRoute = CareerRouteImport.update({
+  id: '/career',
+  path: '/career',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AnalyticsRoute = AnalyticsRouteImport.update({
+  id: '/analytics',
+  path: '/analytics',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
-  getParentRoute: () => CareerRoute,
-} as any)
-const CodingIndexRoute = CodingIndexRouteImport.update({
-  id: '/',
-  path: '/',
-  getParentRoute: () => CodingRoute,
-} as any)
-const ExpensesIndexRoute = ExpensesIndexRouteImport.update({
-  id: '/',
-  path: '/',
-  getParentRoute: () => ExpensesRoute,
-} as any)
-const HabitsIndexRoute = HabitsIndexRouteImport.update({
-  id: '/',
-  path: '/',
-  getParentRoute: () => HabitsRoute,
-} as any)
-const HabitsHabitIdRoute = HabitsHabitIdRouteImport.update({
-  id: '/$habitId',
-  path: '/$habitId',
-  getParentRoute: () => HabitsRoute,
-} as any)
-const LearnIndexRoute = LearnIndexRouteImport.update({
-  id: '/',
-  path: '/',
-  getParentRoute: () => LearnRoute,
-} as any)
-const LearnRoadmapIdRoute = LearnRoadmapIdRouteImport.update({
-  id: '/$roadmapId',
-  path: '/$roadmapId',
-  getParentRoute: () => LearnRoute,
-} as any)
-const NotesIndexRoute = NotesIndexRouteImport.update({
-  id: '/',
-  path: '/',
-  getParentRoute: () => NotesRoute,
-} as any)
-const NotesNoteIdRoute = NotesNoteIdRouteImport.update({
-  id: '/$noteId',
-  path: '/$noteId',
-  getParentRoute: () => NotesRoute,
+  getParentRoute: () => rootRouteImport,
 } as any)
 const ProfileIndexRoute = ProfileIndexRouteImport.update({
   id: '/',
   path: '/',
   getParentRoute: () => ProfileRoute,
 } as any)
-const ProfileBackupRoute = ProfileBackupRouteImport.update({
-  id: '/backup',
-  path: '/backup',
-  getParentRoute: () => ProfileRoute,
+const NotesIndexRoute = NotesIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => NotesRoute,
 } as any)
-const ProfileModulesRoute = ProfileModulesRouteImport.update({
-  id: '/modules',
-  path: '/modules',
-  getParentRoute: () => ProfileRoute,
+const LearnIndexRoute = LearnIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => LearnRoute,
 } as any)
-const ProfileNotificationsRoute = ProfileNotificationsRouteImport.update({
-  id: '/notifications',
-  path: '/notifications',
+const HabitsIndexRoute = HabitsIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => HabitsRoute,
+} as any)
+const ExpensesIndexRoute = ExpensesIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => ExpensesRoute,
+} as any)
+const CodingIndexRoute = CodingIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => CodingRoute,
+} as any)
+const CareerIndexRoute = CareerIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => CareerRoute,
+} as any)
+const ProfileWidgetsRoute = ProfileWidgetsRouteImport.update({
+  id: '/widgets',
+  path: '/widgets',
   getParentRoute: () => ProfileRoute,
 } as any)
 const ProfileSystemRoute = ProfileSystemRouteImport.update({
@@ -211,20 +192,45 @@ const ProfileSystemRoute = ProfileSystemRouteImport.update({
   path: '/system',
   getParentRoute: () => ProfileRoute,
 } as any)
-const ProfileWidgetsRoute = ProfileWidgetsRouteImport.update({
-  id: '/widgets',
-  path: '/widgets',
+const ProfileNotificationsRoute = ProfileNotificationsRouteImport.update({
+  id: '/notifications',
+  path: '/notifications',
   getParentRoute: () => ProfileRoute,
 } as any)
-const LearnRoadmapIdTopicIdRoute = LearnRoadmapIdTopicIdRouteImport.update({
-  id: '/$roadmapId_/$topicId',
-  path: '/$roadmapId/$topicId',
+const ProfileModulesRoute = ProfileModulesRouteImport.update({
+  id: '/modules',
+  path: '/modules',
+  getParentRoute: () => ProfileRoute,
+} as any)
+const ProfileBackupRoute = ProfileBackupRouteImport.update({
+  id: '/backup',
+  path: '/backup',
+  getParentRoute: () => ProfileRoute,
+} as any)
+const NotesNoteIdRoute = NotesNoteIdRouteImport.update({
+  id: '/$noteId',
+  path: '/$noteId',
+  getParentRoute: () => NotesRoute,
+} as any)
+const LearnRoadmapIdRoute = LearnRoadmapIdRouteImport.update({
+  id: '/$roadmapId',
+  path: '/$roadmapId',
   getParentRoute: () => LearnRoute,
+} as any)
+const HabitsHabitIdRoute = HabitsHabitIdRouteImport.update({
+  id: '/$habitId',
+  path: '/$habitId',
+  getParentRoute: () => HabitsRoute,
 } as any)
 const NotesNoteIdEditRoute = NotesNoteIdEditRouteImport.update({
   id: '/$noteId_/edit',
   path: '/$noteId/edit',
   getParentRoute: () => NotesRoute,
+} as any)
+const LearnRoadmapIdTopicIdRoute = LearnRoadmapIdTopicIdRouteImport.update({
+  id: '/$roadmapId_/$topicId',
+  path: '/$roadmapId/$topicId',
+  getParentRoute: () => LearnRoute,
 } as any)
 
 export interface FileRoutesByFullPath {
@@ -240,6 +246,7 @@ export interface FileRoutesByFullPath {
   '/learn': typeof LearnRouteWithChildren
   '/notes': typeof NotesRouteWithChildren
   '/notifications': typeof NotificationsRoute
+  '/people': typeof PeopleRoute
   '/planner': typeof PlannerRoute
   '/profile': typeof ProfileRouteWithChildren
   '/projects': typeof ProjectsRoute
@@ -272,6 +279,7 @@ export interface FileRoutesByTo {
   '/focus': typeof FocusRoute
   '/goals': typeof GoalsRoute
   '/notifications': typeof NotificationsRoute
+  '/people': typeof PeopleRoute
   '/planner': typeof PlannerRoute
   '/projects': typeof ProjectsRoute
   '/review': typeof ReviewRoute
@@ -310,6 +318,7 @@ export interface FileRoutesById {
   '/learn': typeof LearnRouteWithChildren
   '/notes': typeof NotesRouteWithChildren
   '/notifications': typeof NotificationsRoute
+  '/people': typeof PeopleRoute
   '/planner': typeof PlannerRoute
   '/profile': typeof ProfileRouteWithChildren
   '/projects': typeof ProjectsRoute
@@ -350,6 +359,7 @@ export interface FileRouteTypes {
     | '/learn'
     | '/notes'
     | '/notifications'
+    | '/people'
     | '/planner'
     | '/profile'
     | '/projects'
@@ -382,6 +392,7 @@ export interface FileRouteTypes {
     | '/focus'
     | '/goals'
     | '/notifications'
+    | '/people'
     | '/planner'
     | '/projects'
     | '/review'
@@ -419,6 +430,7 @@ export interface FileRouteTypes {
     | '/learn'
     | '/notes'
     | '/notifications'
+    | '/people'
     | '/planner'
     | '/profile'
     | '/projects'
@@ -458,6 +470,7 @@ export interface RootRouteChildren {
   LearnRoute: typeof LearnRouteWithChildren
   NotesRoute: typeof NotesRouteWithChildren
   NotificationsRoute: typeof NotificationsRoute
+  PeopleRoute: typeof PeopleRoute
   PlannerRoute: typeof PlannerRoute
   ProfileRoute: typeof ProfileRouteWithChildren
   ProjectsRoute: typeof ProjectsRoute
@@ -469,123 +482,11 @@ export interface RootRouteChildren {
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
-    '/': {
-      id: '/'
-      path: '/'
-      fullPath: '/'
-      preLoaderRoute: typeof IndexRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/analytics': {
-      id: '/analytics'
-      path: '/analytics'
-      fullPath: '/analytics'
-      preLoaderRoute: typeof AnalyticsRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/career': {
-      id: '/career'
-      path: '/career'
-      fullPath: '/career'
-      preLoaderRoute: typeof CareerRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/cgpa': {
-      id: '/cgpa'
-      path: '/cgpa'
-      fullPath: '/cgpa'
-      preLoaderRoute: typeof CgpaRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/coding': {
-      id: '/coding'
-      path: '/coding'
-      fullPath: '/coding'
-      preLoaderRoute: typeof CodingRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/expenses': {
-      id: '/expenses'
-      path: '/expenses'
-      fullPath: '/expenses'
-      preLoaderRoute: typeof ExpensesRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/focus': {
-      id: '/focus'
-      path: '/focus'
-      fullPath: '/focus'
-      preLoaderRoute: typeof FocusRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/goals': {
-      id: '/goals'
-      path: '/goals'
-      fullPath: '/goals'
-      preLoaderRoute: typeof GoalsRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/habits': {
-      id: '/habits'
-      path: '/habits'
-      fullPath: '/habits'
-      preLoaderRoute: typeof HabitsRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/learn': {
-      id: '/learn'
-      path: '/learn'
-      fullPath: '/learn'
-      preLoaderRoute: typeof LearnRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/notes': {
-      id: '/notes'
-      path: '/notes'
-      fullPath: '/notes'
-      preLoaderRoute: typeof NotesRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/notifications': {
-      id: '/notifications'
-      path: '/notifications'
-      fullPath: '/notifications'
-      preLoaderRoute: typeof NotificationsRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/planner': {
-      id: '/planner'
-      path: '/planner'
-      fullPath: '/planner'
-      preLoaderRoute: typeof PlannerRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/profile': {
-      id: '/profile'
-      path: '/profile'
-      fullPath: '/profile'
-      preLoaderRoute: typeof ProfileRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/projects': {
-      id: '/projects'
-      path: '/projects'
-      fullPath: '/projects'
-      preLoaderRoute: typeof ProjectsRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/review': {
-      id: '/review'
-      path: '/review'
-      fullPath: '/review'
-      preLoaderRoute: typeof ReviewRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/search': {
-      id: '/search'
-      path: '/search'
-      fullPath: '/search'
-      preLoaderRoute: typeof SearchRouteImport
+    '/sitemap.xml': {
+      id: '/sitemap.xml'
+      path: '/sitemap.xml'
+      fullPath: '/sitemap.xml'
+      preLoaderRoute: typeof SitemapDotxmlRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/showcase': {
@@ -595,75 +496,131 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ShowcaseRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/sitemap.xml': {
-      id: '/sitemap.xml'
-      path: '/sitemap.xml'
-      fullPath: '/sitemap.xml'
-      preLoaderRoute: typeof SitemapDotxmlRouteImport
+    '/search': {
+      id: '/search'
+      path: '/search'
+      fullPath: '/search'
+      preLoaderRoute: typeof SearchRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/career/': {
-      id: '/career/'
+    '/review': {
+      id: '/review'
+      path: '/review'
+      fullPath: '/review'
+      preLoaderRoute: typeof ReviewRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/projects': {
+      id: '/projects'
+      path: '/projects'
+      fullPath: '/projects'
+      preLoaderRoute: typeof ProjectsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/profile': {
+      id: '/profile'
+      path: '/profile'
+      fullPath: '/profile'
+      preLoaderRoute: typeof ProfileRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/planner': {
+      id: '/planner'
+      path: '/planner'
+      fullPath: '/planner'
+      preLoaderRoute: typeof PlannerRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/people': {
+      id: '/people'
+      path: '/people'
+      fullPath: '/people'
+      preLoaderRoute: typeof PeopleRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/notifications': {
+      id: '/notifications'
+      path: '/notifications'
+      fullPath: '/notifications'
+      preLoaderRoute: typeof NotificationsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/notes': {
+      id: '/notes'
+      path: '/notes'
+      fullPath: '/notes'
+      preLoaderRoute: typeof NotesRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/learn': {
+      id: '/learn'
+      path: '/learn'
+      fullPath: '/learn'
+      preLoaderRoute: typeof LearnRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/habits': {
+      id: '/habits'
+      path: '/habits'
+      fullPath: '/habits'
+      preLoaderRoute: typeof HabitsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/goals': {
+      id: '/goals'
+      path: '/goals'
+      fullPath: '/goals'
+      preLoaderRoute: typeof GoalsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/focus': {
+      id: '/focus'
+      path: '/focus'
+      fullPath: '/focus'
+      preLoaderRoute: typeof FocusRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/expenses': {
+      id: '/expenses'
+      path: '/expenses'
+      fullPath: '/expenses'
+      preLoaderRoute: typeof ExpensesRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/coding': {
+      id: '/coding'
+      path: '/coding'
+      fullPath: '/coding'
+      preLoaderRoute: typeof CodingRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/cgpa': {
+      id: '/cgpa'
+      path: '/cgpa'
+      fullPath: '/cgpa'
+      preLoaderRoute: typeof CgpaRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/career': {
+      id: '/career'
+      path: '/career'
+      fullPath: '/career'
+      preLoaderRoute: typeof CareerRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/analytics': {
+      id: '/analytics'
+      path: '/analytics'
+      fullPath: '/analytics'
+      preLoaderRoute: typeof AnalyticsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/': {
+      id: '/'
       path: '/'
-      fullPath: '/career/'
-      preLoaderRoute: typeof CareerIndexRouteImport
-      parentRoute: typeof CareerRoute
-    }
-    '/coding/': {
-      id: '/coding/'
-      path: '/'
-      fullPath: '/coding/'
-      preLoaderRoute: typeof CodingIndexRouteImport
-      parentRoute: typeof CodingRoute
-    }
-    '/expenses/': {
-      id: '/expenses/'
-      path: '/'
-      fullPath: '/expenses/'
-      preLoaderRoute: typeof ExpensesIndexRouteImport
-      parentRoute: typeof ExpensesRoute
-    }
-    '/habits/': {
-      id: '/habits/'
-      path: '/'
-      fullPath: '/habits/'
-      preLoaderRoute: typeof HabitsIndexRouteImport
-      parentRoute: typeof HabitsRoute
-    }
-    '/habits/$habitId': {
-      id: '/habits/$habitId'
-      path: '/$habitId'
-      fullPath: '/habits/$habitId'
-      preLoaderRoute: typeof HabitsHabitIdRouteImport
-      parentRoute: typeof HabitsRoute
-    }
-    '/learn/': {
-      id: '/learn/'
-      path: '/'
-      fullPath: '/learn/'
-      preLoaderRoute: typeof LearnIndexRouteImport
-      parentRoute: typeof LearnRoute
-    }
-    '/learn/$roadmapId': {
-      id: '/learn/$roadmapId'
-      path: '/$roadmapId'
-      fullPath: '/learn/$roadmapId'
-      preLoaderRoute: typeof LearnRoadmapIdRouteImport
-      parentRoute: typeof LearnRoute
-    }
-    '/notes/': {
-      id: '/notes/'
-      path: '/'
-      fullPath: '/notes/'
-      preLoaderRoute: typeof NotesIndexRouteImport
-      parentRoute: typeof NotesRoute
-    }
-    '/notes/$noteId': {
-      id: '/notes/$noteId'
-      path: '/$noteId'
-      fullPath: '/notes/$noteId'
-      preLoaderRoute: typeof NotesNoteIdRouteImport
-      parentRoute: typeof NotesRoute
+      fullPath: '/'
+      preLoaderRoute: typeof IndexRouteImport
+      parentRoute: typeof rootRouteImport
     }
     '/profile/': {
       id: '/profile/'
@@ -672,25 +629,53 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ProfileIndexRouteImport
       parentRoute: typeof ProfileRoute
     }
-    '/profile/backup': {
-      id: '/profile/backup'
-      path: '/backup'
-      fullPath: '/profile/backup'
-      preLoaderRoute: typeof ProfileBackupRouteImport
-      parentRoute: typeof ProfileRoute
+    '/notes/': {
+      id: '/notes/'
+      path: '/'
+      fullPath: '/notes/'
+      preLoaderRoute: typeof NotesIndexRouteImport
+      parentRoute: typeof NotesRoute
     }
-    '/profile/modules': {
-      id: '/profile/modules'
-      path: '/modules'
-      fullPath: '/profile/modules'
-      preLoaderRoute: typeof ProfileModulesRouteImport
-      parentRoute: typeof ProfileRoute
+    '/learn/': {
+      id: '/learn/'
+      path: '/'
+      fullPath: '/learn/'
+      preLoaderRoute: typeof LearnIndexRouteImport
+      parentRoute: typeof LearnRoute
     }
-    '/profile/notifications': {
-      id: '/profile/notifications'
-      path: '/notifications'
-      fullPath: '/profile/notifications'
-      preLoaderRoute: typeof ProfileNotificationsRouteImport
+    '/habits/': {
+      id: '/habits/'
+      path: '/'
+      fullPath: '/habits/'
+      preLoaderRoute: typeof HabitsIndexRouteImport
+      parentRoute: typeof HabitsRoute
+    }
+    '/expenses/': {
+      id: '/expenses/'
+      path: '/'
+      fullPath: '/expenses/'
+      preLoaderRoute: typeof ExpensesIndexRouteImport
+      parentRoute: typeof ExpensesRoute
+    }
+    '/coding/': {
+      id: '/coding/'
+      path: '/'
+      fullPath: '/coding/'
+      preLoaderRoute: typeof CodingIndexRouteImport
+      parentRoute: typeof CodingRoute
+    }
+    '/career/': {
+      id: '/career/'
+      path: '/'
+      fullPath: '/career/'
+      preLoaderRoute: typeof CareerIndexRouteImport
+      parentRoute: typeof CareerRoute
+    }
+    '/profile/widgets': {
+      id: '/profile/widgets'
+      path: '/widgets'
+      fullPath: '/profile/widgets'
+      preLoaderRoute: typeof ProfileWidgetsRouteImport
       parentRoute: typeof ProfileRoute
     }
     '/profile/system': {
@@ -700,19 +685,47 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ProfileSystemRouteImport
       parentRoute: typeof ProfileRoute
     }
-    '/profile/widgets': {
-      id: '/profile/widgets'
-      path: '/widgets'
-      fullPath: '/profile/widgets'
-      preLoaderRoute: typeof ProfileWidgetsRouteImport
+    '/profile/notifications': {
+      id: '/profile/notifications'
+      path: '/notifications'
+      fullPath: '/profile/notifications'
+      preLoaderRoute: typeof ProfileNotificationsRouteImport
       parentRoute: typeof ProfileRoute
     }
-    '/learn/$roadmapId_/$topicId': {
-      id: '/learn/$roadmapId_/$topicId'
-      path: '/$roadmapId/$topicId'
-      fullPath: '/learn/$roadmapId/$topicId'
-      preLoaderRoute: typeof LearnRoadmapIdTopicIdRouteImport
+    '/profile/modules': {
+      id: '/profile/modules'
+      path: '/modules'
+      fullPath: '/profile/modules'
+      preLoaderRoute: typeof ProfileModulesRouteImport
+      parentRoute: typeof ProfileRoute
+    }
+    '/profile/backup': {
+      id: '/profile/backup'
+      path: '/backup'
+      fullPath: '/profile/backup'
+      preLoaderRoute: typeof ProfileBackupRouteImport
+      parentRoute: typeof ProfileRoute
+    }
+    '/notes/$noteId': {
+      id: '/notes/$noteId'
+      path: '/$noteId'
+      fullPath: '/notes/$noteId'
+      preLoaderRoute: typeof NotesNoteIdRouteImport
+      parentRoute: typeof NotesRoute
+    }
+    '/learn/$roadmapId': {
+      id: '/learn/$roadmapId'
+      path: '/$roadmapId'
+      fullPath: '/learn/$roadmapId'
+      preLoaderRoute: typeof LearnRoadmapIdRouteImport
       parentRoute: typeof LearnRoute
+    }
+    '/habits/$habitId': {
+      id: '/habits/$habitId'
+      path: '/$habitId'
+      fullPath: '/habits/$habitId'
+      preLoaderRoute: typeof HabitsHabitIdRouteImport
+      parentRoute: typeof HabitsRoute
     }
     '/notes/$noteId_/edit': {
       id: '/notes/$noteId_/edit'
@@ -720,6 +733,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/notes/$noteId/edit'
       preLoaderRoute: typeof NotesNoteIdEditRouteImport
       parentRoute: typeof NotesRoute
+    }
+    '/learn/$roadmapId_/$topicId': {
+      id: '/learn/$roadmapId_/$topicId'
+      path: '/$roadmapId/$topicId'
+      fullPath: '/learn/$roadmapId/$topicId'
+      preLoaderRoute: typeof LearnRoadmapIdTopicIdRouteImport
+      parentRoute: typeof LearnRoute
     }
   }
 }
@@ -833,6 +853,7 @@ const rootRouteChildren: RootRouteChildren = {
   LearnRoute: LearnRouteWithChildren,
   NotesRoute: NotesRouteWithChildren,
   NotificationsRoute: NotificationsRoute,
+  PeopleRoute: PeopleRoute,
   PlannerRoute: PlannerRoute,
   ProfileRoute: ProfileRouteWithChildren,
   ProjectsRoute: ProjectsRoute,

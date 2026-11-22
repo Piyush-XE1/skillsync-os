@@ -5,7 +5,8 @@ package com.skillsync.os;
  *
  * Single source of truth shared by the providers, the updater and the native
  * bridge: a widget's stable type string, its label, its layout and its provider
- * class all live here, so adding a widget is one entry plus a layout.
+ * class all live here. Exactly these three entries are registered in the
+ * manifest, so no retired widget can appear in the launcher picker.
  */
 final class WidgetSpecs {
 
@@ -14,7 +15,7 @@ final class WidgetSpecs {
         final int labelRes;
         final int layout;
         final Class<? extends SkillSyncWidgetProvider> provider;
-        /** Default footprint in launcher cells, used by the in-app gallery. */
+        /** Default footprint in launcher cells (columns × rows). */
         final int cellsWide;
         final int cellsTall;
 
@@ -34,50 +35,17 @@ final class WidgetSpecs {
         }
     }
 
-    static final Spec TODAY = new Spec(
-            "today", R.string.widget_today_label, R.layout.widget_today,
-            TodayWidgetProvider.class, 4, 2);
-    static final Spec HABITS = new Spec(
-            "habits", R.string.widget_habits_label, R.layout.widget_habits,
-            HabitsWidgetProvider.class, 4, 2);
-    static final Spec FOCUS = new Spec(
-            "focus", R.string.widget_focus_label, R.layout.widget_focus,
-            FocusWidgetProvider.class, 2, 2);
-    static final Spec EXPENSES = new Spec(
-            "expenses", R.string.widget_expenses_label, R.layout.widget_expenses,
-            ExpensesWidgetProvider.class, 4, 2);
-    static final Spec NOTES = new Spec(
-            "notes", R.string.widget_notes_label, R.layout.widget_notes,
-            NotesWidgetProvider.class, 4, 2);
-    static final Spec PULSE = new Spec(
-            "pulse", R.string.widget_pulse_label, R.layout.widget_pulse,
-            PulseWidgetProvider.class, 4, 2);
-    static final Spec ROADMAPS = new Spec(
-            "roadmaps", R.string.widget_roadmaps_label, R.layout.widget_roadmaps,
-            RoadmapsWidgetProvider.class, 4, 2);
-    static final Spec AIMS = new Spec(
-            "aims", R.string.widget_aims_label, R.layout.widget_aims,
-            AimsWidgetProvider.class, 4, 2);
-    static final Spec PLANNER = new Spec(
-            "planner", R.string.widget_planner_label, R.layout.widget_planner,
-            PlannerWidgetProvider.class, 4, 2);
-    static final Spec STATS = new Spec(
-            "stats", R.string.widget_stats_label, R.layout.widget_stats,
-            StatsWidgetProvider.class, 2, 2);
-    static final Spec QUOTE = new Spec(
-            "quote", R.string.widget_quote_label, R.layout.widget_quote,
-            QuoteWidgetProvider.class, 4, 2);
-    static final Spec QUICK = new Spec(
-            "quick", R.string.widget_quick_label, R.layout.widget_quick,
-            QuickActionsWidgetProvider.class, 4, 1);
-    static final Spec OVERVIEW = new Spec(
-            "overview", R.string.widget_overview_label, R.layout.widget_overview,
-            OverviewWidgetProvider.class, 4, 4);
+    static final Spec STICKY_NOTE = new Spec(
+            "sticky_note", R.string.widget_sticky_note_label, R.layout.widget_sticky_note,
+            StickyNoteWidgetProvider.class, 5, 2);
+    static final Spec EXPENSE_LOGGER = new Spec(
+            "expense_logger", R.string.widget_expense_logger_label, R.layout.widget_expense_logger,
+            ExpenseLoggerWidgetProvider.class, 1, 1);
+    static final Spec HABIT_CHECK = new Spec(
+            "habit_check", R.string.widget_habit_check_label, R.layout.widget_habit_check,
+            HabitCheckWidgetProvider.class, 2, 2);
 
-    static final Spec[] ALL = {
-        TODAY, HABITS, FOCUS, EXPENSES, NOTES, PULSE, ROADMAPS,
-        AIMS, PLANNER, STATS, QUOTE, QUICK, OVERVIEW
-    };
+    static final Spec[] ALL = {STICKY_NOTE, EXPENSE_LOGGER, HABIT_CHECK};
 
     private WidgetSpecs() {}
 

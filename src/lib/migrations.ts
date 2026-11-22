@@ -1,11 +1,13 @@
 import { z } from "zod";
-import { CURRENT_SCHEMA_VERSION, AppDataSchema, type AppData } from "./schema";
+import { CURRENT_SCHEMA_VERSION, AppDataSchema, type AppData, type Person } from "./schema";
 import { createInitialData } from "./seed";
 import { todayISO } from "./date";
 import { createDefaultNotifications } from "./notifications/types";
 import { defaultAccentFor } from "./accent";
 import { DEFAULT_SOUND_VOLUME, clampVolume } from "./sound";
 import { defaultWidgetLayout, moveWidget, normalizeWidgetLayout } from "./widgets";
+import { mergeTags } from "./tags";
+import { normalizePersonRecord } from "./people";
 
 /**
  * Loose shape of persisted data while it is being migrated. It can come from
@@ -347,6 +349,40 @@ const migrators: Record<number, (data: LegacyData) => LegacyData> = {
         }))
       : [],
   }),
+  /**
+   * v17 -> v18: custom expense tags become reusable. The palette is seeded
+   * from tags already attached to existing transactions, so nothing the user
+   * typed disappears and no tag is invented for an empty workspace.
+   */
+  17: (data) => {
+    const expenses = (data.expenses ?? {}) as LegacyData;
+    const transactions = Array.isArray(expenses.transactions) ? expenses.transactions : [];
+    return {
+      ...data,
+      expenses: {
+        ...expenses,
+        customTags: mergeTags(
+          Array.isArray(expenses.customTags) ? expenses.customTags : [],
+          ...transactions.map((tx: LegacyData) =>
+            Array.isArray(tx?.tags) ? (tx.tags as string[]) : [],
+          ),
+        ),
+      },
+    };
+  },
+  /**
+   * v18 -> v19: the private People I Met journal joins the workspace. Every
+   * collection starts empty; blank legacy strings are normalised away rather
+   * than stored as empty sections.
+   */
+  18: (data) => ({
+    ...data,
+    people: Array.isArray(data.people)
+      ? data.people
+          .map((person: unknown) => normalizePersonRecord(person))
+          .filter((person: unknown) => person !== null)
+      : [],
+  }),
 };
 
 export function migrate(input: unknown): AppData {
@@ -431,11 +467,20 @@ export function migrate(input: unknown): AppData {
     (t: LegacyData, i: number) => ({
       ...t,
       description: t.description ?? "",
-      tags: Array.isArray(t.tags) ? t.tags : [],
+      tags: mergeTags(Array.isArray(t.tags) ? t.tags : []),
       position: typeof t.position === "number" ? t.position : i,
       updatedAt: typeof t.updatedAt === "number" ? t.updatedAt : (t.at ?? 0),
     }),
   );
+  // Reusable tag palette: explicit palette + every tag still on a transaction,
+  // deduplicated case-insensitively. Hand-edited imports get the same repair.
+  data.expenses.customTags = mergeTags(
+    Array.isArray(data.expenses.customTags) ? data.expenses.customTags : [],
+    ...data.expenses.transactions.map((tx: LegacyData) => tx.tags as string[]),
+  );
+  data.people = (Array.isArray(data.people) ? data.people : [])
+    .map((person: unknown) => normalizePersonRecord(person))
+    .filter((person: Person | null) => person !== null);
   // Planner V2: every task gets an explicit priority.
   data.planner = (data.planner ?? []).map((t: LegacyData) => ({
     ...t,

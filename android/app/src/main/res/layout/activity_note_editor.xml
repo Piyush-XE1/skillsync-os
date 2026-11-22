@@ -1,0 +1,64 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Native dialog behind the sticky-note launcher widget. -->
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="340dp"
+    android:layout_height="wrap_content"
+    android:background="@drawable/widget_bg"
+    android:orientation="vertical"
+    android:padding="18dp">
+
+    <TextView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:fontFamily="sans-serif-medium"
+        android:text="@string/widget_note_editor_title"
+        android:textColor="@color/widgetAccent"
+        android:textSize="11sp"
+        android:letterSpacing="0.12" />
+
+    <EditText
+        android:id="@+id/note_editor_input"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="12dp"
+        android:background="@drawable/widget_surface"
+        android:gravity="top|start"
+        android:hint="@string/widget_note_hint"
+        android:inputType="textMultiLine|textCapSentences"
+        android:maxLength="4000"
+        android:minHeight="150dp"
+        android:padding="12dp"
+        android:textColor="@color/widgetText"
+        android:textColorHint="@color/widgetMuted"
+        android:textSize="14sp" />
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="14dp"
+        android:orientation="horizontal">
+
+        <Button
+            android:id="@+id/note_editor_clear"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:background="@drawable/widget_surface"
+            android:text="@string/widget_note_clear"
+            android:textColor="@color/widgetMuted"
+            android:textSize="11sp" />
+
+        <View
+            android:layout_width="0dp"
+            android:layout_height="1dp"
+            android:layout_weight="1" />
+
+        <Button
+            android:id="@+id/note_editor_save"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:background="@drawable/widget_pill_accent"
+            android:text="@string/widget_note_save"
+            android:textColor="@color/skillsyncBackground"
+            android:textSize="11sp" />
+    </LinearLayout>
+</LinearLayout>

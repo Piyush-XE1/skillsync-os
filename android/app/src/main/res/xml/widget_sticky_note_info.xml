@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Default launcher footprint: 5 columns × 2 rows. This is a grid size,
+     not an image aspect ratio. -->
+<appwidget-provider xmlns:android="http://schemas.android.com/apk/res/android"
+    android:minWidth="330dp"
+    android:minHeight="110dp"
+    android:minResizeWidth="260dp"
+    android:minResizeHeight="90dp"
+    android:targetCellWidth="5"
+    android:targetCellHeight="2"
+    android:initialLayout="@layout/widget_sticky_note"
+    android:previewLayout="@layout/widget_sticky_note"
+    android:description="@string/widget_sticky_note_description"
+    android:resizeMode="horizontal|vertical"
+    android:widgetCategory="home_screen"
+    android:updatePeriodMillis="1800000" />

@@ -453,7 +453,7 @@ public class SkillSyncNativePlugin extends Plugin {
      */
     @PluginMethod
     public void widgetPin(PluginCall call) {
-        String type = call.getString("type", "today");
+        String type = call.getString("type", "sticky_note");
         WidgetSpecs.Spec spec = WidgetSpecs.byType(type);
         if (spec == null) {
             call.reject("Unknown widget type: " + type);

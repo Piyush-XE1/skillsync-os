@@ -47,29 +47,32 @@ describe("typographic dashboard and personal monograph", () => {
     });
   }
 
-  it("leads with the quotation and Archetype, then restores the dashboard without its oversized hero", async () => {
+  it("leads with the Archetype, keeps the working dashboard, and has no Quote/Timer/Capture blocks", async () => {
     await render();
     const html = container.innerHTML;
-    const header = container.querySelector("header");
-    const quotePosition = html.indexOf('id="quote-obelisk-heading"');
     const archetypePosition = html.indexOf('id="archetype-heading"');
     const dashboardPosition = html.indexOf('id="dashboard-heading"');
 
-    expect(header?.textContent).not.toContain("Small steps, compounded daily");
-    expect(header?.textContent).not.toContain("live widgets");
-    expect(header?.textContent).not.toContain("Local-first · Ready");
-    expect(quotePosition).toBeGreaterThan(-1);
-    expect(archetypePosition).toBeGreaterThan(quotePosition);
+    expect(archetypePosition).toBeGreaterThan(-1);
     expect(dashboardPosition).toBeGreaterThan(archetypePosition);
     expect(container.textContent).toContain("dashboard.");
     expect(container.textContent).toContain("Customize");
     expect(container.querySelectorAll("[data-sort-row]").length).toBeGreaterThan(0);
-    expect(container.querySelector('[aria-label="Today at a glance"]')).toBeNull();
-    expect(html).toContain("Daily inscription");
     expect(html).toContain("The Archetype");
     expect(html).toContain("The Anti-Self");
     expect(html).toContain("Memento Mori");
-    expect(html).toContain("Chronometers");
+
+    // Explicit removals from the in-app Home screen and app shell.
+    expect(container.querySelector('[id="quote-obelisk-heading"]')).toBeNull();
+    expect(container.querySelector('[role="timer"]')).toBeNull();
+    expect(container.textContent).not.toContain("Daily inscription");
+    expect(container.textContent).not.toContain("Chronometers");
+    expect(container.querySelector('[aria-label="Quick capture"]')).toBeNull();
+    expect(
+      Array.from(container.querySelectorAll("button")).some(
+        (button) => button.textContent?.trim() === "Capture",
+      ),
+    ).toBe(false);
   });
 
   it("keeps dashboard customization and keyboard reorder controls available", async () => {
@@ -87,25 +90,7 @@ describe("typographic dashboard and personal monograph", () => {
     expect(container.querySelector('button[aria-label^="Reorder "]')).not.toBeNull();
   });
 
-  it("handles an empty Personal Monologue with a working add action", async () => {
-    await render();
-    click(
-      Array.from(container.querySelectorAll("button")).find((button) =>
-        button.textContent?.includes("My quotes"),
-      ),
-    );
-    await act(async () => {
-      await new Promise((resolve) => setTimeout(resolve, 20));
-    });
-    expect(container.textContent).toContain("Your own words belong here");
-    expect(
-      Array.from(container.querySelectorAll("button")).some((button) =>
-        button.textContent?.includes("Add the first quotation"),
-      ),
-    ).toBe(true);
-  });
-
-  it("renders persisted identity, age perspective, and independent timer data", async () => {
+  it("renders persisted identity and age perspective without the retired timer block", async () => {
     useAppStore.getState().addArchetypeTrait({
       text: "I speak with precision and act with intention.",
       category: "Conduct",
@@ -113,14 +98,10 @@ describe("typographic dashboard and personal monograph", () => {
       subTenets: [{ id: "sub-1", text: "Say only what is necessary." }],
     });
     useAppStore.getState().setBirthDate("2000-01-01");
-    const timer = useAppStore.getState().addStopwatch({ title: "Deep Work", icon: "Brain" });
-    useAppStore.getState().startStopwatch(timer.id, Date.now() - 65_000);
-
     await render();
     expect(container.textContent).toContain("I speak with precision and act with intention.");
     expect(container.textContent).toContain("Age in completed weeks");
-    expect(container.textContent).toContain("Deep Work");
-    expect(container.querySelector('[role="timer"]')).not.toBeNull();
+    expect(container.querySelector('[role="timer"]')).toBeNull();
   });
 
   it("keeps Anti-Self visually subordinate until opened", async () => {

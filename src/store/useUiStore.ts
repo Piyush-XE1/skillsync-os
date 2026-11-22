@@ -1,22 +1,17 @@
 import { create } from "zustand";
 
-export type QuickCaptureAction = "expense" | "habit" | "note";
-
 type UiState = {
-  quickCaptureOpen: boolean;
-  quickCaptureAction: QuickCaptureAction | null;
+  /** Replay the first-launch sound/animation after the profile demo resets it. */
   launchReplayToken: number;
-  openQuickCapture: (action?: QuickCaptureAction) => void;
-  closeQuickCapture: () => void;
   requestLaunchReplay: () => void;
 };
 
-/** Ephemeral UI state only — workspace data remains in the local-first app store. */
+/**
+ * Ephemeral UI state only — workspace data remains in the local-first app
+ * store. Quick Capture was intentionally removed; there is no hidden capture
+ * surface left behind.
+ */
 export const useUiStore = create<UiState>((set) => ({
-  quickCaptureOpen: false,
-  quickCaptureAction: null,
   launchReplayToken: 0,
-  openQuickCapture: (action) => set({ quickCaptureOpen: true, quickCaptureAction: action ?? null }),
-  closeQuickCapture: () => set({ quickCaptureOpen: false, quickCaptureAction: null }),
   requestLaunchReplay: () => set((state) => ({ launchReplayToken: state.launchReplayToken + 1 })),
 }));

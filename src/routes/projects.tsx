@@ -3,8 +3,8 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { Plus, FolderKanban, Trash2, ExternalLink } from "lucide-react";
 import { AppShell, PageHeader } from "@/components/layout/AppShell";
 import { PrimaryAction } from "@/components/layout/PrimaryAction";
-import { Card, Chip, ProgressBar } from "@/components/ui/primitives";
 import { EmptyState } from "@/components/common/EmptyState";
+import { ProjectOverview } from "@/components/projects/ProjectOverview";
 import { BottomSheet, ConfirmDialog } from "@/components/edit/Sheet";
 import { TextField, TextArea, NO_AUTOFILL_PROPS } from "@/components/edit/Fields";
 import { ActionButton, IconButton } from "@/components/edit/Buttons";
@@ -119,63 +119,7 @@ function ProjectsPage() {
         ) : null}
 
         {filtered.map((p) => (
-          <button
-            key={p.id}
-            onClick={() => setEditing(p)}
-            className="block h-full w-full text-left"
-          >
-            <Card className="h-full p-5">
-              <div className="flex items-start justify-between">
-                <div className="flex-1 space-y-2">
-                  <div className="flex flex-wrap items-center gap-2">
-                    <Chip
-                      tone={
-                        p.status === "active"
-                          ? "primary"
-                          : p.status === "done"
-                            ? "success"
-                            : "default"
-                      }
-                    >
-                      {p.status === "active"
-                        ? "In progress"
-                        : p.status === "done"
-                          ? "Done"
-                          : "Planning"}
-                    </Chip>
-                    {p.deadline ? <Chip>Due {p.deadline}</Chip> : null}
-                  </div>
-                  <div className="text-[15px] font-semibold tracking-tight">{p.title}</div>
-                  {p.description ? (
-                    <div className="line-clamp-2 text-[12.5px] text-muted-foreground">
-                      {p.description}
-                    </div>
-                  ) : null}
-                </div>
-              </div>
-
-              <div className="mt-5 space-y-2">
-                <div className="flex items-center justify-between text-[12px] text-muted-foreground">
-                  <span>Progress</span>
-                  <span className="text-foreground/80">{p.progress}%</span>
-                </div>
-                <ProgressBar value={p.progress} tone="gradient" />
-              </div>
-
-              {p.techStack.length > 0 ? (
-                <div className="mt-4 flex flex-wrap gap-1.5">
-                  {p.techStack.map((t, j) => (
-                    <span
-                      key={j}
-                      className="rounded-md border border-white/[0.06] bg-white/[0.03] px-2 py-1 text-[10.5px] font-medium text-muted-foreground"
-                    >
-                      {t}
-                    </span>
-                  ))}
-                </div>
-              ) : null}
-            </Card>
-          </button>
+          <ProjectOverview key={p.id} project={p} onEdit={setEditing} />
         ))}
       </div>
 

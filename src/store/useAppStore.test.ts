@@ -109,6 +109,58 @@ describe("useAppStore", () => {
     expect(useAppStore.getState().expenses.transactions[0].at).toBe(at);
   });
 
+  it("creates, edits and deletes a private people-journal entry", () => {
+    const created = useAppStore.getState().addPerson({
+      name: " Ananya ",
+      howMet: "Tech event",
+      learned: "Clarity is a form of generosity.",
+      liked: "  ",
+      tags: ["Networking"],
+    });
+    expect(created.name).toBe("Ananya");
+    expect(created).not.toHaveProperty("liked");
+    expect(useAppStore.getState().people[0].id).toBe(created.id);
+
+    useAppStore.getState().updatePerson(created.id, {
+      learned: "Ask better questions.",
+      followUp: "Send the book recommendation.",
+      tags: ["Networking", "Mentor"],
+    });
+    const updated = useAppStore.getState().people.find((p) => p.id === created.id);
+    expect(updated?.learned).toBe("Ask better questions.");
+    expect(updated?.followUp).toBe("Send the book recommendation.");
+    expect(updated?.howMet).toBe("Tech event");
+    expect(updated?.createdAt).toBe(created.createdAt);
+
+    useAppStore.getState().deletePerson(created.id);
+    expect(useAppStore.getState().people.some((p) => p.id === created.id)).toBe(false);
+  });
+
+  it("adds a complete expense and remembers custom tags for later entries", () => {
+    const created = useAppStore.getState().addTransaction({
+      title: "Workshop",
+      description: "Three-day embedded systems workshop",
+      amount: 2400,
+      type: "debit",
+      tags: ["College", "Equipment"],
+      at: new Date(2026, 7, 2).getTime(),
+    });
+    expect(created.description).toBe("Three-day embedded systems workshop");
+    expect(created.tags).toEqual(["College", "Equipment"]);
+
+    useAppStore.getState().rememberExpenseTags(["college", "Travel", "College"]);
+    expect(useAppStore.getState().expenses.customTags).toEqual(["College", "Equipment", "Travel"]);
+
+    useAppStore.getState().updateTransaction(created.id, { tags: ["College", "Travel"] });
+    const updated = useAppStore.getState().expenses.transactions.find((tx) => tx.id === created.id);
+    expect(updated).toMatchObject({
+      title: "Workshop",
+      description: "Three-day embedded systems workshop",
+      amount: 2400,
+      tags: ["College", "Travel"],
+    });
+  });
+
   it("creates, organizes, duplicates, and deletes a note", () => {
     const note = useAppStore.getState().addNote({ title: "Idea", body: "hello" });
     expect(useAppStore.getState().notes[0]).toMatchObject({

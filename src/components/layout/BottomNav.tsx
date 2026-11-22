@@ -1,17 +1,15 @@
 import { Link, useRouterState } from "@tanstack/react-router";
-import { LayoutDashboard, Plus, User } from "lucide-react";
+import { LayoutDashboard, User, Users } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { haptics } from "@/lib/haptics";
 import { sound } from "@/lib/sound";
 import { useKeyboardOpen, useOverlayOpen } from "@/hooks/use-keyboard-inset";
 import { MODULE_CATALOG } from "@/lib/modules";
 import { useAppStore } from "@/store/useAppStore";
-import { useUiStore } from "@/store/useUiStore";
 
 export function BottomNav() {
   const pathname = useRouterState({ select: (state) => state.location.pathname });
   const modules = useAppStore((state) => state.preferences.modules);
-  const openQuickCapture = useUiStore((state) => state.openQuickCapture);
   const keyboardOpen = useKeyboardOpen();
   const overlayOpen = useOverlayOpen();
   const hidden = keyboardOpen || overlayOpen;
@@ -58,6 +56,32 @@ export function BottomNav() {
           </span>
         </Link>
 
+        <Link
+          to="/people"
+          aria-label="People I Met"
+          aria-current={pathname === "/people" ? "page" : undefined}
+          onClick={() => pathname !== "/people" && sound.select()}
+          className={cn(
+            "flex w-[54px] shrink-0 flex-col items-center gap-0.5 rounded-[5px] px-1 py-1 transition-colors",
+            pathname === "/people" ? "text-foreground" : "text-muted-foreground",
+          )}
+        >
+          <span
+            className={cn(
+              "flex h-8 w-8 items-center justify-center rounded-[4px] border border-transparent",
+              pathname === "/people" && "border-primary bg-primary text-primary-foreground",
+            )}
+          >
+            <Users
+              className="h-[17px] w-[17px]"
+              strokeWidth={pathname === "/people" ? 2.2 : 1.75}
+            />
+          </span>
+          <span className="font-numerical max-w-full truncate text-[9px] font-medium uppercase tracking-[0.06em]">
+            People
+          </span>
+        </Link>
+
         <div className="no-scrollbar flex min-w-0 flex-1 items-center gap-0.5 overflow-x-auto overscroll-x-contain">
           {enabledModules.map((module) => {
             const active = pathname === module.route || pathname.startsWith(`${module.route}/`);
@@ -94,23 +118,6 @@ export function BottomNav() {
             );
           })}
         </div>
-
-        <button
-          type="button"
-          aria-label="Quick capture"
-          title="Quick capture"
-          onClick={() => {
-            haptics.tap();
-            sound.open();
-            openQuickCapture();
-          }}
-          className="pressable gradient-primary flex h-11 w-11 shrink-0 flex-col items-center justify-center rounded-[5px] border border-primary text-primary-foreground transition-colors hover:bg-primary-glow"
-        >
-          <Plus className="h-[17px] w-[17px]" strokeWidth={2.25} />
-          <span className="font-numerical -mt-0.5 text-[7.5px] font-semibold uppercase tracking-[0.04em]">
-            Capture
-          </span>
-        </button>
 
         <Link
           to="/profile"

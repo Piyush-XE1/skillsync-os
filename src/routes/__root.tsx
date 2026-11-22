@@ -14,7 +14,6 @@ import { Toaster } from "@/components/ui/sonner";
 import { AppBackground } from "@/components/layout/backgrounds";
 import { AppLaunchScreen } from "@/components/layout/AppLaunchScreen";
 import { OnboardingFocusSheet } from "@/components/layout/OnboardingFocusSheet";
-import { QuickCaptureSheet } from "@/components/layout/QuickCaptureSheet";
 import { NotificationRunner } from "@/components/notifications/NotificationRunner";
 import { HomeWidgetRunner } from "@/components/widgets/HomeWidgetRunner";
 import { BackupRunner } from "@/components/backup/BackupRunner";
@@ -171,7 +170,6 @@ function RootComponent() {
       <AppBackground />
       <AppLaunchScreen />
       <OnboardingFocusSheet />
-      <QuickCaptureSheet />
       <NotificationRunner />
       <HomeWidgetRunner />
       <BackupRunner />

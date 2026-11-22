@@ -20,13 +20,12 @@ import {
   Target,
   CalendarHeart,
   Sparkles,
-  Plus,
+  Users,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { haptics } from "@/lib/haptics";
 import { sound } from "@/lib/sound";
 import { useAppStore } from "@/store/useAppStore";
-import { useUiStore } from "@/store/useUiStore";
 import type { ModuleKey } from "@/lib/schema";
 
 type Item = {
@@ -34,6 +33,7 @@ type Item = {
     | "/"
     | "/learn"
     | "/projects"
+    | "/people"
     | "/planner"
     | "/habits"
     | "/notes"
@@ -60,6 +60,7 @@ const items: Item[] = [
   { to: "/learn", label: "Roadmaps", icon: GraduationCap, module: "roadmaps" },
   { to: "/focus", label: "Focus", icon: Timer, module: "focus", kbd: "F" },
   { to: "/projects", label: "Projects", icon: FolderKanban, module: "projects" },
+  { to: "/people", label: "People I Met", icon: Users },
   { to: "/planner", label: "Planner", icon: CalendarRange, module: "planner" },
   { to: "/cgpa", label: "CGPA", icon: Award, module: "cgpa" },
   { to: "/habits", label: "Habits", icon: Flame, module: "habits" },
@@ -89,7 +90,6 @@ function readCollapsed(): boolean {
 export function SideNav() {
   const pathname = useRouterState({ select: (s) => s.location.pathname });
   const modules = useAppStore((s) => s.preferences.modules);
-  const openQuickCapture = useUiStore((s) => s.openQuickCapture);
   // Lazy initial state: AppShell remounts on every navigation, so reading the
   // persisted value in an effect made the sidebar flash expanded for a frame
   // on every route change. Initializing synchronously keeps it stable.
@@ -209,28 +209,6 @@ export function SideNav() {
           );
         })}
       </nav>
-
-      <button
-        type="button"
-        title={collapsed ? "Quick capture" : undefined}
-        aria-label="Quick capture"
-        onClick={() => {
-          haptics.tap();
-          sound.open();
-          openQuickCapture();
-        }}
-        className={cn(
-          "pressable mt-2 flex items-center gap-3 rounded-[5px] border border-primary bg-primary px-3 py-3 text-primary-foreground transition-colors hover:bg-primary-glow",
-          collapsed && "justify-center px-0",
-        )}
-      >
-        <Plus className="h-[17px] w-[17px] shrink-0" strokeWidth={2} />
-        {collapsed ? null : (
-          <span className="font-numerical text-[9.5px] font-semibold uppercase tracking-[0.1em]">
-            Quick capture
-          </span>
-        )}
-      </button>
     </aside>
   );
 }

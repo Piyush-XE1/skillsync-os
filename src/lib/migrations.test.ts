@@ -31,7 +31,7 @@ describe("migrate", () => {
     };
     const result = migrate(v1);
     expect(result.habits[0].startDate).toBeTruthy();
-    expect(result.expenses).toEqual({ transactions: [], monthlyBudget: 0 });
+    expect(result.expenses).toEqual({ transactions: [], monthlyBudget: 0, customTags: [] });
     expect(result.preferences.modules).toEqual({
       expenses: false,
       focus: true,
@@ -360,5 +360,71 @@ describe("migrate", () => {
     });
     expect(result.notes[0].body).toBe(legacyNote.body);
     expect(result.notes[0].tags).toEqual(legacyNote.tags);
+  });
+
+  it("v17 -> v18 seeds the reusable expense tag palette from existing transactions", () => {
+    const result = migrate({
+      schemaVersion: 17,
+      expenses: {
+        monthlyBudget: 2000,
+        transactions: [
+          {
+            id: "t1",
+            title: "Hostel fees",
+            amount: 1200,
+            type: "debit",
+            tags: ["College", "Hostel"],
+            at: 1_700_000_000_000,
+          },
+          {
+            id: "t2",
+            title: "Refund",
+            amount: 200,
+            type: "credit",
+            tags: ["college", "Refund"],
+            at: 1_700_000_000_000,
+          },
+        ],
+      },
+    });
+
+    expect(result.expenses.customTags).toEqual(["College", "Hostel", "Refund"]);
+    expect(result.expenses.transactions).toHaveLength(2);
+    expect(result.expenses.transactions[0].tags).toEqual(["College", "Hostel"]);
+  });
+
+  it("v18 -> v19 adds the empty private people journal", () => {
+    const result = migrate({ schemaVersion: 18, people: [] });
+    expect(result.people).toEqual([]);
+    expect(result.schemaVersion).toBe(CURRENT_SCHEMA_VERSION);
+  });
+
+  it("normalises hand-edited people records without dropping populated fields", () => {
+    const result = migrate({
+      schemaVersion: CURRENT_SCHEMA_VERSION,
+      people: [
+        {
+          id: "p1",
+          name: "  Rahul  ",
+          howMet: "College",
+          liked: "   ",
+          learned: "Stay consistent",
+          tags: ["College", "college", "Mentor"],
+          createdAt: 100,
+          updatedAt: 200,
+        },
+      ],
+    });
+    expect(result.people).toEqual([
+      {
+        id: "p1",
+        name: "Rahul",
+        howMet: "College",
+        learned: "Stay consistent",
+        tags: ["College", "Mentor"],
+        createdAt: 100,
+        updatedAt: 200,
+      },
+    ]);
   });
 });

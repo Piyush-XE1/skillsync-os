@@ -40,45 +40,14 @@ export function useHomeWidgets() {
 
       const state = useAppStore.getState();
       const operations = planWidgetActions(
-        {
-          habits: state.habits,
-          habitLogs: state.habitLogs,
-          planner: state.planner,
-          transactions: state.expenses.transactions,
-        },
+        { habits: state.habits, habitLogs: state.habitLogs },
         actions,
       );
       for (const operation of operations) {
-        const store = useAppStore.getState();
-        if (operation.kind === "setHabit") {
-          // `toggleHabitToday` is the single writer for habit logs; the planner
-          // above already established that this toggle reaches the desired state.
-          store.toggleHabitToday(operation.id, operation.date);
-        } else if (operation.kind === "setTaskDone") {
-          store.updatePlannerTask(operation.id, { done: operation.done });
-        } else if (operation.kind === "addExpense") {
-          store.addTransaction({
-            title: operation.title,
-            amount: operation.amount,
-            type: "debit",
-            tags: operation.tags,
-            at: operation.at,
-            description: "Logged from a home screen widget",
-          });
-        } else if (operation.kind === "addNote") {
-          store.addNote({
-            title: operation.title,
-            body: operation.body,
-            tags: operation.tags,
-          });
-        } else {
-          store.addPlannerTask({
-            title: operation.title,
-            date: operation.date,
-            time: operation.time,
-            priority: operation.priority,
-          });
-        }
+        if (operation.kind !== "setHabit") continue;
+        // `toggleHabitToday` is the single writer for habit logs; the planner
+        // above already established that this toggle reaches the desired state.
+        useAppStore.getState().toggleHabitToday(operation.id, operation.date);
       }
       if (operations.length > 0) await push();
     } catch {
