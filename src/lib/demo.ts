@@ -713,7 +713,47 @@ function expenses(now: Date) {
       updatedAt: 0,
     })),
     monthlyBudget: 18000,
+    customTags: [...new Set(rows.map((row) => row[3]))],
   };
+}
+
+/** Three example encounters: sparse, partial and complete — for the demo tour. */
+function people(now: Date) {
+  return [
+    {
+      id: "demo-person-a",
+      name: "Rahul",
+      howMet: "College",
+      tags: [],
+      createdAt: dayOffset(now, -3).getTime(),
+      updatedAt: dayOffset(now, -3).getTime(),
+    },
+    {
+      id: "demo-person-b",
+      name: "Ananya",
+      howMet: "Tech event",
+      liked: "Explained her work without jargon.",
+      learned: "Clarity is a form of generosity.",
+      tags: ["Networking", "Learning"],
+      createdAt: dayOffset(now, -9).getTime(),
+      updatedAt: dayOffset(now, -9).getTime(),
+    },
+    {
+      id: "demo-person-c",
+      name: "Professor Mehta",
+      howMet: "Friend introduction",
+      liked: "Patient with questions, generous with examples.",
+      disliked: "Interrupted others twice; noted it so I do not repeat it.",
+      learned: "Ask the second question — the first answer is rarely the whole story.",
+      talkedAbout: "Research, embedded systems and teaching.",
+      locationContext: "College canteen",
+      dateMet: iso(dayOffset(now, -14)),
+      followUp: "Send the book recommendation.",
+      tags: ["College", "Mentor", "Interesting"],
+      createdAt: dayOffset(now, -14).getTime(),
+      updatedAt: dayOffset(now, -14).getTime(),
+    },
+  ];
 }
 
 function notifications(now: Date) {
@@ -825,6 +865,7 @@ export function createDemoData(now: Date = new Date()): AppData {
     roadmaps: roadmaps(),
     planner: planner(now),
     projects: projects(),
+    people: people(now),
     notes: notes(now),
     coding: coding(now),
     cgpa: cgpa(),

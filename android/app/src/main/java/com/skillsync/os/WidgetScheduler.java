@@ -10,8 +10,8 @@ import java.util.Calendar;
 /**
  * Keeps the home screen widgets honest across midnight.
  *
- * Habit and task counters are "today" numbers, so a widget that is not redrawn
- * after the date rolls over would quietly lie. One inexact alarm (no exact-alarm
+ * Habit completion is a "today" number, so a widget that is not redrawn after
+ * the date rolls over would quietly lie. One inexact alarm (no exact-alarm
  * permission needed) wakes the providers five minutes past midnight, repaints
  * them and re-arms itself for the following night.
  */

@@ -6,11 +6,9 @@ import { AppShell } from "@/components/layout/AppShell";
 import { WidgetGrid } from "@/components/widgets/WidgetGrid";
 import { DashboardGuidance } from "@/components/dashboard/DashboardGuidance";
 import { WidgetCustomizer } from "@/components/widgets/WidgetCustomizer";
-import { TypographicQuoteObelisk } from "@/components/home/TypographicQuoteObelisk";
 import { ArchetypeSection } from "@/components/home/ArchetypeSection";
 import { AntiSelfSection } from "@/components/home/AntiSelfSection";
 import { MementoMoriSection } from "@/components/home/MementoMoriSection";
-import { UniversalStopwatchModule } from "@/components/home/UniversalStopwatchModule";
 import { useAppStore } from "@/store/useAppStore";
 import { visibleWidgets } from "@/lib/widgets";
 import { haptics } from "@/lib/haptics";
@@ -50,8 +48,9 @@ function greeting(): string {
 /**
  * The working dashboard remains intact: guidance, every persisted widget,
  * customization, drag/keyboard reordering, and quick task entry. Only the old
- * oversized TodayHero tile is retired. The quotation and identity work lead the
- * page, while the complete working dashboard remains directly beneath them.
+ * oversized TodayHero tile is retired. The identity work leads the page and the
+ * complete working dashboard remains directly beneath it. The in-app Quote and
+ * Timer blocks were intentionally removed from this screen.
  */
 function Dashboard() {
   const profile = useAppStore((state) => state.profile);
@@ -84,8 +83,7 @@ function Dashboard() {
     <AppShell>
       <TypographicHomeHeader firstName={firstName} />
 
-      <section aria-label="Opening personal monograph" className="border-t border-border pt-2">
-        <TypographicQuoteObelisk />
+      <section aria-label="Identity" className="border-t border-border pt-2">
         <ArchetypeSection />
       </section>
 
@@ -194,10 +192,9 @@ function Dashboard() {
         </section>
       </div>
 
-      <section aria-label="Personal monograph continuation" className="border-t border-border pt-2">
+      <section aria-label="Reflection" className="border-t border-border pt-2">
         <AntiSelfSection />
         <MementoMoriSection />
-        <UniversalStopwatchModule />
       </section>
 
       <footer className="px-5 pb-8 pt-10 lg:px-2">

@@ -3,7 +3,7 @@ import { NotificationsStateSchema, createDefaultNotifications } from "./notifica
 import { DEFAULT_SOUND_VOLUME } from "./sound";
 import { defaultWidgetLayout } from "./widgets";
 
-export const CURRENT_SCHEMA_VERSION = 17;
+export const CURRENT_SCHEMA_VERSION = 19;
 
 export const ChecklistItemSchema = z.object({
   id: z.string(),
@@ -93,6 +93,33 @@ export const ProjectSchema = z.object({
   notes: z.string().default(""),
   githubUrl: z.string().default(""),
   createdAt: z.number(),
+});
+
+/**
+ * A private entry in the social-learning journal.
+ *
+ * Only `name` is required. Every reflection field is optional and is omitted
+ * (rather than stored as an empty string) when the user leaves it blank, so a
+ * card never has to guess which sections are "empty".
+ */
+export const PersonSchema = z.object({
+  id: z.string(),
+  name: z.string().min(1),
+  howMet: z.string().min(1).optional(),
+  liked: z.string().min(1).optional(),
+  disliked: z.string().min(1).optional(),
+  learned: z.string().min(1).optional(),
+  talkedAbout: z.string().min(1).optional(),
+  locationContext: z.string().min(1).optional(),
+  /** ISO calendar date, or omitted when the user did not record one. */
+  dateMet: z
+    .string()
+    .regex(/^\d{4}-\d{2}-\d{2}$/)
+    .optional(),
+  followUp: z.string().min(1).optional(),
+  tags: z.array(z.string()).default([]),
+  createdAt: z.number(),
+  updatedAt: z.number(),
 });
 
 export const PlannerPriority = z.enum(["low", "medium", "high"]);
@@ -311,6 +338,11 @@ export const ExpensesSchema = z.object({
   transactions: z.array(TransactionSchema).default([]),
   /** User-set monthly spending limit; zero means no budget has been configured. */
   monthlyBudget: z.number().min(0).default(0),
+  /**
+   * Custom tags created while logging expenses. Tags themselves stay on their
+   * transactions — this is only the reusable palette offered by the pickers.
+   */
+  customTags: z.array(z.string()).default([]),
 });
 
 /* ------------------------------------------------------------------ *
@@ -483,6 +515,8 @@ export const AppDataSchema = z.object({
   roadmaps: z.array(RoadmapSchema).default([]),
   notes: z.array(NoteSchema).default([]),
   projects: z.array(ProjectSchema).default([]),
+  /** Local-only private journal — never shared or sent off-device. */
+  people: z.array(PersonSchema).default([]),
   planner: z.array(PlannerTaskSchema).default([]),
   habits: z.array(HabitSchema).default([]),
   habitLogs: z.array(HabitLogSchema).default([]),
@@ -529,7 +563,7 @@ export const AppDataSchema = z.object({
     soundVolume: DEFAULT_SOUND_VOLUME,
   }),
   widgets: z.array(WidgetPlacementSchema).default(() => defaultWidgetLayout()),
-  expenses: ExpensesSchema.default({ transactions: [], monthlyBudget: 0 }),
+  expenses: ExpensesSchema.default({ transactions: [], monthlyBudget: 0, customTags: [] }),
   focus: FocusSchema.default({ sessions: [], settings: createDefaultFocusSettings() }),
   cgpa: CgpaSchema.default({ semesters: [] }),
   notifications: NotificationsStateSchema.default(() => createDefaultNotifications()),
@@ -546,6 +580,7 @@ export type Roadmap = z.infer<typeof RoadmapSchema>;
 export type Note = z.infer<typeof NoteSchema>;
 export type Project = z.infer<typeof ProjectSchema>;
 export type ProjectTask = z.infer<typeof ProjectTaskSchema>;
+export type Person = z.infer<typeof PersonSchema>;
 export type PlannerTask = z.infer<typeof PlannerTaskSchema>;
 export type PlannerPriority = z.infer<typeof PlannerPriority>;
 export type Habit = z.infer<typeof HabitSchema>;

@@ -49,7 +49,7 @@ describe("schema", () => {
     expect(parsed.stopwatchEnabled).toBe(false);
     expect("stats" in parsed).toBe(false);
     expect(parsed).not.toHaveProperty("attendance");
-    expect(parsed.expenses).toEqual({ transactions: [], monthlyBudget: 0 });
+    expect(parsed.expenses).toEqual({ transactions: [], monthlyBudget: 0, customTags: [] });
     expect(parsed.focus.sessions).toEqual([]);
     expect(parsed.cgpa.semesters).toEqual([]);
     // The Resume builder was removed in v12: no record block anywhere.

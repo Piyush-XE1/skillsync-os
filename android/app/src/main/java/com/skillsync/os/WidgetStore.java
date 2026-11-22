@@ -7,6 +7,10 @@ import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 
+import java.text.SimpleDateFormat;
+import java.util.Date;
+import java.util.Locale;
+
 /**
  * Offline cache for the home screen widgets.
  *
@@ -15,7 +19,7 @@ import org.json.JSONObject;
  * themselves. Widgets must render without the app running, so the snapshot is
  * kept in SharedPreferences and every provider reads from here.
  *
- * Widget taps that change data (habit check-ins, planner completions) happen
+ * Widget taps that change data (habit checkmarks) happen
  * while the WebView is closed. They are applied optimistically to this cache and
  * appended to an action queue that the web app drains on its next resume, so the
  * workspace and the widgets always converge on the same truth.
@@ -25,6 +29,13 @@ final class WidgetStore {
     private static final String PREFS = "skillsync_widgets";
     private static final String KEY_SNAPSHOT = "snapshot";
     private static final String KEY_ACTIONS = "actions";
+    /**
+     * The sticky note is keyed once, not by appWidgetId: re-adding the widget
+     * (which always gets a new id) restores the same note. It is device-local
+     * and separate from the in-app Notes section by design.
+     */
+    private static final String KEY_STICKY_NOTE = "sticky_note";
+    static final int STICKY_NOTE_MAX = 4000;
 
     /** The queue is a safety net, not a journal — old taps are dropped. */
     private static final int MAX_ACTIONS = 50;
@@ -61,6 +72,20 @@ final class WidgetStore {
 
     static long syncedAt(Context context) {
         return snapshot(context).optLong("updatedAt", 0L);
+    }
+
+    /* ----------------------------- sticky note ---------------------------- */
+
+    static String stickyNote(Context context) {
+        String raw = prefs(context).getString(KEY_STICKY_NOTE, "");
+        return raw == null ? "" : raw;
+    }
+
+    /** commit() so the provider repaint immediately after Save sees the new text. */
+    static void saveStickyNote(Context context, String text) {
+        String safe = text == null ? "" : text;
+        if (safe.length() > STICKY_NOTE_MAX) safe = safe.substring(0, STICKY_NOTE_MAX);
+        prefs(context).edit().putString(KEY_STICKY_NOTE, safe).commit();
     }
 
     /* ------------------------------- actions ------------------------------ */
@@ -133,48 +158,34 @@ final class WidgetStore {
         prefs(context).edit().putString(KEY_SNAPSHOT, snapshot.toString()).commit();
     }
 
-    /** Marks one planner task complete (or open) in the cached snapshot. */
-    static void patchTask(Context context, String taskId, boolean done) {
-        if (taskId == null || taskId.isEmpty()) return;
-        JSONObject snapshot = snapshot(context);
-        JSONArray tasks = snapshot.optJSONArray("tasks");
-        if (tasks == null) return;
-
-        int doneCount = 0;
-        for (int i = 0; i < tasks.length(); i++) {
-            JSONObject task = tasks.optJSONObject(i);
-            if (task == null) continue;
-            if (taskId.equals(task.optString("id"))) {
-                put(task, "done", done);
-            }
-            if (task.optBoolean("done", false)) doneCount++;
-        }
-
-        JSONObject today = snapshot.optJSONObject("today");
-        if (today != null && today.optInt("tasksToday", -1) == tasks.length()) {
-            put(today, "tasksDoneToday", doneCount);
-        }
-        prefs(context).edit().putString(KEY_SNAPSHOT, snapshot.toString()).commit();
-    }
-
     /**
-     * Adds a just-logged spend to the cached totals so the widget reflects the
-     * tap immediately, before the web app has applied it for real.
+     * The midnight alarm calls this so a cached "done" state from yesterday
+     * never masquerades as today's completion. The app's next sync restores the
+     * authoritative values; until then the checklist starts blank.
      */
-    static void patchExpense(Context context, double amount) {
-        if (amount <= 0) return;
+    static void rolloverDay(Context context) {
         JSONObject snapshot = snapshot(context);
-        JSONObject expenses = snapshot.optJSONObject("expenses");
-        if (expenses == null) return;
-
-        put(expenses, "todaySpend", round(expenses.optDouble("todaySpend", 0) + amount));
-        put(expenses, "monthSpend", round(expenses.optDouble("monthSpend", 0) + amount));
-        put(expenses, "todayCount", expenses.optInt("todayCount", 0) + 1);
+        String today = todayKey();
+        String cached = snapshot.optString("dayKey", "");
+        if (today.equals(cached)) return;
+        put(snapshot, "dayKey", today);
+        JSONArray habits = snapshot.optJSONArray("habits");
+        if (habits != null) {
+            for (int i = 0; i < habits.length(); i++) {
+                JSONObject habit = habits.optJSONObject(i);
+                if (habit != null) put(habit, "done", false);
+            }
+        }
+        JSONObject todayBlock = snapshot.optJSONObject("today");
+        if (todayBlock != null) {
+            put(todayBlock, "habitsDone", 0);
+            put(todayBlock, "habitPct", 0);
+        }
         prefs(context).edit().putString(KEY_SNAPSHOT, snapshot.toString()).commit();
     }
 
-    private static double round(double value) {
-        return Math.round(value * 100d) / 100d;
+    static String todayKey() {
+        return new SimpleDateFormat("yyyy-MM-dd", Locale.US).format(new Date());
     }
 
     private static void put(JSONObject object, String key, Object value) {

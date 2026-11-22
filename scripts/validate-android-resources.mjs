@@ -346,6 +346,7 @@ const REMOTEVIEW_SAFE = new Set([
   "FrameLayout",
   "RelativeLayout",
   "GridLayout",
+  "View",
   "TextView",
   "ImageView",
   "ImageButton",

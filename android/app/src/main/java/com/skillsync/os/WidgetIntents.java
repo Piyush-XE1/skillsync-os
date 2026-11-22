@@ -5,12 +5,12 @@ import android.content.Context;
 import android.content.Intent;
 
 /**
- * PendingIntents that widgets attach to their views.
+ * PendingIntents attached to launcher widget views.
  *
  * Two kinds only: open the app on a route (the same `skillsync:open` path the
- * reminder notifications use), or apply a change inline through
- * {@link WidgetActions}. Request codes are derived from the widget instance plus
- * the action target, so two rows in the same widget never share a PendingIntent.
+ * reminder notifications use), or apply/capture something inline. Request codes
+ * are derived from the widget instance plus the action target so two rows in
+ * one widget never share a PendingIntent.
  */
 final class WidgetIntents {
 
@@ -37,7 +37,8 @@ final class WidgetIntents {
     /** Toggles a habit check-in for the given day without opening the app. */
     static PendingIntent habit(
             Context context, int widgetId, String habitId, String day, boolean done) {
-        Intent intent = broadcast(context, WidgetActions.ACTION_HABIT);
+        Intent intent = new Intent(context, WidgetActions.class);
+        intent.setAction(WidgetActions.ACTION_HABIT);
         intent.putExtra(WidgetActions.EXTRA_ID, habitId);
         intent.putExtra(WidgetActions.EXTRA_DAY, day);
         intent.putExtra(WidgetActions.EXTRA_DONE, done);
@@ -46,45 +47,10 @@ final class WidgetIntents {
                 context, requestCode(widgetId, "habit|" + habitId), intent, flags());
     }
 
-    /** Completes (or re-opens) one planner task without opening the app. */
-    static PendingIntent task(Context context, int widgetId, String taskId, boolean done) {
-        Intent intent = broadcast(context, WidgetActions.ACTION_TASK);
-        intent.putExtra(WidgetActions.EXTRA_ID, taskId);
-        intent.putExtra(WidgetActions.EXTRA_DONE, done);
-        intent.putExtra(WidgetActions.EXTRA_WIDGET_ID, widgetId);
-        return PendingIntent.getBroadcast(
-                context, requestCode(widgetId, "task|" + taskId), intent, flags());
-    }
-
-    /** Logs a fixed-amount spend without opening the app. */
-    static PendingIntent expense(Context context, int widgetId, double amount) {
-        Intent intent = broadcast(context, WidgetActions.ACTION_EXPENSE);
-        intent.putExtra(WidgetActions.EXTRA_AMOUNT, amount);
-        intent.putExtra(WidgetActions.EXTRA_WIDGET_ID, widgetId);
-        return PendingIntent.getBroadcast(
-                context,
-                requestCode(widgetId, "expense|" + Math.round(amount * 100)),
-                intent,
-                flags());
-    }
-
-    /** Opens the capture sheet: write a note, or add a task for today. */
-    static PendingIntent capture(Context context, int widgetId, String mode) {
-        Intent intent = WidgetCaptureActivity.intent(context, mode, null);
+    /** Opens the native note editor over the launcher. */
+    static PendingIntent editNote(Context context, int widgetId) {
+        Intent intent = WidgetNoteActivity.intent(context);
         return PendingIntent.getActivity(
-                context, requestCode(widgetId, "capture|" + mode), intent, flags());
-    }
-
-    /** Opens the small custom-amount sheet. */
-    static PendingIntent customExpense(Context context, int widgetId) {
-        Intent intent = WidgetExpenseActivity.intent(context);
-        return PendingIntent.getActivity(
-                context, requestCode(widgetId, "expense|custom"), intent, flags());
-    }
-
-    private static Intent broadcast(Context context, String action) {
-        Intent intent = new Intent(context, WidgetActions.class);
-        intent.setAction(action);
-        return intent;
+                context, requestCode(widgetId, "note|edit"), intent, flags());
     }
 }

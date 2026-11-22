@@ -521,6 +521,7 @@ describe("Advanced Backup System", () => {
         roadmaps: [],
         notes: [],
         projects: [],
+        people: [],
         planner: [],
         habits: [],
         habitLogs: [],
@@ -561,7 +562,7 @@ describe("Advanced Backup System", () => {
         ageDisplayUnit: "weeks",
         stopwatches: [],
         stopwatchEnabled: false,
-        expenses: { transactions: [], monthlyBudget: 0 },
+        expenses: { transactions: [], monthlyBudget: 0, customTags: [] },
         focus: {
           sessions: [],
           settings: {

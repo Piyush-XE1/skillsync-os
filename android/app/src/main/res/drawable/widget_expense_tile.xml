@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- A compact wallet tile: matte black, hairline brass edge, faint lift. -->
+<layer-list xmlns:android="http://schemas.android.com/apk/res/android">
+    <item android:left="1dp" android:top="2dp">
+        <shape android:shape="rectangle">
+            <solid android:color="#69000000" />
+            <corners android:radius="12dp" />
+        </shape>
+    </item>
+    <item android:bottom="2dp" android:right="1dp">
+        <shape android:shape="rectangle">
+            <solid android:color="#121216" />
+            <stroke android:width="1dp" android:color="#6BC29F62" />
+            <corners android:radius="11dp" />
+        </shape>
+    </item>
+</layer-list>

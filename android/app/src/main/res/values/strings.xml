@@ -5,32 +5,20 @@
     <string name="package_name">com.skillsync.os</string>
     <string name="custom_url_scheme">com.skillsync.os</string>
 
-    <!-- Home screen widgets -->
-    <string name="widget_today_label">Today</string>
-    <string name="widget_today_description">Habits, deep work and tasks for today at a glance.</string>
-    <string name="widget_habits_label">Habits</string>
-    <string name="widget_habits_description">Check habits in and keep every streak alive.</string>
-    <string name="widget_focus_label">Focus</string>
-    <string name="widget_focus_description">Today\'s deep work, streak and one-tap focus starts.</string>
-    <string name="widget_expenses_label">Spend</string>
-    <string name="widget_expenses_description">Today\'s spend against your budget, with one-tap logging.</string>
-    <string name="widget_notes_label">Notes</string>
-    <string name="widget_notes_description">Your most recent notes, with a one-tap capture sheet.</string>
-    <string name="widget_pulse_label">Pulse</string>
-    <string name="widget_pulse_description">A twelve-week activity heatmap of habits, focus and solves.</string>
-    <string name="widget_roadmaps_label">Roadmaps</string>
-    <string name="widget_roadmaps_description">Learning roadmap progress and the next topic to open.</string>
-    <string name="widget_aims_label">Aims</string>
-    <string name="widget_aims_description">The aims you are working on, pinned to your home screen.</string>
-    <string name="widget_planner_label">Planner</string>
-    <string name="widget_planner_description">Today\'s tasks — tap to complete them in place.</string>
-    <string name="widget_stats_label">Stats</string>
-    <string name="widget_stats_description">Solves, streaks, CGPA and focus totals.</string>
-    <string name="widget_quote_label">Daily quote</string>
-    <string name="widget_quote_description">One line of perspective, renewed every day.</string>
-    <string name="widget_quick_label">Quick actions</string>
-    <string name="widget_quick_description">One-tap shortcuts into tasks, notes, habits and focus.</string>
-    <string name="widget_overview_label">Overview</string>
-    <string name="widget_overview_description">The full dashboard: today, habits, aims and tasks.</string>
-    <string name="widget_empty_default">Open SkillSync to sync your workspace.</string>
+    <!-- The three supported home screen widgets. -->
+    <string name="widget_sticky_note_label">Sticky note</string>
+    <string name="widget_sticky_note_description">A paper note you can write and edit right on your home screen.</string>
+    <string name="widget_expense_logger_label">Expense logger</string>
+    <string name="widget_expense_logger_description">One tap opens the complete expense entry form.</string>
+    <string name="widget_habit_check_label">Habit checkmarks</string>
+    <string name="widget_habit_check_description">Today\'s habits with one-tap checkmarks.</string>
+
+    <string name="widget_note_editor_title">Edit note</string>
+    <string name="widget_note_hint">Write something worth remembering…</string>
+    <string name="widget_note_save">Save</string>
+    <string name="widget_note_clear">Clear</string>
+    <string name="widget_note_empty">Tap to write a note</string>
+    <string name="widget_note_saved">Note saved</string>
+    <string name="widget_habit_empty">No habits yet</string>
+    <string name="widget_habit_open">Open habits</string>
 </resources>

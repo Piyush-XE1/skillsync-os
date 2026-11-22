@@ -15,6 +15,7 @@ import type {
   Preferences,
   Profile,
   Transaction,
+  Person,
   Goal,
   ArchetypeTrait,
   ArchetypeSubTenet,
@@ -45,6 +46,8 @@ import { errorMessage } from "@/lib/utils";
 import { topicPct } from "@/lib/progress";
 import { applyOrder } from "@/lib/drag-sort";
 import { cleanGoalText, createGoal, GOAL_NOTE_MAX, GOAL_TITLE_MAX } from "@/lib/goals";
+import { cleanPersonInput, type PersonInput } from "@/lib/people";
+import { mergeTags } from "@/lib/tags";
 import { DEFAULT_GOAL_ICON, DEFAULT_HABIT_ICON, resolveSemanticIcon } from "@/lib/semantic-icons";
 import {
   applyWidgetOrder,
@@ -146,6 +149,11 @@ type State = AppData & {
   updateNote: (id: string, patch: Partial<Note>) => void;
   duplicateNote: (id: string) => Note | null;
   deleteNote: (id: string) => void;
+
+  // people (private social-learning journal)
+  addPerson: (input: PersonInput) => Person;
+  updatePerson: (id: string, patch: Partial<PersonInput>) => void;
+  deletePerson: (id: string) => void;
 
   // projects
   addProject: (partial?: Partial<Project>) => Project;
@@ -269,6 +277,8 @@ type State = AppData & {
   updateTransaction: (id: string, patch: Partial<Omit<Transaction, "id">>) => void;
   deleteTransaction: (id: string) => void;
   setMonthlyExpenseBudget: (amount: number) => void;
+  /** Adds tags to the reusable expense palette without creating duplicates. */
+  rememberExpenseTags: (tags: readonly string[]) => void;
   /**
    * Persist a manual order for the given transaction ids.
    *
@@ -449,6 +459,7 @@ export function toAppData(state: AppData): AppData {
     roadmaps: state.roadmaps,
     notes: state.notes,
     projects: state.projects,
+    people: state.people,
     planner: state.planner,
     habits: state.habits,
     habitLogs: state.habitLogs,
@@ -765,6 +776,22 @@ export const useAppStore = create<State>()(
         return copy;
       },
       deleteNote: (id) => set((s) => ({ notes: s.notes.filter((n) => n.id !== id) })),
+
+      addPerson: (input) => {
+        const person = cleanPersonInput(input, { id: newId(), now: Date.now() });
+        set((s) => ({ people: [person, ...s.people] }));
+        return person;
+      },
+      updatePerson: (id, patch) =>
+        set((s) => ({
+          people: s.people.map((person) => {
+            if (person.id !== id) return person;
+            const now = Date.now();
+            const next = cleanPersonInput({ ...person, ...patch }, { id, now });
+            return { ...next, createdAt: person.createdAt, updatedAt: now };
+          }),
+        })),
+      deletePerson: (id) => set((s) => ({ people: s.people.filter((p) => p.id !== id) })),
 
       addProject: (partial) => {
         const project: Project = {
@@ -1452,6 +1479,7 @@ export const useAppStore = create<State>()(
           expenses: {
             ...s.expenses,
             transactions: [tx, ...s.expenses.transactions],
+            customTags: mergeTags(s.expenses.customTags, tx.tags),
           },
         }));
         return tx;
@@ -1463,6 +1491,9 @@ export const useAppStore = create<State>()(
             transactions: s.expenses.transactions.map((t) =>
               t.id === id ? { ...t, ...patch, updatedAt: Date.now() } : t,
             ),
+            customTags: patch.tags
+              ? mergeTags(s.expenses.customTags, patch.tags)
+              : s.expenses.customTags,
           },
         })),
       setTransactionOrder: (ids) =>
@@ -1485,6 +1516,10 @@ export const useAppStore = create<State>()(
             ...s.expenses,
             monthlyBudget: Number.isFinite(amount) ? Math.max(0, amount) : 0,
           },
+        })),
+      rememberExpenseTags: (tags) =>
+        set((s) => ({
+          expenses: { ...s.expenses, customTags: mergeTags(s.expenses.customTags, tags) },
         })),
 
       setWidgets: (layout) => set({ widgets: normalizeWidgetLayout(layout) }),

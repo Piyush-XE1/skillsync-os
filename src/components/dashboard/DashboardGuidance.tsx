@@ -1,9 +1,9 @@
 import { useEffect, useMemo, useState } from "react";
+import { Link } from "@tanstack/react-router";
 import { ArrowRight, BellRing, Sparkles } from "lucide-react";
 import { todayISO } from "@/lib/date";
 import { firstRecoveryHabit } from "@/lib/habit-streaks";
 import { useAppStore } from "@/store/useAppStore";
-import { useUiStore } from "@/store/useUiStore";
 import { cn } from "@/lib/utils";
 
 /** Gentle, local habit guidance; never treats a missed day as a failure. */
@@ -11,7 +11,6 @@ export function DashboardGuidance() {
   const modules = useAppStore((state) => state.preferences.modules);
   const habits = useAppStore((state) => state.habits);
   const habitLogs = useAppStore((state) => state.habitLogs);
-  const openQuickCapture = useUiStore((state) => state.openQuickCapture);
   const [now, setNow] = useState(() => new Date());
   const today = todayISO(now);
 
@@ -38,9 +37,8 @@ export function DashboardGuidance() {
   return (
     <section className="mb-5 space-y-2.5" aria-label="Today's guidance">
       {recoveryHabit ? (
-        <button
-          type="button"
-          onClick={() => openQuickCapture("habit")}
+        <Link
+          to="/habits"
           className={cn(
             "pressable flex w-full items-center gap-3 border-l-2 border-primary bg-surface px-4 py-3 text-left transition-colors hover:bg-surface-2 active:scale-[0.99]",
           )}
@@ -56,13 +54,12 @@ export function DashboardGuidance() {
             </span>
           </span>
           <ArrowRight className="h-4 w-4 shrink-0 text-[var(--primary-glow)]" />
-        </button>
+        </Link>
       ) : null}
 
       {protectStreak ? (
-        <button
-          type="button"
-          onClick={() => openQuickCapture("habit")}
+        <Link
+          to="/habits"
           className="pressable flex w-full items-center gap-3 border-l-2 border-primary bg-surface px-4 py-3 text-left transition-colors hover:bg-surface-2 active:scale-[0.99]"
         >
           <BellRing className="h-4 w-4 shrink-0 text-[var(--primary-glow)]" strokeWidth={1.9} />
@@ -74,7 +71,7 @@ export function DashboardGuidance() {
             </span>
           </span>
           <ArrowRight className="h-4 w-4 shrink-0 text-[var(--primary-glow)]" />
-        </button>
+        </Link>
       ) : null}
     </section>
   );

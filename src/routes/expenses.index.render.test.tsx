@@ -49,7 +49,7 @@ describe("expense log", () => {
     });
   }
 
-  it("offers a local expense date alongside title and amount", async () => {
+  it("offers every editable field when adding an expense", async () => {
     await render();
     click(
       Array.from(container.querySelectorAll("button")).find((button) =>
@@ -63,7 +63,9 @@ describe("expense log", () => {
     const dateField = document.querySelector<HTMLInputElement>('input[type="date"]');
     expect(document.body.textContent).toContain("Title");
     expect(document.body.textContent).toContain("Amount");
-    expect(document.body.textContent).toContain("Date of expense");
+    expect(document.body.textContent).toContain("Description");
+    expect(document.body.textContent).toContain("Tags");
+    expect(document.body.textContent).toContain("Date");
     expect(dateField).not.toBeNull();
     expect(dateField?.value).toMatch(/^\d{4}-\d{2}-\d{2}$/);
   });
