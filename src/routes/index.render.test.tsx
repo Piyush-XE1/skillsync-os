@@ -47,20 +47,16 @@ describe("typographic dashboard and personal monograph", () => {
     });
   }
 
-  it("leads with the Archetype, keeps the working dashboard, and has no Quote/Timer/Capture blocks", async () => {
+  it("keeps the working dashboard and has no Archetype/Anti-Self/Memento Mori/Quote/Timer/Capture blocks", async () => {
     await render();
     const html = container.innerHTML;
-    const archetypePosition = html.indexOf('id="archetype-heading"');
-    const dashboardPosition = html.indexOf('id="dashboard-heading"');
-
-    expect(archetypePosition).toBeGreaterThan(-1);
-    expect(dashboardPosition).toBeGreaterThan(archetypePosition);
-    expect(container.textContent).toContain("dashboard.");
+    expect(html.indexOf('id="dashboard-heading"')).toBeGreaterThan(-1);
+    expect(container.textContent).toContain("Dashboard");
     expect(container.textContent).toContain("Customize");
     expect(container.querySelectorAll("[data-sort-row]").length).toBeGreaterThan(0);
-    expect(html).toContain("The Archetype");
-    expect(html).toContain("The Anti-Self");
-    expect(html).toContain("Memento Mori");
+    expect(html).not.toContain("The Archetype");
+    expect(html).not.toContain("The Anti-Self");
+    expect(html).not.toContain("Memento Mori");
 
     // Explicit removals from the in-app Home screen and app shell.
     expect(container.querySelector('[id="quote-obelisk-heading"]')).toBeNull();
@@ -85,7 +81,7 @@ describe("typographic dashboard and personal monograph", () => {
     await act(async () => {
       await new Promise((resolve) => setTimeout(resolve, 20));
     });
-    expect(container.textContent).toContain("Drag the grip to rearrange");
+    expect(container.textContent).toContain("Drag to rearrange");
     expect(container.textContent).toContain("Widgets");
     expect(container.querySelector('button[aria-label^="Reorder "]')).not.toBeNull();
   });
@@ -97,23 +93,12 @@ describe("typographic dashboard and personal monograph", () => {
       notes: "Pause before answering.",
       subTenets: [{ id: "sub-1", text: "Say only what is necessary." }],
     });
+    useAppStore.getState().addAntiSelfEntry({ text: "Choosing noise over intention." });
     useAppStore.getState().setBirthDate("2000-01-01");
     await render();
-    expect(container.textContent).toContain("I speak with precision and act with intention.");
-    expect(container.textContent).toContain("Age in completed weeks");
+    expect(container.textContent).not.toContain("I speak with precision and act with intention.");
+    expect(container.textContent).not.toContain("Choosing noise over intention.");
+    expect(container.textContent).not.toContain("Age in completed weeks");
     expect(container.querySelector('[role="timer"]')).toBeNull();
-  });
-
-  it("keeps Anti-Self visually subordinate until opened", async () => {
-    useAppStore.getState().addAntiSelfEntry({ text: "Choosing noise over intention." });
-    await render();
-    const content = container.querySelector("#anti-self-content");
-    expect(content?.hasAttribute("hidden")).toBe(true);
-    click(container.querySelector('[aria-controls="anti-self-content"]'));
-    await act(async () => {
-      await new Promise((resolve) => setTimeout(resolve, 20));
-    });
-    expect(content?.hasAttribute("hidden")).toBe(false);
-    expect(content?.textContent).toContain("Choosing noise over intention.");
   });
 });

@@ -227,6 +227,7 @@ type State = AppData & {
   updateProfile: (patch: Partial<Profile>) => void;
   updatePreferences: (patch: Partial<Preferences>) => void;
   setModuleEnabled: (key: ModuleKey, enabled: boolean) => void;
+  setModuleOrder: (order: ModuleKey[]) => void;
 
   // focus (Pomodoro)
   addFocusSession: (input: {
@@ -950,6 +951,13 @@ export const useAppStore = create<State>()(
           preferences: {
             ...s.preferences,
             modules: { ...s.preferences.modules, [key]: enabled },
+          },
+        })),
+      setModuleOrder: (order) =>
+        set((s) => ({
+          preferences: {
+            ...s.preferences,
+            moduleOrder: order,
           },
         })),
       addGoal: (input) => {

@@ -181,3 +181,21 @@ export function dataForEnabledModules(
       : { ...data.coding, problems: [], rating: 0, maxRating: 0, ratingHistory: [] },
   };
 }
+
+export function orderedModules(
+  modules: Record<ModuleKey, boolean>,
+  order?: readonly ModuleKey[],
+) {
+  const enabled = MODULE_CATALOG.filter((item) => modules[item.key]);
+  if (!order || order.length === 0) return enabled;
+  const rank = new Map<ModuleKey, number>();
+  order.forEach((key, index) => rank.set(key, index));
+  return [...enabled].sort((a, b) => {
+    const ra = rank.get(a.key);
+    const rb = rank.get(b.key);
+    if (ra !== undefined && rb !== undefined) return ra - rb;
+    if (ra !== undefined) return -1;
+    if (rb !== undefined) return 1;
+    return 0;
+  });
+}

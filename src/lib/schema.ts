@@ -283,6 +283,22 @@ export const PreferencesSchema = z.object({
     projects: true,
     planner: true,
   }),
+  moduleOrder: z
+    .array(
+      z.enum([
+        "expenses",
+        "focus",
+        "cgpa",
+        "coding",
+        "career",
+        "habits",
+        "notes",
+        "roadmaps",
+        "projects",
+        "planner",
+      ]),
+    )
+    .optional(),
   /** First-run launch experience and focus selection are completed independently. */
   hasCompletedFirstLaunch: z.boolean().default(false),
   onboardingCompleted: z.boolean().default(false),

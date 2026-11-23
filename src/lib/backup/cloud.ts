@@ -426,6 +426,10 @@ declare global {
 
 const GIS_URL = "https://accounts.google.com/gsi/client";
 const DRIVE_SCOPE = "https://www.googleapis.com/auth/drive.file";
+const ENV_GOOGLE_CLIENT_ID =
+  typeof import.meta !== "undefined" && import.meta.env?.VITE_GOOGLE_CLIENT_ID
+    ? String(import.meta.env.VITE_GOOGLE_CLIENT_ID).trim()
+    : "";
 
 function loadGis(): Promise<boolean> {
   if (typeof document === "undefined") return Promise.resolve(false);
@@ -452,8 +456,9 @@ function loadGis(): Promise<boolean> {
 export async function requestGoogleToken(
   clientId: string,
 ): Promise<CloudResult<{ token: string }>> {
-  if (!clientId)
-    return { ok: false, error: "Add your Google OAuth client id first.", needsAuth: true };
+  const resolvedClientId = clientId.trim() || ENV_GOOGLE_CLIENT_ID;
+  if (!resolvedClientId)
+    return { ok: false, error: "Google Drive is not configured for this build.", needsAuth: true };
   if (!(await loadGis())) {
     return {
       ok: false,
@@ -462,7 +467,7 @@ export async function requestGoogleToken(
     };
   }
   const client = window.google?.accounts?.oauth2?.initTokenClient({
-    client_id: clientId,
+    client_id: resolvedClientId,
     scope: DRIVE_SCOPE,
     callback: () => {},
   });
@@ -487,7 +492,7 @@ export async function requestGoogleToken(
     try {
       window
         .google!.accounts!.oauth2!.initTokenClient({
-          client_id: clientId,
+          client_id: resolvedClientId,
           scope: DRIVE_SCOPE,
           callback: (response) => {
             clearTimeout(timeout);
@@ -1118,15 +1123,17 @@ export const CLOUD_PROVIDERS: CloudDescriptor[] = [
     name: "Google Drive",
     blurb:
       "Backups live in a “SkillSync Backups” folder in your Drive, signed in with your Google account.",
-    fields: [
-      {
-        key: "clientId",
-        label: "OAuth client id",
-        placeholder: "1234-abc.apps.googleusercontent.com",
-        help: "A “Web application” OAuth client from your Google Cloud project.",
-        required: true,
-      },
-    ],
+    fields: ENV_GOOGLE_CLIENT_ID
+      ? []
+      : [
+          {
+            key: "clientId",
+            label: "OAuth client id",
+            placeholder: "1234-abc.apps.googleusercontent.com",
+            help: "A “Web application” OAuth client from your Google Cloud project.",
+            required: true,
+          },
+        ],
     steps: [
       "console.cloud.google.com → APIs & Services → enable the Google Drive API.",
       "OAuth consent screen → External, add the scope …/auth/drive.file and publish.",

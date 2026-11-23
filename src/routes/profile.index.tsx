@@ -341,37 +341,44 @@ function ProfilePage() {
             title={goals.length > 0 ? `Aims · ${goals.length}` : "Aims"}
             action={<Link to="/goals">Manage</Link>}
           />
-          <Card className="p-4">
+          <Card className="overflow-hidden p-0">
             {goals.length === 0 ? (
-              <p className="text-[12.5px] leading-relaxed text-muted-foreground">
-                No aims yet. Add what you are working on — gym, no junk food, academics — and they
-                stay pinned to the top of your dashboard. No points, no levels.
-              </p>
+              <div className="flex items-center justify-between gap-4 p-4">
+                <p className="text-[12.5px] leading-relaxed text-muted-foreground">
+                  No aims yet. Add what you are working on — gym, academics, or daily habits.
+                </p>
+                <Link
+                  to="/goals"
+                  className="shrink-0 rounded-[5px] border border-border px-3 py-1.5 text-[11px] font-semibold uppercase tracking-[0.08em] text-foreground transition-colors hover:border-primary/50"
+                >
+                  Add
+                </Link>
+              </div>
             ) : (
-              <div className="flex flex-wrap gap-2">
+              <div className="divide-y divide-border/60">
                 {goals.map((goal) => (
-                  <span
+                  <Link
                     key={goal.id}
-                    className="flex items-center gap-1.5 rounded-full border border-[color-mix(in_oklab,var(--primary)_24%,transparent)] bg-[color-mix(in_oklab,var(--primary)_8%,transparent)] px-3 py-1.5 text-[12.5px] font-medium"
+                    to="/goals"
+                    className="flex items-center justify-between gap-3 px-4 py-3 transition-colors hover:bg-white/[0.025]"
                   >
-                    <SemanticIcon
-                      value={goal.emoji}
-                      fallback={DEFAULT_GOAL_ICON}
-                      className="h-3.5 w-3.5 text-primary"
-                    />
-                    {goal.title}
-                  </span>
+                    <div className="flex min-w-0 items-center gap-3">
+                      <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-[5px] bg-[color-mix(in_oklab,var(--primary)_10%,transparent)] text-primary">
+                        <SemanticIcon
+                          value={goal.emoji}
+                          fallback={DEFAULT_GOAL_ICON}
+                          className="h-4 w-4"
+                        />
+                      </span>
+                      <span className="truncate text-[13.5px] font-medium text-foreground">
+                        {goal.title}
+                      </span>
+                    </div>
+                    <ChevronRight className="h-4 w-4 shrink-0 text-muted-foreground/60" />
+                  </Link>
                 ))}
               </div>
             )}
-            <Link
-              to="/goals"
-              className="mt-4 inline-flex items-center gap-1.5 text-[12.5px] text-muted-foreground transition-colors hover:text-foreground"
-            >
-              <Target className="h-3.5 w-3.5" strokeWidth={1.75} />
-              Edit your aims
-              <ChevronRight className="h-3.5 w-3.5" />
-            </Link>
           </Card>
         </section>
 
@@ -479,10 +486,10 @@ function ProfilePage() {
             <div className="min-w-0 flex-1">
               <div className="flex items-center gap-2">
                 <div className="text-[14px] font-semibold tracking-tight">Home screen widgets</div>
-                <Chip>13</Chip>
+                <Chip>3</Chip>
               </div>
               <div className="text-[12px] text-muted-foreground">
-                Habits, focus, aims and tasks outside the app
+                Sticky note, expense logger, and habit check-in
               </div>
             </div>
             <ChevronRight className="h-4 w-4 text-muted-foreground/60" />
