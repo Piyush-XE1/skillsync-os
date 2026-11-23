@@ -798,6 +798,27 @@ const webdavProvider = {
 // PROVIDER: GOOGLE DRIVE
 // ============================================================================
 
+/** Google Drive wording: an expired sign-in is fixed by reconnecting, not by pasting a token. */
+function describeDriveStatus(
+  status: number,
+  body: string,
+): { error: string; hint?: string; needsAuth?: boolean } {
+  if (status === 401) {
+    return {
+      error: "Your Google Drive sign-in has expired.",
+      hint: "Tap Connect with Google to sign in again.",
+      needsAuth: true,
+    };
+  }
+  if (status === 403 && /accessNotConfigured|SERVICE_DISABLED|has not been used/i.test(body)) {
+    return {
+      error: "The Google Drive API is turned off for this Google project.",
+      hint: "Enable “Google Drive API” in Google Cloud Console, then try again.",
+    };
+  }
+  return describeStatus(status, body);
+}
+
 const DRIVE_ROOT = "https://www.googleapis.com/drive/v3";
 const DRIVE_UPLOAD = "https://www.googleapis.com/upload/drive/v3";
 const FOLDER_NAME = "SkillSync Backups";
@@ -812,22 +833,18 @@ const driveProvider = {
   async ensureFolder(call: Call): Promise<CloudResult<{ folderId?: string }>> {
     const existing = await driveProvider.folderId(call);
     if (existing) return { ok: true, folderId: existing };
-    const boundary = "skillsync-boundary";
+    // The metadata-only /files endpoint takes plain JSON, not a multipart body.
     const metadata = { name: FOLDER_NAME, mimeType: "application/vnd.google-apps.folder" };
-    const body =
-      `--${boundary}\r\nContent-Type: application/json; charset=UTF-8\r\n\r\n` +
-      `${JSON.stringify(metadata)}\r\n` +
-      `--${boundary}--\r\n`;
     const created = await http({
       method: "POST",
       url: `${DRIVE_ROOT}/files?fields=id`,
       headers: {
         Authorization: `Bearer ${call.token}`,
-        "Content-Type": `multipart/related; boundary=${boundary}`,
+        "Content-Type": "application/json; charset=UTF-8",
       },
-      body,
+      body: JSON.stringify(metadata),
     });
-    if (!created.ok) return { ok: false, ...describeStatus(created.status, created.text) };
+    if (!created.ok) return { ok: false, ...describeDriveStatus(created.status, created.text) };
     const id = (created.json as { id?: string } | null)?.id ?? null;
     if (id) {
       setCloudExtras("google-drive", { folderId: id });
@@ -848,7 +865,7 @@ const driveProvider = {
       url,
       headers: { Authorization: `Bearer ${call.token}` },
     });
-    if (!result.ok) return { ok: false, ...describeStatus(result.status, result.text) };
+    if (!result.ok) return { ok: false, ...describeDriveStatus(result.status, result.text) };
     const files = (result.json as { files?: unknown[] } | null)?.files ?? [];
     const items: CloudItem[] = (files as Array<Record<string, unknown>>).map((file) => ({
       id: String(file.id ?? ""),
@@ -889,7 +906,7 @@ const driveProvider = {
       },
       body,
     });
-    if (!result.ok) return { ok: false, ...describeStatus(result.status, result.text) };
+    if (!result.ok) return { ok: false, ...describeDriveStatus(result.status, result.text) };
     const id = (result.json as { id?: string } | null)?.id;
     if (!id) return { ok: false, error: "Google Drive did not return a file id." };
     return { ok: true, fileId: id };
@@ -911,7 +928,7 @@ const driveProvider = {
       headers: { Authorization: `Bearer ${call.token}` },
       accept: "application/json, text/plain",
     });
-    if (!result.ok) return { ok: false, ...describeStatus(result.status, result.text) };
+    if (!result.ok) return { ok: false, ...describeDriveStatus(result.status, result.text) };
     return { ok: true, text: result.text, name };
   },
 
@@ -922,7 +939,7 @@ const driveProvider = {
       url: `${DRIVE_ROOT}/files/${encodeURIComponent(fileId)}`,
       headers: { Authorization: `Bearer ${call.token}` },
     });
-    if (!result.ok) return { ok: false, ...describeStatus(result.status, result.text) };
+    if (!result.ok) return { ok: false, ...describeDriveStatus(result.status, result.text) };
     return { ok: true };
   },
 
@@ -933,7 +950,7 @@ const driveProvider = {
       url: `${DRIVE_ROOT}/about?fields=user,storageQuota`,
       headers: { Authorization: `Bearer ${call.token}` },
     });
-    if (!result.ok) return { ok: false, ...describeStatus(result.status, result.text) };
+    if (!result.ok) return { ok: false, ...describeDriveStatus(result.status, result.text) };
     const about = result.json as {
       user?: { emailAddress?: string };
       storageQuota?: { usage?: string };

@@ -313,6 +313,21 @@ describe("google drive", () => {
     expect(listing.url).toContain("pageSize=100");
   });
 
+  it("creates the backup folder with a plain JSON body", async () => {
+    next((url) =>
+      url === "https://www.googleapis.com/drive/v3/files?fields=id"
+        ? respondWith({ id: "folder-2" })
+        : respondWith({ id: "file-2" }),
+    );
+    await cloudUpload("google-drive", { filename: "b.json", text: "{}" });
+    const folder = calls.find((c) => c.url === "https://www.googleapis.com/drive/v3/files?fields=id");
+    expect(folder?.headers["Content-Type"]).toContain("application/json");
+    expect(JSON.parse(String(folder?.body))).toEqual({
+      name: "SkillSync Backups",
+      mimeType: "application/vnd.google-apps.folder",
+    });
+  });
+
   it("reads a file back through alt=media", async () => {
     next((url) =>
       url.includes("fields=name")
