@@ -3,31 +3,37 @@
 <FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:id="@+id/widget_root"
     android:layout_width="match_parent"
-    android:layout_height="match_parent"
-    android:background="@drawable/widget_expense_tile">
+    android:layout_height="match_parent">
 
-    <LinearLayout
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
+    <FrameLayout
+        android:layout_width="56dp"
+        android:layout_height="56dp"
         android:layout_gravity="center"
-        android:gravity="center"
-        android:orientation="vertical">
+        android:background="@drawable/widget_expense_tile">
 
-        <TextView
+        <LinearLayout
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:fontFamily="sans-serif-medium"
-            android:text="+"
-            android:textColor="@color/widgetAccent"
-            android:textSize="26sp" />
+            android:layout_gravity="center"
+            android:gravity="center"
+            android:orientation="vertical">
 
-        <TextView
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="1dp"
-            android:text="SPEND"
-            android:textColor="@color/widgetText"
-            android:textSize="8sp"
-            android:letterSpacing="0.1" />
-    </LinearLayout>
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:fontFamily="sans-serif-medium"
+                android:text="+"
+                android:textColor="@color/widgetAccent"
+                android:textSize="24sp" />
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="1dp"
+                android:text="SPEND"
+                android:textColor="@color/widgetText"
+                android:textSize="8sp"
+                android:letterSpacing="0.1" />
+        </LinearLayout>
+    </FrameLayout>
 </FrameLayout>

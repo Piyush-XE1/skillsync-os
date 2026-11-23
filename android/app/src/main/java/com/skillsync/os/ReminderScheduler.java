@@ -83,10 +83,10 @@ final class ReminderScheduler {
             if (canScheduleExact(context)) {
                 alarms.setExactAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, at, intent);
             } else {
-                alarms.setAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, at, intent);
+                alarms.setAlarmClock(new AlarmManager.AlarmClockInfo(at, intent), intent);
             }
         } catch (SecurityException e) {
-            alarms.setAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, at, intent);
+            alarms.setAlarmClock(new AlarmManager.AlarmClockInfo(at, intent), intent);
         }
     }
 

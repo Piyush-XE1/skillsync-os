@@ -336,6 +336,7 @@ export function visibleWidgets(
 ): WidgetPlacement[] {
   return normalizeWidgetLayout(layout).filter((entry) => {
     if (!entry.visible) return false;
+    if (entry.id === "goals" || entry.id === "quickAccess") return false;
     return hasEnabledModule(WIDGET_BY_ID[entry.id].module, modules);
   });
 }

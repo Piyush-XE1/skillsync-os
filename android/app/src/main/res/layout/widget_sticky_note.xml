@@ -7,7 +7,7 @@
     android:background="@drawable/widget_paper"
     android:orientation="vertical">
 
-    <View
+    <TextView
         android:layout_width="30dp"
         android:layout_height="5dp"
         android:layout_gravity="center_horizontal"
@@ -38,7 +38,7 @@
             android:letterSpacing="0.1" />
     </LinearLayout>
 
-    <View
+    <TextView
         android:layout_width="match_parent"
         android:layout_height="1dp"
         android:layout_marginTop="5dp"

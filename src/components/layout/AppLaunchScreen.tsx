@@ -134,7 +134,8 @@ export function AppLaunchScreen() {
         style={{
           paddingBottom: "env(safe-area-inset-bottom)",
           opacity: leaving ? 0 : 1,
-          transition: `opacity ${FAST_EXIT_MS}ms ease-out`,
+          transform: leaving ? "scale(1.03)" : "scale(1)",
+          transition: `opacity ${FAST_EXIT_MS}ms cubic-bezier(0.22, 1, 0.36, 1), transform ${FAST_EXIT_MS}ms cubic-bezier(0.22, 1, 0.36, 1)`,
         }}
       >
         <div className="ssx-fast-mark flex flex-col items-center">
@@ -144,8 +145,11 @@ export function AppLaunchScreen() {
           </div>
         </div>
         <style>{`
-          @keyframes ssx-fast-mark { from { opacity: 0; } to { opacity: 1; } }
-          .ssx-fast-mark { animation: ssx-fast-mark 90ms ease-out both; }
+          @keyframes ssx-fast-mark {
+            from { opacity: 0; transform: scale(0.92); filter: blur(4px); }
+            to { opacity: 1; transform: scale(1); filter: blur(0); }
+          }
+          .ssx-fast-mark { animation: ssx-fast-mark 260ms cubic-bezier(0.22, 1, 0.36, 1) both; }
         `}</style>
       </div>
     );

@@ -6,9 +6,6 @@ import { AppShell } from "@/components/layout/AppShell";
 import { WidgetGrid } from "@/components/widgets/WidgetGrid";
 import { DashboardGuidance } from "@/components/dashboard/DashboardGuidance";
 import { WidgetCustomizer } from "@/components/widgets/WidgetCustomizer";
-import { ArchetypeSection } from "@/components/home/ArchetypeSection";
-import { AntiSelfSection } from "@/components/home/AntiSelfSection";
-import { MementoMoriSection } from "@/components/home/MementoMoriSection";
 import { useAppStore } from "@/store/useAppStore";
 import { visibleWidgets } from "@/lib/widgets";
 import { haptics } from "@/lib/haptics";
@@ -83,36 +80,17 @@ function Dashboard() {
     <AppShell>
       <TypographicHomeHeader firstName={firstName} />
 
-      <section aria-label="Identity" className="border-t border-border pt-2">
-        <ArchetypeSection />
-      </section>
-
-      <TypeRibbon />
-
-      <div className="px-5 py-12 lg:px-2 lg:py-16">
+      <div className="px-5 py-4 lg:px-2 lg:py-6">
         <DashboardGuidance />
 
-        <section aria-labelledby="dashboard-heading" className="border-t border-border pt-5">
-          <div className="mb-5 flex items-end justify-between gap-4">
-            <div className="min-w-0">
-              <div className="flex items-center gap-3">
-                <span className="font-numerical text-[9px] tracking-[0.18em] text-primary">
-                  01 / LIVE SYSTEMS
-                </span>
-                <span className="h-px w-8 bg-border" aria-hidden="true" />
-              </div>
-              <h2
-                id="dashboard-heading"
-                className="font-editorial mt-2 text-[clamp(2rem,5vw,4.4rem)] font-normal leading-[0.95] tracking-[-0.045em]"
-              >
-                Your <em className="font-normal text-primary">dashboard.</em>
-              </h2>
-              <p className="mt-2 text-[11px] uppercase tracking-[0.14em] text-muted-foreground">
-                {customizing
-                  ? "Drag the grip to rearrange · × removes"
-                  : `${shownCount} working instrument${shownCount === 1 ? "" : "s"} · yours to arrange`}
-              </p>
-            </div>
+        <section aria-labelledby="dashboard-heading">
+          <div className="mb-4 flex items-center justify-between gap-4">
+            <h2
+              id="dashboard-heading"
+              className="font-editorial text-xl font-normal tracking-[-0.02em] text-foreground"
+            >
+              {customizing ? "Drag to rearrange · × removes" : "Dashboard"}
+            </h2>
 
             <div className="flex shrink-0 items-center gap-2">
               {customizing ? (
@@ -192,22 +170,6 @@ function Dashboard() {
         </section>
       </div>
 
-      <section aria-label="Reflection" className="border-t border-border pt-2">
-        <AntiSelfSection />
-        <MementoMoriSection />
-      </section>
-
-      <footer className="px-5 pb-8 pt-10 lg:px-2">
-        <div className="border-t border-border pt-6 text-center">
-          <p className="font-editorial text-lg text-foreground/80">
-            Private by design. Deliberate by practice.
-          </p>
-          <p className="mt-2 text-[9px] uppercase tracking-[0.18em] text-muted-foreground">
-            Local-first · Cloud backup only when you choose
-          </p>
-        </div>
-      </footer>
-
       <WidgetCustomizer
         open={openCustomizer}
         onClose={() => {
@@ -285,13 +247,14 @@ function TypographicHomeHeader({ firstName }: { firstName: string }) {
       <div className="py-9 sm:py-12 lg:py-16">
         <div className="editorial-kicker mb-5">Field notes / Today</div>
         <h1 className="text-balance leading-[0.82] tracking-[-0.065em]">
-          <span className="block font-sans text-[clamp(2.2rem,7vw,6.6rem)] font-light uppercase text-foreground/90">
+          <span className="font-sans text-xl font-light text-foreground/90 sm:text-2xl">
             {lead}{" "}
             {remainder ? (
-              <em className="font-editorial normal-case font-normal text-primary">{remainder}</em>
+              <em className="font-editorial font-normal text-primary">{remainder}</em>
             ) : null}
+            ,{" "}
           </span>
-          <span className="font-editorial mt-3 block text-[clamp(4.2rem,14vw,12.5rem)] font-normal">
+          <span className="font-editorial text-2xl font-normal sm:text-3xl">
             <ChromaticWord value={firstName} />
             <span className="text-primary">.</span>
           </span>
